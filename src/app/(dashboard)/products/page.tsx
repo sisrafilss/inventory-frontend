@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/context/auth-context';
 import { api } from '@/lib/api/client';
 import { Product, Category } from '@/lib/types';
-import { formatCurrency } from '@/lib/utils';
+import { useLanguage } from '@/lib/context/language-context';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import { Package, Plus, Search, Edit2, AlertCircle } from 'lucide-react';
 
 export default function ProductsPage() {
   const { user } = useAuth();
+  const { t, formatMoney } = useLanguage();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -151,16 +152,16 @@ export default function ProductsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Package className="w-6 h-6 text-primary" /> Product Catalog
+            <Package className="w-6 h-6 text-primary" /> {t('products.title')}
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Manage product items, prices, SKUs, and track current stock availability
+            {t('products.subtitle')}
           </p>
         </div>
 
         {canManage && (
           <Button onClick={handleOpenCreate} className="gap-2">
-            <Plus className="w-4 h-4" /> Add Product
+            <Plus className="w-4 h-4" /> {t('products.addProduct')}
           </Button>
         )}
       </div>
@@ -177,7 +178,7 @@ export default function ProductsPage() {
           <div className="sm:col-span-6 relative">
             <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
             <Input
-              placeholder="Search by product name or SKU..."
+              placeholder={t('products.searchPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 text-xs h-9"
@@ -190,7 +191,7 @@ export default function ProductsPage() {
               onChange={(e) => setCategoryFilter(e.target.value)}
               className="text-xs h-9"
             >
-              <option value="">All Categories</option>
+              <option value="">{t('products.allCategories')}</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -205,10 +206,10 @@ export default function ProductsPage() {
               onChange={(e) => setStockFilter(e.target.value)}
               className="text-xs h-9"
             >
-              <option value="ALL">All Stock Statuses</option>
-              <option value="IN_STOCK">In Stock</option>
-              <option value="LOW_STOCK">Low Stock</option>
-              <option value="OUT_OF_STOCK">Out of Stock</option>
+              <option value="ALL">{t('products.allStockStatuses')}</option>
+              <option value="IN_STOCK">{t('products.inStock')}</option>
+              <option value="LOW_STOCK">{t('products.lowStock')}</option>
+              <option value="OUT_OF_STOCK">{t('products.outOfStock')}</option>
             </Select>
           </div>
         </form>
@@ -218,27 +219,27 @@ export default function ProductsPage() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <div className="p-12 text-center text-xs text-muted-foreground">Loading products...</div>
+            <div className="p-12 text-center text-xs text-muted-foreground">{t('products.loading')}</div>
           ) : error ? (
             <div className="p-6 text-center text-xs text-destructive">{error}</div>
           ) : products.length === 0 ? (
             <div className="p-12 text-center text-xs text-muted-foreground">
-              No products found matching criteria.
+              {t('products.noProducts')}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="bg-muted/30 border-b text-muted-foreground">
                   <tr className="text-left font-semibold">
-                    <th className="p-3">SKU</th>
-                    <th className="p-3">Product Name</th>
-                    <th className="p-3">Category</th>
-                    <th className="p-3">Unit</th>
-                    {canManage && <th className="p-3 text-right">Cost Price</th>}
-                    <th className="p-3 text-right">Selling Price</th>
-                    <th className="p-3 text-center">Available Stock</th>
-                    <th className="p-3">Status</th>
-                    {canManage && <th className="p-3 text-right">Action</th>}
+                    <th className="p-3">{t('products.sku')}</th>
+                    <th className="p-3">{t('products.name')}</th>
+                    <th className="p-3">{t('products.category')}</th>
+                    <th className="p-3">{t('products.unit')}</th>
+                    {canManage && <th className="p-3 text-right">{t('products.costPrice')}</th>}
+                    <th className="p-3 text-right">{t('products.sellingPrice')}</th>
+                    <th className="p-3 text-center">{t('products.availableStock')}</th>
+                    <th className="p-3">{t('products.status')}</th>
+                    {canManage && <th className="p-3 text-right">{t('products.action')}</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -257,11 +258,11 @@ export default function ProductsPage() {
                       <td className="p-3 text-muted-foreground">{p.unit}</td>
                       {canManage && (
                         <td className="p-3 text-right font-medium text-muted-foreground">
-                          {formatCurrency(p.costPrice)}
+                          {formatMoney(p.costPrice)}
                         </td>
                       )}
                       <td className="p-3 text-right font-bold text-foreground">
-                        {formatCurrency(p.sellingPrice)}
+                        {formatMoney(p.sellingPrice)}
                       </td>
                       <td className="p-3 text-center">
                         <span
@@ -288,7 +289,11 @@ export default function ProductsPage() {
                           }
                           className="text-[10px] uppercase font-bold"
                         >
-                          {p.stockStatus.replace('_', ' ')}
+                          {p.stockStatus === 'IN_STOCK'
+                            ? t('products.inStock')
+                            : p.stockStatus === 'LOW_STOCK'
+                            ? t('products.lowStock')
+                            : t('products.outOfStock')}
                         </Badge>
                       </td>
                       {canManage && (
@@ -299,7 +304,7 @@ export default function ProductsPage() {
                             className="h-7 text-xs"
                             onClick={() => handleOpenEdit(p)}
                           >
-                            <Edit2 className="w-3 h-3 mr-1" /> Edit
+                            <Edit2 className="w-3 h-3 mr-1" /> {t('products.edit')}
                           </Button>
                         </td>
                       )}
@@ -315,18 +320,18 @@ export default function ProductsPage() {
       {/* Create / Edit Dialog */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogHeader>
-          <DialogTitle>{editingProduct ? 'Edit Product' : 'Add New Product'}</DialogTitle>
+          <DialogTitle>{editingProduct ? t('products.dialogEditTitle') : t('products.dialogAddTitle')}</DialogTitle>
           <DialogDescription>
             {editingProduct
-              ? 'Update product pricing, category, reorder thresholds, or active state.'
-              : 'Enter details for the new product to add to inventory.'}
+              ? t('products.dialogEditDesc')
+              : t('products.dialogAddDesc')}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSave} className="space-y-3 text-xs">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="font-semibold">Product Name *</label>
+              <label className="font-semibold">{t('products.name')} *</label>
               <Input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -334,7 +339,7 @@ export default function ProductsPage() {
               />
             </div>
             <div className="space-y-1">
-              <label className="font-semibold">SKU / Code *</label>
+              <label className="font-semibold">{t('products.sku')} *</label>
               <Input
                 value={form.sku}
                 onChange={(e) => setForm({ ...form, sku: e.target.value.toUpperCase() })}
@@ -346,13 +351,13 @@ export default function ProductsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="font-semibold">Category *</label>
+              <label className="font-semibold">{t('products.category')} *</label>
               <Select
                 value={form.categoryId}
                 onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
                 required
               >
-                <option value="">Select Category</option>
+                <option value="">{t('products.selectCategory')}</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -361,7 +366,7 @@ export default function ProductsPage() {
               </Select>
             </div>
             <div className="space-y-1">
-              <label className="font-semibold">Unit of Measure *</label>
+              <label className="font-semibold">{t('products.unit')} *</label>
               <Input
                 value={form.unit}
                 onChange={(e) => setForm({ ...form, unit: e.target.value })}
@@ -373,7 +378,7 @@ export default function ProductsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="font-semibold">Cost Price (per unit) *</label>
+              <label className="font-semibold">{t('products.costPrice')} *</label>
               <Input
                 type="number"
                 step="0.01"
@@ -384,7 +389,7 @@ export default function ProductsPage() {
               />
             </div>
             <div className="space-y-1">
-              <label className="font-semibold">Selling Price (per unit) *</label>
+              <label className="font-semibold">{t('products.sellingPrice')} *</label>
               <Input
                 type="number"
                 step="0.01"
@@ -399,7 +404,7 @@ export default function ProductsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {!editingProduct && (
               <div className="space-y-1">
-                <label className="font-semibold">Initial Opening Quantity</label>
+                <label className="font-semibold">{t('products.initialQuantity')}</label>
                 <Input
                   type="number"
                   min="0"
@@ -409,7 +414,7 @@ export default function ProductsPage() {
               </div>
             )}
             <div className="space-y-1">
-              <label className="font-semibold">Reorder Threshold Level *</label>
+              <label className="font-semibold">{t('products.reorderLevel')} *</label>
               <Input
                 type="number"
                 min="0"
@@ -421,7 +426,7 @@ export default function ProductsPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="font-semibold">Description (Optional)</label>
+            <label className="font-semibold">{t('products.description')}</label>
             <Input
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -433,7 +438,7 @@ export default function ProductsPage() {
             <div className="p-2.5 bg-muted/40 rounded-lg text-muted-foreground flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
               <span>
-                To adjust current quantity ({editingProduct.quantity}), use the <strong>Adjust Stock</strong> action under the <strong>Inventory</strong> section to maintain an immutable audit trail.
+                {t('products.adjustWarning')}
               </span>
             </div>
           )}
@@ -447,7 +452,7 @@ export default function ProductsPage() {
               className="rounded border-input text-primary"
             />
             <label htmlFor="productActive" className="font-medium cursor-pointer">
-              Active Product (Can be sold in new sales entries)
+              {t('products.activeProduct')}
             </label>
           </div>
 
@@ -459,10 +464,10 @@ export default function ProductsPage() {
               onClick={() => setModalOpen(false)}
               disabled={isSaving}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button type="submit" size="sm" disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Save Product'}
+              {isSaving ? t('products.saving') : t('products.save')}
             </Button>
           </DialogFooter>
         </form>

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api/client';
 import { AuditLog } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
+import { useLanguage } from '@/lib/context/language-context';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,7 @@ import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } fr
 import { ShieldCheck, Search, Eye, Filter } from 'lucide-react';
 
 export default function AuditLogsPage() {
+  const { t } = useLanguage();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,10 +49,10 @@ export default function AuditLogsPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-          <ShieldCheck className="w-6 h-6 text-primary" /> System Audit Trail
+          <ShieldCheck className="w-6 h-6 text-primary" /> {t('audit.title')}
         </h2>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Immutable, tamper-resistant system log recording sensitive security, inventory, and sales transactions
+          {t('audit.subtitle')}
         </p>
       </div>
 
@@ -65,7 +67,7 @@ export default function AuditLogsPage() {
         >
           <div>
             <Input
-              placeholder="Filter by action name (e.g. SALE_APPROVED, STOCK_ADJUSTED)..."
+              placeholder={t('audit.filterAction')}
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
               className="text-xs h-9"
@@ -74,7 +76,7 @@ export default function AuditLogsPage() {
 
           <div>
             <Input
-              placeholder="Filter by entity type (e.g. Product, Sale, User)..."
+              placeholder={t('audit.filterEntity')}
               value={entityFilter}
               onChange={(e) => setEntityFilter(e.target.value)}
               className="text-xs h-9"
@@ -87,24 +89,24 @@ export default function AuditLogsPage() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <div className="p-12 text-center text-xs text-muted-foreground">Loading audit records...</div>
+            <div className="p-12 text-center text-xs text-muted-foreground">{t('common.loading')}</div>
           ) : error ? (
             <div className="p-6 text-center text-xs text-destructive">{error}</div>
           ) : logs.length === 0 ? (
             <div className="p-12 text-center text-xs text-muted-foreground">
-              No audit records found matching your query.
+              {t('audit.noLogs')}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="bg-muted/30 border-b text-muted-foreground">
                   <tr className="text-left font-semibold">
-                    <th className="p-3">Timestamp</th>
-                    <th className="p-3">Actor / User</th>
-                    <th className="p-3">Action</th>
-                    <th className="p-3">Entity Type</th>
-                    <th className="p-3">Entity ID</th>
-                    <th className="p-3 text-right">Payload</th>
+                    <th className="p-3">{t('inventory.timestamp')}</th>
+                    <th className="p-3">{t('audit.actor')}</th>
+                    <th className="p-3">{t('audit.action')}</th>
+                    <th className="p-3">{t('audit.entityType')}</th>
+                    <th className="p-3">{t('audit.entityId')}</th>
+                    <th className="p-3 text-right">{t('audit.payload')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -142,10 +144,10 @@ export default function AuditLogsPage() {
                             className="h-7 text-xs"
                             onClick={() => setSelectedLog(log)}
                           >
-                            <Eye className="w-3 h-3 mr-1" /> View Metadata
+                            <Eye className="w-3 h-3 mr-1" /> {t('audit.viewMetadata')}
                           </Button>
                         ) : (
-                          <span className="text-muted-foreground text-[10px]">No metadata</span>
+                          <span className="text-muted-foreground text-[10px]">—</span>
                         )}
                       </td>
                     </tr>
@@ -160,9 +162,9 @@ export default function AuditLogsPage() {
       {/* Metadata Modal */}
       <Dialog open={!!selectedLog} onOpenChange={(open) => !open && setSelectedLog(null)}>
         <DialogHeader>
-          <DialogTitle>Audit Entry Metadata</DialogTitle>
+          <DialogTitle>{t('audit.modalTitle')}</DialogTitle>
           <DialogDescription>
-            Action: <strong>{selectedLog?.action}</strong> on <strong>{selectedLog?.entityType}</strong>
+            {t('audit.action')}: <strong>{selectedLog?.action}</strong> on <strong>{selectedLog?.entityType}</strong>
           </DialogDescription>
         </DialogHeader>
 
@@ -176,7 +178,7 @@ export default function AuditLogsPage() {
 
             <DialogFooter>
               <Button variant="outline" size="sm" onClick={() => setSelectedLog(null)}>
-                Close
+                {t('sales.close')}
               </Button>
             </DialogFooter>
           </div>

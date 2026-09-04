@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/context/auth-context';
+import { useLanguage } from '@/lib/context/language-context';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
@@ -15,9 +16,7 @@ import {
   Clock,
   BarChart3,
   ShieldCheck,
-  UserCheck,
   PlusCircle,
-  FileText,
   User as UserIcon,
 } from 'lucide-react';
 
@@ -28,6 +27,7 @@ interface SidebarProps {
 export function Sidebar({ onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { t } = useLanguage();
 
   if (!user) return null;
 
@@ -36,75 +36,75 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
   // Build navigation items based on role
   const navItems = [
     {
-      title: 'Dashboard',
+      key: 'dashboard',
       href: '/dashboard',
       icon: LayoutDashboard,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'SALES_OFFICER'],
     },
     // Sales Officer specific
     {
-      title: 'New Sale',
+      key: 'newSale',
       href: '/sales/new',
       icon: PlusCircle,
       roles: ['SALES_OFFICER', 'ADMIN', 'SUPER_ADMIN'],
     },
     {
-      title: 'My Sales',
+      key: 'mySales',
       href: '/sales',
       icon: ShoppingCart,
       roles: ['SALES_OFFICER'],
     },
     // Admin / Manager / Super Admin
     {
-      title: 'Pending Sales',
+      key: 'pendingSales',
       href: '/sales/pending',
       icon: Clock,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
-      title: 'All Sales',
+      key: 'allSales',
       href: '/sales',
       icon: ShoppingCart,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
-      title: 'Products',
+      key: 'products',
       href: '/products',
       icon: Package,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'SALES_OFFICER'],
     },
     {
-      title: 'Categories',
+      key: 'categories',
       href: '/categories',
       icon: Layers,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
-      title: 'Inventory & Stock',
+      key: 'inventory',
       href: '/inventory',
       icon: Boxes,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
-      title: 'User Management',
+      key: 'users',
       href: '/users',
       icon: Users,
       roles: ['SUPER_ADMIN', 'ADMIN'],
     },
     {
-      title: 'Reports',
+      key: 'reports',
       href: '/reports',
       icon: BarChart3,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
-      title: 'Audit Logs',
+      key: 'auditLogs',
       href: '/audit-logs',
       icon: ShieldCheck,
       roles: ['SUPER_ADMIN', 'ADMIN'],
     },
     {
-      title: 'Profile',
+      key: 'profile',
       href: '/profile',
       icon: UserIcon,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'SALES_OFFICER'],
@@ -122,10 +122,10 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
         </div>
         <div>
           <h1 className="font-bold text-sm tracking-tight leading-none text-foreground">
-            Inventory Pro
+            {t('common.appName')}
           </h1>
           <p className="text-[11px] text-muted-foreground mt-0.5 font-medium">
-            Management MVP
+            {t('common.appSubtitle')}
           </p>
         </div>
       </div>
@@ -134,13 +134,14 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {filteredNav.map((item) => {
           const Icon = item.icon;
+          const title = t(`nav.${item.key}`);
           const isActive =
             pathname === item.href ||
             (item.href !== '/dashboard' && pathname.startsWith(item.href) && item.href !== '/sales');
 
           return (
             <Link
-              key={item.href + item.title}
+              key={item.href + item.key}
               href={item.href}
               onClick={onCloseMobile}
               className={cn(
@@ -151,7 +152,7 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
               )}
             >
               <Icon className="w-4 h-4 shrink-0" />
-              <span>{item.title}</span>
+              <span>{title}</span>
             </Link>
           );
         })}
@@ -166,7 +167,7 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
           <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold truncate text-foreground">{user.name}</p>
             <p className="text-[10px] text-muted-foreground truncate uppercase font-bold tracking-wider">
-              {user.role.replace('_', ' ')}
+              {t(`roles.${user.role}`)}
             </p>
           </div>
         </div>
@@ -174,4 +175,3 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
     </aside>
   );
 }
-

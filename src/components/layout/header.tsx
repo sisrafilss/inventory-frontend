@@ -2,8 +2,10 @@
 
 import React from 'react';
 import { useAuth } from '@/lib/context/auth-context';
+import { useLanguage } from '@/lib/context/language-context';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import { LanguageSwitcher } from '../ui/language-switcher';
 import { Menu, LogOut, Shield } from 'lucide-react';
 
 interface HeaderProps {
@@ -12,6 +14,7 @@ interface HeaderProps {
 
 export function Header({ onOpenMobileMenu }: HeaderProps) {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
 
   if (!user) return null;
 
@@ -40,21 +43,26 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
         </button>
         <div>
           <span className="font-semibold text-sm text-foreground hidden sm:inline-block">
-            Inventory & Sales System
+            {t('common.appName')} — {t('common.appSubtitle')}
           </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5 sm:gap-3">
+        {/* Language Switcher Button */}
+        <LanguageSwitcher />
+
+        {/* Role Badge */}
         <Badge variant={getRoleBadgeVariant(user.role)} className="uppercase text-[10px] tracking-wider py-1 px-2.5">
           <Shield className="w-3 h-3 mr-1 inline" />
-          {user.role.replace('_', ' ')}
+          {t(`roles.${user.role}`)}
         </Badge>
 
         <span className="text-xs text-muted-foreground hidden md:inline font-medium">
           {user.email}
         </span>
 
+        {/* Logout Button */}
         <Button
           variant="outline"
           size="sm"
@@ -62,10 +70,9 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
           className="text-xs gap-1.5 h-8 text-muted-foreground hover:text-destructive hover:border-destructive"
         >
           <LogOut className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Logout</span>
+          <span className="hidden sm:inline">{t('nav.logout')}</span>
         </Button>
       </div>
     </header>
   );
 }
-

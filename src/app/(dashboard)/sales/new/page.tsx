@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api/client';
 import { Product } from '@/lib/types';
-import { formatCurrency } from '@/lib/utils';
+import { useLanguage } from '@/lib/context/language-context';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ interface FormItem {
 
 export default function CreateSalePage() {
   const router = useRouter();
+  const { t, formatMoney } = useLanguage();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -114,7 +115,7 @@ export default function CreateSalePage() {
 
   if (loading) {
     return (
-      <div className="p-12 text-center text-xs text-muted-foreground">Loading product catalog...</div>
+      <div className="p-12 text-center text-xs text-muted-foreground">{t('sales.loading')}</div>
     );
   }
 
@@ -126,10 +127,10 @@ export default function CreateSalePage() {
             href="/sales"
             className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mb-1 font-medium"
           >
-            <ArrowLeft className="w-3.5 h-3.5" /> Back to Sales
+            <ArrowLeft className="w-3.5 h-3.5" /> {t('sales.backToSales')}
           </Link>
           <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <ShoppingBag className="w-6 h-6 text-primary" /> Create Sales Entry
+            <ShoppingBag className="w-6 h-6 text-primary" /> {t('sales.createSaleTitle')}
           </h2>
         </div>
       </div>
@@ -145,14 +146,14 @@ export default function CreateSalePage() {
         {/* Customer Information */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-bold">Customer Details (Optional)</CardTitle>
+            <CardTitle className="text-sm font-bold">{t('sales.customerDetails')}</CardTitle>
             <CardDescription className="text-xs">
-              Record customer or corporate client contact information for handover reference
+              {t('sales.customerDetailsDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div className="space-y-1">
-              <label className="font-semibold text-foreground">Customer / Organization Name</label>
+              <label className="font-semibold text-foreground">{t('sales.customerName')}</label>
               <Input
                 placeholder="Walk-in Customer / Client Name"
                 value={customerName}
@@ -161,7 +162,7 @@ export default function CreateSalePage() {
             </div>
 
             <div className="space-y-1">
-              <label className="font-semibold text-foreground">Customer Phone</label>
+              <label className="font-semibold text-foreground">{t('sales.customerPhone')}</label>
               <Input
                 placeholder="Phone number"
                 value={customerPhone}
@@ -170,7 +171,7 @@ export default function CreateSalePage() {
             </div>
 
             <div className="sm:col-span-2 space-y-1">
-              <label className="font-semibold text-foreground">Order Notes / References</label>
+              <label className="font-semibold text-foreground">{t('sales.orderNotes')}</label>
               <Input
                 placeholder="Optional sales notes or delivery reference"
                 value={note}
@@ -184,9 +185,9 @@ export default function CreateSalePage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <div>
-              <CardTitle className="text-sm font-bold">Sales Product Lines</CardTitle>
+              <CardTitle className="text-sm font-bold">{t('sales.productLines')}</CardTitle>
               <CardDescription className="text-xs">
-                Select items from catalog and specify sold quantities
+                {t('sales.productLinesDesc')}
               </CardDescription>
             </div>
             <Button
@@ -196,7 +197,7 @@ export default function CreateSalePage() {
               onClick={handleAddItem}
               className="text-xs gap-1.5 h-8"
             >
-              <Plus className="w-3.5 h-3.5" /> Add Another Line
+              <Plus className="w-3.5 h-3.5" /> {t('sales.addLine')}
             </Button>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -209,7 +210,7 @@ export default function CreateSalePage() {
                 >
                   <div className="flex-1 w-full sm:w-auto">
                     <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
-                      Product Item #{idx + 1}
+                      {t('sales.itemsInSale')} #{idx + 1}
                     </label>
                     <Select
                       value={item.productId}
@@ -218,7 +219,7 @@ export default function CreateSalePage() {
                     >
                       {products.map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.name} ({p.sku}) — Available: {p.quantity} {p.unit} — {formatCurrency(p.sellingPrice)}
+                          {p.name} ({p.sku}) — {t('inventory.inStock')}: {p.quantity} {p.unit} — {formatMoney(p.sellingPrice)}
                         </option>
                       ))}
                     </Select>
@@ -226,7 +227,7 @@ export default function CreateSalePage() {
 
                   <div className="w-28">
                     <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
-                      Quantity
+                      {t('inventory.quantity')}
                     </label>
                     <Input
                       type="number"
@@ -242,19 +243,19 @@ export default function CreateSalePage() {
 
                   <div className="w-28 text-right">
                     <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
-                      Unit Price
+                      {t('sales.unitPrice')}
                     </label>
                     <span className="text-xs font-mono font-medium block pt-1.5 text-muted-foreground">
-                      {formatCurrency(detail.unitPrice)}
+                      {formatMoney(detail.unitPrice)}
                     </span>
                   </div>
 
                   <div className="w-32 text-right">
                     <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
-                      Line Total
+                      {t('sales.lineTotal')}
                     </label>
                     <span className="text-sm font-bold font-mono block pt-1 text-foreground">
-                      {formatCurrency(detail.lineTotal)}
+                      {formatMoney(detail.lineTotal)}
                     </span>
                   </div>
 
@@ -278,16 +279,16 @@ export default function CreateSalePage() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-primary/5 rounded-lg border border-primary/20 gap-2">
               <div>
                 <p className="text-xs font-semibold text-foreground">
-                  Total Items: <strong>{items.length} line item(s)</strong>
+                  {t('sales.totalItems')} <strong>{items.length} {t('sales.itemsCount')}</strong>
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  Prices and totals are recalculated and verified on the server.
+                  {t('sales.serverCalculationNotice')}
                 </p>
               </div>
               <div className="text-right">
-                <span className="text-xs text-muted-foreground block">Grand Total:</span>
+                <span className="text-xs text-muted-foreground block">{t('sales.grandTotal')}</span>
                 <span className="text-2xl font-extrabold text-foreground font-mono">
-                  {formatCurrency(grandTotal)}
+                  {formatMoney(grandTotal)}
                 </span>
               </div>
             </div>
@@ -297,12 +298,12 @@ export default function CreateSalePage() {
             <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
               <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
               <span>
-                Sales will remain <strong>PENDING</strong> until cash handover is confirmed and approved by an administrator.
+                {t('sales.pendingSubmissionNotice')}
               </span>
             </div>
 
             <Button type="submit" size="lg" className="w-full sm:w-auto font-semibold" disabled={isSubmitting}>
-              {isSubmitting ? 'Submitting Sale...' : 'Submit Sale for Approval'}
+              {isSubmitting ? t('sales.submittingSale') : t('sales.submitForApproval')}
             </Button>
           </CardFooter>
         </Card>

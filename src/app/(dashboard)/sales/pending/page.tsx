@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api/client';
 import { Sale } from '@/lib/types';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useLanguage } from '@/lib/context/language-context';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,7 @@ import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } fr
 import { Clock, CheckCircle2, XCircle, AlertTriangle, Eye } from 'lucide-react';
 
 export default function PendingSalesQueuePage() {
+  const { t, formatMoney } = useLanguage();
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -78,35 +80,35 @@ export default function PendingSalesQueuePage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-          <Clock className="w-6 h-6 text-amber-500" /> Pending Sales Review Queue
+          <Clock className="w-6 h-6 text-amber-500" /> {t('sales.pendingQueueTitle')}
         </h2>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Review pending sales submitted by Sales Officers, confirm physical cash handover, and execute stock deduction
+          {t('sales.pendingQueueDesc')}
         </p>
       </div>
 
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <div className="p-12 text-center text-xs text-muted-foreground">Loading pending sales...</div>
+            <div className="p-12 text-center text-xs text-muted-foreground">{t('sales.loading')}</div>
           ) : error ? (
             <div className="p-6 text-center text-xs text-destructive">{error}</div>
           ) : sales.length === 0 ? (
             <div className="p-12 text-center text-xs text-muted-foreground">
-              No sales currently pending review. All orders are processed!
+              {t('sales.noSales')}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="bg-muted/30 border-b text-muted-foreground">
                   <tr className="text-left font-semibold">
-                    <th className="p-3">Reference #</th>
-                    <th className="p-3">Submitted At</th>
-                    <th className="p-3">Sales Officer</th>
-                    <th className="p-3">Customer</th>
-                    <th className="p-3">Items Summary</th>
-                    <th className="p-3 text-right">Total Cash Required</th>
-                    <th className="p-3 text-right">Actions</th>
+                    <th className="p-3">{t('sales.refNumber')}</th>
+                    <th className="p-3">{t('sales.dateSubmitted')}</th>
+                    <th className="p-3">{t('sales.salesOfficer')}</th>
+                    <th className="p-3">{t('sales.customer')}</th>
+                    <th className="p-3">{t('sales.itemsSummary')}</th>
+                    <th className="p-3 text-right">{t('sales.totalCashRequired')}</th>
+                    <th className="p-3 text-right">{t('sales.action')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -118,7 +120,7 @@ export default function PendingSalesQueuePage() {
                       <td className="p-3 text-muted-foreground">{formatDate(sale.createdAt)}</td>
                       <td className="p-3 font-medium text-foreground">{sale.salesOfficer?.name}</td>
                       <td className="p-3 text-muted-foreground">
-                        {sale.customerName || 'Walk-in'}
+                        {sale.customerName || t('sales.walkIn')}
                         {sale.customerPhone && (
                           <span className="text-[10px] block">{sale.customerPhone}</span>
                         )}
@@ -128,11 +130,11 @@ export default function PendingSalesQueuePage() {
                           onClick={() => setViewingSale(sale)}
                           className="text-primary hover:underline font-medium"
                         >
-                          {sale.items?.length || 0} product line(s) (view)
+                          {sale.items?.length || 0} {t('sales.lines')} ({t('sales.viewDetails')})
                         </button>
                       </td>
                       <td className="p-3 text-right font-bold text-foreground text-sm font-mono">
-                        {formatCurrency(sale.totalAmount)}
+                        {formatMoney(sale.totalAmount)}
                       </td>
                       <td className="p-3 text-right space-x-1.5 whitespace-nowrap">
                         <Button
@@ -140,7 +142,7 @@ export default function PendingSalesQueuePage() {
                           className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 font-semibold"
                           onClick={() => setApprovingSale(sale)}
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Handover & Approve
+                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> {t('sales.confirmCashButton')}
                         </Button>
                         <Button
                           size="sm"
@@ -148,7 +150,7 @@ export default function PendingSalesQueuePage() {
                           className="h-7 text-xs"
                           onClick={() => setRejectingSale(sale)}
                         >
-                          <XCircle className="w-3.5 h-3.5 mr-1" /> Reject
+                          <XCircle className="w-3.5 h-3.5 mr-1" /> {t('sales.rejected')}
                         </Button>
                       </td>
                     </tr>
@@ -166,9 +168,9 @@ export default function PendingSalesQueuePage() {
         onOpenChange={(open) => !open && setApprovingSale(null)}
       >
         <DialogHeader>
-          <DialogTitle>Confirm Cash Handover & Approve Sale</DialogTitle>
+          <DialogTitle>{t('sales.confirmCashButton')}</DialogTitle>
           <DialogDescription>
-            Reference: <strong>{approvingSale?.referenceNumber}</strong>
+            {t('sales.refNumber')}: <strong>{approvingSale?.referenceNumber}</strong>
           </DialogDescription>
         </DialogHeader>
 
@@ -176,19 +178,19 @@ export default function PendingSalesQueuePage() {
           <div className="space-y-3 text-xs">
             <div className="p-3 bg-muted/40 rounded-lg space-y-1.5 font-mono">
               <div className="flex justify-between font-sans">
-                <span className="text-muted-foreground">Responsible Sales Officer:</span>
+                <span className="text-muted-foreground">{t('sales.salesOfficer')}:</span>
                 <span className="font-semibold text-foreground">{approvingSale.salesOfficer?.name}</span>
               </div>
               <div className="flex justify-between border-t pt-1.5">
-                <span className="text-muted-foreground font-sans">Cash Handover Amount:</span>
+                <span className="text-muted-foreground font-sans">{t('sales.cashHandoverAmount')}</span>
                 <span className="font-bold text-base text-foreground">
-                  {formatCurrency(approvingSale.totalAmount)}
+                  {formatMoney(approvingSale.totalAmount)}
                 </span>
               </div>
             </div>
 
             <div className="border rounded-lg p-2.5 max-h-40 overflow-y-auto">
-              <p className="font-semibold text-foreground mb-1">Products to be deducted from stock:</p>
+              <p className="font-semibold text-foreground mb-1">{t('sales.productsToDeduct')}</p>
               <ul className="divide-y text-[11px]">
                 {approvingSale.items?.map((item) => (
                   <li key={item.id} className="py-1 flex justify-between">
@@ -202,7 +204,7 @@ export default function PendingSalesQueuePage() {
             </div>
 
             <p className="text-[11px] text-amber-700 bg-amber-50 p-2.5 rounded border border-amber-200">
-              ⚠️ <strong>Transaction Notice:</strong> Double approval is automatically prevented by database isolation. Inventory will only deduct once upon successful handover confirmation.
+              ⚠️ {t('sales.doubleApprovalNotice')}
             </p>
 
             <DialogFooter>
@@ -212,7 +214,7 @@ export default function PendingSalesQueuePage() {
                 onClick={() => setApprovingSale(null)}
                 disabled={isApproving}
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 size="sm"
@@ -220,7 +222,7 @@ export default function PendingSalesQueuePage() {
                 onClick={handleApprove}
                 disabled={isApproving}
               >
-                {isApproving ? 'Approving...' : 'Confirm Cash Received & Approve'}
+                {isApproving ? '...' : t('sales.confirmCashButton')}
               </Button>
             </DialogFooter>
           </div>
@@ -233,19 +235,19 @@ export default function PendingSalesQueuePage() {
         onOpenChange={(open) => !open && setRejectingSale(null)}
       >
         <DialogHeader>
-          <DialogTitle>Reject Sale Entry</DialogTitle>
+          <DialogTitle>{t('sales.rejectionReason')}</DialogTitle>
           <DialogDescription>
-            Reference: <strong>{rejectingSale?.referenceNumber}</strong>
+            {t('sales.refNumber')}: <strong>{rejectingSale?.referenceNumber}</strong>
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 text-xs">
           <p className="text-muted-foreground">
-            Rejecting this sale keeps the record for audit history but will not deduct any inventory.
+            {t('sales.rejected')}
           </p>
 
           <div className="space-y-1">
-            <label className="font-semibold text-foreground">Reason for Rejection *</label>
+            <label className="font-semibold text-foreground">{t('sales.rejectionReason')} *</label>
             <Input
               placeholder="e.g. Customer cancelled, cash not received, incorrect item entered"
               value={rejectionReason}
@@ -261,7 +263,7 @@ export default function PendingSalesQueuePage() {
               onClick={() => setRejectingSale(null)}
               disabled={isRejecting}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               variant="destructive"
@@ -269,7 +271,7 @@ export default function PendingSalesQueuePage() {
               onClick={handleReject}
               disabled={isRejecting || !rejectionReason.trim()}
             >
-              {isRejecting ? 'Rejecting...' : 'Confirm Rejection'}
+              {isRejecting ? '...' : t('sales.rejected')}
             </Button>
           </DialogFooter>
         </div>
@@ -278,9 +280,9 @@ export default function PendingSalesQueuePage() {
       {/* View Details Modal */}
       <Dialog open={!!viewingSale} onOpenChange={(open) => !open && setViewingSale(null)}>
         <DialogHeader>
-          <DialogTitle>Sale Breakdown</DialogTitle>
+          <DialogTitle>{t('sales.saleDetails')}</DialogTitle>
           <DialogDescription>
-            Reference: <strong className="font-mono text-foreground">{viewingSale?.referenceNumber}</strong>
+            {t('sales.refNumber')}: <strong className="font-mono text-foreground">{viewingSale?.referenceNumber}</strong>
           </DialogDescription>
         </DialogHeader>
 
@@ -290,10 +292,10 @@ export default function PendingSalesQueuePage() {
               <table className="w-full text-xs">
                 <thead className="bg-muted/50 border-b">
                   <tr className="text-left font-semibold text-muted-foreground">
-                    <th className="p-2">Product</th>
-                    <th className="p-2 text-center">Qty</th>
-                    <th className="p-2 text-right">Unit Price</th>
-                    <th className="p-2 text-right">Total</th>
+                    <th className="p-2">{t('sales.product')}</th>
+                    <th className="p-2 text-center">{t('sales.quantity')}</th>
+                    <th className="p-2 text-right">{t('sales.unitPrice')}</th>
+                    <th className="p-2 text-right">{t('sales.total')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -307,10 +309,10 @@ export default function PendingSalesQueuePage() {
                       </td>
                       <td className="p-2 text-center font-bold">{item.quantity}</td>
                       <td className="p-2 text-right text-muted-foreground">
-                        {formatCurrency(item.unitPrice)}
+                        {formatMoney(item.unitPrice)}
                       </td>
                       <td className="p-2 text-right font-bold text-foreground">
-                        {formatCurrency(item.lineTotal)}
+                        {formatMoney(item.lineTotal)}
                       </td>
                     </tr>
                   ))}
@@ -320,13 +322,13 @@ export default function PendingSalesQueuePage() {
 
             {viewingSale.note && (
               <p className="text-[11px] text-muted-foreground bg-muted/20 p-2 rounded">
-                <strong>Note:</strong> {viewingSale.note}
+                <strong>{t('sales.saleNote')}:</strong> {viewingSale.note}
               </p>
             )}
 
             <DialogFooter>
               <Button variant="outline" size="sm" onClick={() => setViewingSale(null)}>
-                Close
+                {t('sales.close')}
               </Button>
             </DialogFooter>
           </div>

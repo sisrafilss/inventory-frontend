@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/lib/context/auth-context';
+import { useLanguage } from '@/lib/context/language-context';
 import { api } from '@/lib/api/client';
 import { formatDate } from '@/lib/utils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -12,6 +13,7 @@ import { User, KeyRound, Lock, CheckCircle2, AlertCircle, Shield } from 'lucide-
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth();
+  const { t } = useLanguage();
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -26,12 +28,12 @@ export default function ProfilePage() {
     setSuccess(false);
 
     if (newPassword !== confirmPassword) {
-      setError('New passwords do not match.');
+      setError(t('auth.passwordsDoNotMatch'));
       return;
     }
 
     if (newPassword.length < 6) {
-      setError('New password must be at least 6 characters.');
+      setError(t('auth.passwordLengthError'));
       return;
     }
 
@@ -48,7 +50,7 @@ export default function ProfilePage() {
       setConfirmPassword('');
       await refreshUser();
     } catch (err: any) {
-      setError(err.message || 'Failed to update password.');
+      setError(err.message || t('profile.updatePassword'));
     } finally {
       setIsUpdating(false);
     }
@@ -60,10 +62,10 @@ export default function ProfilePage() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-          <User className="w-6 h-6 text-primary" /> My Profile & Security
+          <User className="w-6 h-6 text-primary" /> {t('profile.title')}
         </h2>
         <p className="text-xs text-muted-foreground mt-0.5">
-          View account authorization status and update your login credentials
+          {t('profile.subtitle')}
         </p>
       </div>
 
@@ -71,8 +73,8 @@ export default function ProfilePage() {
         {/* Profile Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base font-bold">Account Information</CardTitle>
-            <CardDescription className="text-xs">Your registered account details</CardDescription>
+            <CardTitle className="text-base font-bold">{t('profile.accountInfo')}</CardTitle>
+            <CardDescription className="text-xs">{t('profile.accountInfoDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 text-xs">
             <div className="flex items-center gap-3 pb-3 border-b">
@@ -87,34 +89,44 @@ export default function ProfilePage() {
 
             <div className="grid grid-cols-2 gap-3 pt-1">
               <div>
-                <span className="text-muted-foreground block text-[10px]">Role</span>
+                <span className="text-muted-foreground block text-[10px]">{t('users.role')}</span>
                 <Badge variant="default" className="text-[10px] uppercase font-bold mt-0.5">
                   <Shield className="w-3 h-3 mr-1 inline" />
-                  {user.role.replace('_', ' ')}
+                  {user.role === 'SUPER_ADMIN'
+                    ? t('roles.SUPER_ADMIN')
+                    : user.role === 'ADMIN'
+                    ? t('roles.ADMIN')
+                    : user.role === 'MANAGER'
+                    ? t('roles.MANAGER')
+                    : t('roles.SALES_OFFICER')}
                 </Badge>
               </div>
 
               <div>
-                <span className="text-muted-foreground block text-[10px]">Account Status</span>
+                <span className="text-muted-foreground block text-[10px]">{t('users.status')}</span>
                 <Badge variant="success" className="text-[10px] uppercase font-bold mt-0.5">
-                  {user.status}
+                  {user.status === 'ACTIVE'
+                    ? t('statuses.active')
+                    : user.status === 'PENDING'
+                    ? t('statuses.pending')
+                    : t('statuses.inactive')}
                 </Badge>
               </div>
 
               <div>
-                <span className="text-muted-foreground block text-[10px]">Phone</span>
-                <span className="font-medium text-foreground">{user.phone || 'Not provided'}</span>
+                <span className="text-muted-foreground block text-[10px]">{t('users.phone')}</span>
+                <span className="font-medium text-foreground">{user.phone || '—'}</span>
               </div>
 
               <div>
-                <span className="text-muted-foreground block text-[10px]">Address</span>
-                <span className="font-medium text-foreground">{user.address || 'Not provided'}</span>
+                <span className="text-muted-foreground block text-[10px]">{t('users.address')}</span>
+                <span className="font-medium text-foreground">{user.address || '—'}</span>
               </div>
 
               <div className="col-span-2">
-                <span className="text-muted-foreground block text-[10px]">Last Login</span>
+                <span className="text-muted-foreground block text-[10px]">{t('profile.lastLogin')}</span>
                 <span className="font-medium text-foreground">
-                  {user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Currently active session'}
+                  {user.lastLoginAt ? formatDate(user.lastLoginAt) : t('profile.activeSession')}
                 </span>
               </div>
             </div>
@@ -125,10 +137,10 @@ export default function ProfilePage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base font-bold flex items-center gap-2">
-              <KeyRound className="w-4 h-4 text-primary" /> Update Password
+              <KeyRound className="w-4 h-4 text-primary" /> {t('profile.updatePassword')}
             </CardTitle>
             <CardDescription className="text-xs">
-              Change your password to keep your account secure
+              {t('profile.updatePasswordDesc')}
             </CardDescription>
           </CardHeader>
           <form onSubmit={handlePasswordChange}>
@@ -148,7 +160,7 @@ export default function ProfilePage() {
               )}
 
               <div className="space-y-1">
-                <label className="font-semibold text-foreground">Current Password</label>
+                <label className="font-semibold text-foreground">{t('auth.currentPassword')}</label>
                 <Input
                   type="password"
                   placeholder="••••••••"
@@ -159,7 +171,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-foreground">New Password</label>
+                <label className="font-semibold text-foreground">{t('auth.newPassword')}</label>
                 <Input
                   type="password"
                   placeholder="Min. 6 characters"
@@ -170,7 +182,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-foreground">Confirm New Password</label>
+                <label className="font-semibold text-foreground">{t('auth.confirmNewPassword')}</label>
                 <Input
                   type="password"
                   placeholder="Repeat new password"
@@ -182,7 +194,7 @@ export default function ProfilePage() {
             </CardContent>
             <CardFooter className="pt-2">
               <Button type="submit" size="sm" className="w-full font-semibold" disabled={isUpdating}>
-                {isUpdating ? 'Updating Password...' : 'Change Password'}
+                {isUpdating ? '...' : t('profile.changePasswordBtn')}
               </Button>
             </CardFooter>
           </form>

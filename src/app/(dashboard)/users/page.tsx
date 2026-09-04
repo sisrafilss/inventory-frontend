@@ -2,10 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/context/auth-context';
+import { useLanguage } from '@/lib/context/language-context';
 import { api } from '@/lib/api/client';
 import { User, Role, UserStatus } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -18,15 +19,13 @@ import {
   CheckCircle,
   XCircle,
   KeyRound,
-  Shield,
-  Filter,
-  RefreshCw,
   PowerOff,
   Power,
 } from 'lucide-react';
 
 export default function UsersPage() {
   const { user: currentUser } = useAuth();
+  const { t } = useLanguage();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -145,7 +144,7 @@ export default function UsersPage() {
     setIsResetting(true);
     try {
       await api.post(`/users/${selectedUserForReset.id}/reset-password`, { newPassword });
-      alert('Password reset successfully. The user will be required to change it on next login.');
+      alert(t('users.resetNotice'));
       setSelectedUserForReset(null);
       setNewPassword('');
     } catch (err: any) {
@@ -163,15 +162,15 @@ export default function UsersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Users className="w-6 h-6 text-primary" /> User Management
+            <Users className="w-6 h-6 text-primary" /> {t('users.title')}
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Manage administrative staff, verify Sales Officers, and control system access
+            {t('users.subtitle')}
           </p>
         </div>
 
         <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
-          <UserPlus className="w-4 h-4" /> Add New User
+          <UserPlus className="w-4 h-4" /> {t('users.addUser')}
         </Button>
       </div>
 
@@ -181,7 +180,7 @@ export default function UsersPage() {
           <div className="sm:col-span-6 relative">
             <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
             <Input
-              placeholder="Search by name, email, or phone..."
+              placeholder={t('users.searchPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 text-xs h-9"
@@ -194,10 +193,10 @@ export default function UsersPage() {
               onChange={(e) => setRoleFilter(e.target.value)}
               className="text-xs h-9"
             >
-              <option value="">All Roles</option>
-              {isSuperAdmin && <option value="ADMIN">Admin</option>}
-              <option value="MANAGER">Manager</option>
-              <option value="SALES_OFFICER">Sales Officer</option>
+              <option value="">{t('users.allRoles')}</option>
+              {isSuperAdmin && <option value="ADMIN">{t('roles.ADMIN')}</option>}
+              <option value="MANAGER">{t('roles.MANAGER')}</option>
+              <option value="SALES_OFFICER">{t('roles.SALES_OFFICER')}</option>
             </Select>
           </div>
 
@@ -207,11 +206,11 @@ export default function UsersPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="text-xs h-9"
             >
-              <option value="">All Statuses</option>
-              <option value="PENDING">Pending</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="REJECTED">Rejected</option>
+              <option value="">{t('users.allStatuses')}</option>
+              <option value="PENDING">{t('statuses.PENDING')}</option>
+              <option value="ACTIVE">{t('statuses.ACTIVE')}</option>
+              <option value="INACTIVE">{t('statuses.INACTIVE')}</option>
+              <option value="REJECTED">{t('statuses.REJECTED')}</option>
             </Select>
           </div>
         </form>
@@ -221,24 +220,24 @@ export default function UsersPage() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <div className="p-12 text-center text-xs text-muted-foreground">Loading users...</div>
+            <div className="p-12 text-center text-xs text-muted-foreground">{t('common.loading')}</div>
           ) : error ? (
             <div className="p-6 text-center text-xs text-destructive">{error}</div>
           ) : users.length === 0 ? (
             <div className="p-12 text-center text-xs text-muted-foreground">
-              No users found matching your query.
+              {t('common.none')}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="bg-muted/30 border-b text-muted-foreground">
                   <tr className="text-left font-semibold">
-                    <th className="p-3">User Details</th>
-                    <th className="p-3">Role</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Must Change Pwd</th>
-                    <th className="p-3">Created</th>
-                    <th className="p-3 text-right">Actions</th>
+                    <th className="p-3">{t('users.userDetails')}</th>
+                    <th className="p-3">{t('users.role')}</th>
+                    <th className="p-3">{t('common.status')}</th>
+                    <th className="p-3">{t('users.mustChangePwd')}</th>
+                    <th className="p-3">{t('users.created')}</th>
+                    <th className="p-3 text-right">{t('common.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -262,7 +261,7 @@ export default function UsersPage() {
                           }
                           className="uppercase text-[10px]"
                         >
-                          {u.role.replace('_', ' ')}
+                          {t(`roles.${u.role}`)}
                         </Badge>
                       </td>
                       <td className="p-3">
@@ -276,21 +275,20 @@ export default function UsersPage() {
                           }
                           className="text-[10px] uppercase font-bold"
                         >
-                          {u.status}
+                          {t(`statuses.${u.status}`)}
                         </Badge>
                       </td>
                       <td className="p-3">
                         {u.mustChangePassword ? (
-                          <span className="text-amber-600 font-semibold">Yes (Pending)</span>
+                          <span className="text-amber-600 font-semibold">{t('common.yes')}</span>
                         ) : (
-                          <span className="text-muted-foreground">No</span>
+                          <span className="text-muted-foreground">{t('common.no')}</span>
                         )}
                       </td>
                       <td className="p-3 text-muted-foreground">
-                        {u.createdAt ? formatDate(u.createdAt) : 'N/A'}
+                        {u.createdAt ? formatDate(u.createdAt) : t('common.na')}
                       </td>
                       <td className="p-3 text-right space-x-1.5 whitespace-nowrap">
-                        {/* If Pending Sales Officer -> Show Verify / Reject */}
                         {u.status === 'PENDING' && (
                           <>
                             <Button
@@ -298,7 +296,7 @@ export default function UsersPage() {
                               className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700"
                               onClick={() => handleVerify(u.id)}
                             >
-                              <CheckCircle className="w-3.5 h-3.5 mr-1" /> Verify
+                              <CheckCircle className="w-3.5 h-3.5 mr-1" /> {t('users.verify')}
                             </Button>
                             <Button
                               size="sm"
@@ -306,22 +304,20 @@ export default function UsersPage() {
                               className="h-7 text-xs"
                               onClick={() => setSelectedUserForReject(u)}
                             >
-                              <XCircle className="w-3.5 h-3.5 mr-1" /> Reject
+                              <XCircle className="w-3.5 h-3.5 mr-1" /> {t('users.reject')}
                             </Button>
                           </>
                         )}
 
-                        {/* Reset Password */}
                         <Button
                           size="sm"
                           variant="outline"
                           className="h-7 text-xs"
                           onClick={() => setSelectedUserForReset(u)}
                         >
-                          <KeyRound className="w-3.5 h-3.5 mr-1" /> Reset Pwd
+                          <KeyRound className="w-3.5 h-3.5 mr-1" /> {t('users.resetPwd')}
                         </Button>
 
-                        {/* Activate / Deactivate (cannot mutate self or Super Admin) */}
                         {u.id !== currentUser?.id && u.role !== 'SUPER_ADMIN' && (
                           <Button
                             size="sm"
@@ -331,11 +327,11 @@ export default function UsersPage() {
                           >
                             {u.status === 'ACTIVE' ? (
                               <>
-                                <PowerOff className="w-3.5 h-3.5 mr-1 text-destructive" /> Deactivate
+                                <PowerOff className="w-3.5 h-3.5 mr-1 text-destructive" /> {t('users.deactivate')}
                               </>
                             ) : (
                               <>
-                                <Power className="w-3.5 h-3.5 mr-1 text-emerald-600" /> Activate
+                                <Power className="w-3.5 h-3.5 mr-1 text-emerald-600" /> {t('users.activate')}
                               </>
                             )}
                           </Button>
@@ -353,15 +349,15 @@ export default function UsersPage() {
       {/* Create User Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogHeader>
-          <DialogTitle>Create New User</DialogTitle>
+          <DialogTitle>{t('users.createUserTitle')}</DialogTitle>
           <DialogDescription>
-            Add an Administrator or Manager. Managers will be required to change password on first login.
+            {t('users.createUserDesc')}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleCreateUser} className="space-y-3.5">
           <div className="space-y-1">
-            <label className="text-xs font-semibold">Full Name *</label>
+            <label className="text-xs font-semibold">{t('auth.fullName')} *</label>
             <Input
               value={createForm.name}
               onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
@@ -370,7 +366,7 @@ export default function UsersPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold">Email Address *</label>
+            <label className="text-xs font-semibold">{t('auth.email')} *</label>
             <Input
               type="email"
               value={createForm.email}
@@ -380,7 +376,7 @@ export default function UsersPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold">Phone Number</label>
+            <label className="text-xs font-semibold">{t('auth.phone')}</label>
             <Input
               value={createForm.phone}
               onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
@@ -388,19 +384,19 @@ export default function UsersPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold">Assign Role *</label>
+            <label className="text-xs font-semibold">{t('users.assignRole')} *</label>
             <Select
               value={createForm.role}
               onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as Role })}
             >
-              {isSuperAdmin && <option value="ADMIN">Admin</option>}
-              <option value="MANAGER">Manager</option>
-              <option value="SALES_OFFICER">Sales Officer</option>
+              {isSuperAdmin && <option value="ADMIN">{t('roles.ADMIN')}</option>}
+              <option value="MANAGER">{t('roles.MANAGER')}</option>
+              <option value="SALES_OFFICER">{t('roles.SALES_OFFICER')}</option>
             </Select>
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold">Initial Password *</label>
+            <label className="text-xs font-semibold">{t('users.initialPassword')} *</label>
             <Input
               type="password"
               placeholder="Min. 6 characters"
@@ -418,10 +414,10 @@ export default function UsersPage() {
               onClick={() => setIsCreateOpen(false)}
               disabled={isCreating}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button type="submit" size="sm" disabled={isCreating}>
-              {isCreating ? 'Creating...' : 'Create Account'}
+              {isCreating ? t('common.submitting') : t('users.createAccount')}
             </Button>
           </DialogFooter>
         </form>
@@ -433,15 +429,15 @@ export default function UsersPage() {
         onOpenChange={(open) => !open && setSelectedUserForReset(null)}
       >
         <DialogHeader>
-          <DialogTitle>Reset User Password</DialogTitle>
+          <DialogTitle>{t('users.resetPwdTitle')}</DialogTitle>
           <DialogDescription>
-            Target User: <strong>{selectedUserForReset?.name}</strong> ({selectedUserForReset?.email})
+            {t('dashboard.customer')}: <strong>{selectedUserForReset?.name}</strong> ({selectedUserForReset?.email})
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
           <div className="space-y-1">
-            <label className="text-xs font-semibold">New Temporary Password *</label>
+            <label className="text-xs font-semibold">{t('users.newTempPassword')} *</label>
             <Input
               type="password"
               placeholder="Min. 6 characters"
@@ -450,7 +446,7 @@ export default function UsersPage() {
             />
           </div>
           <p className="text-[11px] text-muted-foreground">
-            The user will be required to change this password immediately upon their next login.
+            {t('users.resetNotice')}
           </p>
         </div>
 
@@ -461,14 +457,14 @@ export default function UsersPage() {
             onClick={() => setSelectedUserForReset(null)}
             disabled={isResetting}
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             size="sm"
             onClick={handleResetPassword}
             disabled={isResetting || !newPassword.trim()}
           >
-            {isResetting ? 'Resetting...' : 'Save New Password'}
+            {isResetting ? t('common.submitting') : t('common.save')}
           </Button>
         </DialogFooter>
       </Dialog>
@@ -479,14 +475,14 @@ export default function UsersPage() {
         onOpenChange={(open) => !open && setSelectedUserForReject(null)}
       >
         <DialogHeader>
-          <DialogTitle>Reject Sales Officer Application</DialogTitle>
+          <DialogTitle>{t('users.rejectTitle')}</DialogTitle>
           <DialogDescription>
-            Rejecting: <strong>{selectedUserForReject?.name}</strong> ({selectedUserForReject?.email})
+            {t('common.delete')}: <strong>{selectedUserForReject?.name}</strong> ({selectedUserForReject?.email})
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-2">
-          <label className="text-xs font-semibold">Rejection Reason</label>
+          <label className="text-xs font-semibold">{t('users.rejectReason')}</label>
           <Input
             placeholder="e.g. Unverified employee reference"
             value={rejectReason}
@@ -501,7 +497,7 @@ export default function UsersPage() {
             onClick={() => setSelectedUserForReject(null)}
             disabled={isRejecting}
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             variant="destructive"
@@ -509,11 +505,10 @@ export default function UsersPage() {
             onClick={handleReject}
             disabled={isRejecting}
           >
-            {isRejecting ? 'Rejecting...' : 'Reject Application'}
+            {isRejecting ? t('common.submitting') : t('users.reject')}
           </Button>
         </DialogFooter>
       </Dialog>
     </div>
   );
 }
-

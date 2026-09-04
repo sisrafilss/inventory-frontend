@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/context/auth-context';
 import { api } from '@/lib/api/client';
 import { Product, StockMovement, StockMovementType } from '@/lib/types';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useLanguage } from '@/lib/context/language-context';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +26,7 @@ import {
 
 export default function InventoryPage() {
   const { user } = useAuth();
+  const { t, formatMoney } = useLanguage();
   const [activeTab, setActiveTab] = useState<'overview' | 'history'>('overview');
 
   // Overview state
@@ -140,16 +142,16 @@ export default function InventoryPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Boxes className="w-6 h-6 text-primary" /> Inventory & Stock Control
+            <Boxes className="w-6 h-6 text-primary" /> {t('inventory.title')}
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Monitor real-time inventory levels, financial valuation, and complete movement logs
+            {t('inventory.subtitle')}
           </p>
         </div>
 
         {canAdjust && (
           <Button onClick={() => setAdjustOpen(true)} className="gap-2 shadow-sm">
-            <PlusCircle className="w-4 h-4" /> Adjust Stock
+            <PlusCircle className="w-4 h-4" /> {t('inventory.adjustStock')}
           </Button>
         )}
       </div>
@@ -158,28 +160,28 @@ export default function InventoryPage() {
       {summary && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="p-4">
-            <p className="text-xs text-muted-foreground font-medium">Total Quantity in Stock</p>
+            <p className="text-xs text-muted-foreground font-medium">{t('inventory.totalQuantity')}</p>
             <h3 className="text-2xl font-bold text-foreground mt-1">
-              {summary.totalQuantity} <span className="text-xs font-normal text-muted-foreground">units</span>
+              {summary.totalQuantity} <span className="text-xs font-normal text-muted-foreground">{t('inventory.units')}</span>
             </h3>
           </Card>
           <Card className="p-4">
-            <p className="text-xs text-muted-foreground font-medium">Total Cost Valuation</p>
+            <p className="text-xs text-muted-foreground font-medium">{t('inventory.totalCostValuation')}</p>
             <h3 className="text-2xl font-bold text-foreground mt-1">
-              {formatCurrency(summary.totalCostValue)}
+              {formatMoney(summary.totalCostValue)}
             </h3>
           </Card>
           <Card className="p-4">
-            <p className="text-xs text-muted-foreground font-medium">Total Retail Valuation</p>
+            <p className="text-xs text-muted-foreground font-medium">{t('inventory.totalRetailValuation')}</p>
             <h3 className="text-2xl font-bold text-foreground mt-1">
-              {formatCurrency(summary.totalRetailValue)}
+              {formatMoney(summary.totalRetailValue)}
             </h3>
           </Card>
           <Card className="p-4">
-            <p className="text-xs text-muted-foreground font-medium">Low / Depleted Stock Items</p>
+            <p className="text-xs text-muted-foreground font-medium">{t('inventory.lowStockItems')}</p>
             <h3 className="text-2xl font-bold text-amber-600 mt-1">
               {summary.lowStockCount + summary.outOfStockCount}{' '}
-              <span className="text-xs font-normal text-muted-foreground">items</span>
+              <span className="text-xs font-normal text-muted-foreground">{t('inventory.items')}</span>
             </h3>
           </Card>
         </div>
@@ -195,7 +197,7 @@ export default function InventoryPage() {
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
-          Current Stock Valuation
+          {t('inventory.currentStockValuation')}
         </button>
         <button
           onClick={() => setActiveTab('history')}
@@ -205,7 +207,7 @@ export default function InventoryPage() {
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
-          Stock Movement History (Audit)
+          {t('inventory.stockMovementHistory')}
         </button>
       </div>
 
@@ -214,20 +216,20 @@ export default function InventoryPage() {
         <Card>
           <CardContent className="p-0">
             {loadingOverview ? (
-              <div className="p-12 text-center text-xs text-muted-foreground">Loading stock levels...</div>
+              <div className="p-12 text-center text-xs text-muted-foreground">{t('inventory.loading')}</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead className="bg-muted/30 border-b text-muted-foreground">
                     <tr className="text-left font-semibold">
-                      <th className="p-3">SKU</th>
-                      <th className="p-3">Product</th>
-                      <th className="p-3">Category</th>
-                      <th className="p-3 text-center">In Stock</th>
-                      <th className="p-3 text-right">Unit Cost</th>
-                      <th className="p-3 text-right">Total Cost Value</th>
-                      <th className="p-3">Status</th>
-                      {canAdjust && <th className="p-3 text-right">Quick Action</th>}
+                      <th className="p-3">{t('inventory.sku')}</th>
+                      <th className="p-3">{t('inventory.product')}</th>
+                      <th className="p-3">{t('inventory.category')}</th>
+                      <th className="p-3 text-center">{t('inventory.inStock')}</th>
+                      <th className="p-3 text-right">{t('inventory.unitCost')}</th>
+                      <th className="p-3 text-right">{t('inventory.totalCostValue')}</th>
+                      <th className="p-3">{t('inventory.status')}</th>
+                      {canAdjust && <th className="p-3 text-right">{t('inventory.quickAction')}</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -240,10 +242,10 @@ export default function InventoryPage() {
                           <span className="font-bold text-sm">{p.quantity}</span> {p.unit}
                         </td>
                         <td className="p-3 text-right text-muted-foreground">
-                          {formatCurrency(p.costPrice)}
+                          {formatMoney(p.costPrice)}
                         </td>
                         <td className="p-3 text-right font-bold text-foreground">
-                          {formatCurrency(p.inventoryValue)}
+                          {formatMoney(p.inventoryValue)}
                         </td>
                         <td className="p-3">
                           <Badge
@@ -256,7 +258,11 @@ export default function InventoryPage() {
                             }
                             className="text-[10px] uppercase font-bold"
                           >
-                            {p.stockStatus.replace('_', ' ')}
+                            {p.stockStatus === 'IN_STOCK'
+                              ? t('products.inStock')
+                              : p.stockStatus === 'LOW_STOCK'
+                              ? t('products.lowStock')
+                              : t('products.outOfStock')}
                           </Badge>
                         </td>
                         {canAdjust && (
@@ -270,7 +276,7 @@ export default function InventoryPage() {
                                 setAdjustOpen(true);
                               }}
                             >
-                              Adjust
+                              {t('inventory.adjust')}
                             </Button>
                           </td>
                         )}
@@ -289,20 +295,20 @@ export default function InventoryPage() {
         <div className="space-y-4">
           <Card className="p-3">
             <div className="flex items-center gap-3">
-              <label className="text-xs font-semibold text-muted-foreground">Filter by Movement Type:</label>
+              <label className="text-xs font-semibold text-muted-foreground">{t('inventory.filterByMovement')}</label>
               <Select
                 value={historyFilterType}
                 onChange={(e) => setHistoryFilterType(e.target.value)}
                 className="w-48 text-xs h-8"
               >
-                <option value="">All Movement Types</option>
-                <option value="RESTOCK">Restock (+)</option>
-                <option value="DAMAGE">Damage (-)</option>
-                <option value="LOSS">Loss (-)</option>
-                <option value="RETURN">Return (+)</option>
-                <option value="CORRECTION">Correction (+/-)</option>
-                <option value="SALE_DEDUCTION">Sale Deduction (-)</option>
-                <option value="OPENING_STOCK">Opening Stock (+)</option>
+                <option value="">{t('inventory.allMovements')}</option>
+                <option value="RESTOCK">{t('inventory.movementTypes.RESTOCK')}</option>
+                <option value="DAMAGE">{t('inventory.movementTypes.DAMAGE')}</option>
+                <option value="LOSS">{t('inventory.movementTypes.LOSS')}</option>
+                <option value="RETURN">{t('inventory.movementTypes.RETURN')}</option>
+                <option value="CORRECTION">{t('inventory.movementTypes.CORRECTION')}</option>
+                <option value="SALE_DEDUCTION">{t('inventory.movementTypes.SALE_DEDUCTION')}</option>
+                <option value="OPENING_STOCK">{t('inventory.movementTypes.OPENING_STOCK')}</option>
               </Select>
             </div>
           </Card>
@@ -311,24 +317,24 @@ export default function InventoryPage() {
             <CardContent className="p-0">
               {loadingHistory ? (
                 <div className="p-12 text-center text-xs text-muted-foreground">
-                  Loading movement logs...
+                  {t('inventory.loading')}
                 </div>
               ) : movements.length === 0 ? (
                 <div className="p-12 text-center text-xs text-muted-foreground">
-                  No stock movements recorded yet.
+                  {t('inventory.noMovements')}
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead className="bg-muted/30 border-b text-muted-foreground">
                       <tr className="text-left font-semibold">
-                        <th className="p-3">Timestamp</th>
-                        <th className="p-3">Product</th>
-                        <th className="p-3">Movement Type</th>
-                        <th className="p-3 text-center">Change</th>
-                        <th className="p-3 text-center">Before → After</th>
-                        <th className="p-3">Performed By</th>
-                        <th className="p-3">Reason / Reference</th>
+                        <th className="p-3">{t('inventory.timestamp')}</th>
+                        <th className="p-3">{t('inventory.product')}</th>
+                        <th className="p-3">{t('inventory.movementType')}</th>
+                        <th className="p-3 text-center">{t('inventory.change')}</th>
+                        <th className="p-3 text-center">{t('inventory.beforeAfter')}</th>
+                        <th className="p-3">{t('inventory.performedBy')}</th>
+                        <th className="p-3">{t('inventory.reason')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -345,14 +351,14 @@ export default function InventoryPage() {
                             <Badge
                               variant={
                                 m.quantityChange > 0
-                                  ? 'success'
+                                    ? 'success'
                                   : m.quantityChange < 0
                                   ? 'destructive'
                                   : 'secondary'
                               }
                               className="text-[10px] uppercase font-bold"
                             >
-                              {m.type.replace('_', ' ')}
+                              {(t as any)(`inventory.movementTypes.${m.type}`) || m.type.replace('_', ' ')}
                             </Badge>
                           </td>
                           <td className="p-3 text-center font-bold">
@@ -397,15 +403,15 @@ export default function InventoryPage() {
       {/* Adjust Stock Dialog */}
       <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
         <DialogHeader>
-          <DialogTitle>Manual Inventory Stock Adjustment</DialogTitle>
+          <DialogTitle>{t('inventory.dialogTitle')}</DialogTitle>
           <DialogDescription>
-            Record an audited inventory increase, damage write-off, or stock reconciliation.
+            {t('inventory.dialogDesc')}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleAdjustSubmit} className="space-y-3.5 text-xs">
           <div className="space-y-1">
-            <label className="font-semibold">Select Product *</label>
+            <label className="font-semibold">{t('inventory.selectProduct')} *</label>
             <Select
               value={selectedProductId}
               onChange={(e) => setSelectedProductId(e.target.value)}
@@ -413,7 +419,7 @@ export default function InventoryPage() {
             >
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} (SKU: {p.sku}) — Current: {p.quantity} {p.unit}
+                  {p.name} (SKU: {p.sku}) — {t('inventory.inStock')}: {p.quantity} {p.unit}
                 </option>
               ))}
             </Select>
@@ -421,22 +427,22 @@ export default function InventoryPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="font-semibold">Adjustment Type *</label>
+              <label className="font-semibold">{t('inventory.adjustmentType')} *</label>
               <Select
                 value={adjustType}
                 onChange={(e) => setAdjustType(e.target.value as StockMovementType)}
               >
-                <option value="RESTOCK">Restock (Add Stock)</option>
-                <option value="DAMAGE">Damage (Deduct Stock)</option>
-                <option value="LOSS">Loss / Theft (Deduct Stock)</option>
-                <option value="RETURN">Customer Return (Add Stock)</option>
-                <option value="CORRECTION">Manual Count Correction</option>
-                <option value="OTHER">Other Reason</option>
+                <option value="RESTOCK">{t('inventory.movementTypes.RESTOCK')}</option>
+                <option value="DAMAGE">{t('inventory.movementTypes.DAMAGE')}</option>
+                <option value="LOSS">{t('inventory.movementTypes.LOSS')}</option>
+                <option value="RETURN">{t('inventory.movementTypes.RETURN')}</option>
+                <option value="CORRECTION">{t('inventory.movementTypes.CORRECTION')}</option>
+                <option value="OTHER">{t('inventory.movementTypes.OTHER')}</option>
               </Select>
             </div>
 
             <div className="space-y-1">
-              <label className="font-semibold">Quantity *</label>
+              <label className="font-semibold">{t('inventory.quantity')} *</label>
               <Input
                 type="number"
                 min="1"
@@ -451,35 +457,35 @@ export default function InventoryPage() {
           {selectedProduct && (
             <div className="p-3 rounded-lg bg-muted/50 border space-y-1 text-xs font-mono">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Current Stock:</span>
+                <span className="text-muted-foreground">{t('inventory.currentStock')}:</span>
                 <span className="font-bold">{preview.before} {selectedProduct.unit}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Calculated Change:</span>
+                <span className="text-muted-foreground">{t('inventory.calculatedChange')}:</span>
                 <span className={`font-bold ${preview.change > 0 ? 'text-emerald-600' : 'text-destructive'}`}>
                   {preview.change > 0 ? `+${preview.change}` : preview.change} {selectedProduct.unit}
                 </span>
               </div>
               <div className="flex justify-between pt-1 border-t">
-                <span className="text-muted-foreground font-sans font-semibold">New Expected Stock:</span>
+                <span className="text-muted-foreground font-sans font-semibold">{t('inventory.newExpectedStock')}:</span>
                 <span className={`font-bold ${preview.after < 0 ? 'text-destructive' : 'text-foreground'}`}>
                   {preview.after} {selectedProduct.unit}
                 </span>
               </div>
               {preview.after < 0 && (
                 <p className="text-destructive font-sans font-semibold text-[11px] pt-1">
-                  ⚠️ Error: Stock cannot drop below zero.
+                  ⚠️ {t('inventory.stockBelowZeroError')}
                 </p>
               )}
             </div>
           )}
 
           <div className="space-y-1">
-            <label className="font-semibold">Reason / Audit Justification *</label>
+            <label className="font-semibold">{t('inventory.reason')} *</label>
             <Input
               value={adjustReason}
               onChange={(e) => setAdjustReason(e.target.value)}
-              placeholder="e.g. Broken packaging during handling, monthly restock invoice #1029"
+              placeholder={t('inventory.reasonPlaceholder')}
               required
             />
           </div>
@@ -492,14 +498,14 @@ export default function InventoryPage() {
               onClick={() => setAdjustOpen(false)}
               disabled={isAdjusting}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
               size="sm"
               disabled={isAdjusting || preview.after < 0 || !adjustReason.trim()}
             >
-              {isAdjusting ? 'Saving Adjustment...' : 'Commit Stock Adjustment'}
+              {isAdjusting ? t('inventory.savingAdjustment') : t('inventory.commitAdjustment')}
             </Button>
           </DialogFooter>
         </form>

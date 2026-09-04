@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api/client';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useLanguage } from '@/lib/context/language-context';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { BarChart3, Download, Search, Filter, Calendar } from 'lucide-react';
 
 export default function ReportsPage() {
+  const { t, formatMoney } = useLanguage();
   const [activeReport, setActiveReport] = useState<
     'sales' | 'inventory' | 'adjustments' | 'performance' | 'cash'
   >('sales');
@@ -86,10 +88,10 @@ export default function ReportsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <BarChart3 className="w-6 h-6 text-primary" /> Operational Reports
+            <BarChart3 className="w-6 h-6 text-primary" /> {t('reports.title')}
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Audit inventory, track sales metrics, review cashier handovers, and evaluate staff performance
+            {t('reports.subtitle')}
           </p>
         </div>
 
@@ -99,18 +101,18 @@ export default function ReportsPage() {
           disabled={loading || data.length === 0}
           className="gap-2 text-xs"
         >
-          <Download className="w-4 h-4" /> Export CSV
+          <Download className="w-4 h-4" /> {t('reports.exportCSV')}
         </Button>
       </div>
 
       {/* Navigation tabs */}
       <div className="flex flex-wrap gap-2 border-b pb-2">
         {[
-          { id: 'sales', label: 'Sales Report' },
-          { id: 'inventory', label: 'Product Inventory & Valuation' },
-          { id: 'adjustments', label: 'Stock Movement Audits' },
-          { id: 'performance', label: 'Sales Officer Performance' },
-          { id: 'cash', label: 'Cash Handover Register' },
+          { id: 'sales', label: t('reports.tabSales') },
+          { id: 'inventory', label: t('reports.tabInventory') },
+          { id: 'adjustments', label: t('reports.tabAdjustments') },
+          { id: 'performance', label: t('reports.tabPerformance') },
+          { id: 'cash', label: t('reports.tabCash') },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -137,7 +139,7 @@ export default function ReportsPage() {
             className="flex flex-wrap items-center gap-3 text-xs"
           >
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-muted-foreground">From Date:</span>
+              <span className="font-semibold text-muted-foreground">{t('reports.fromDate')}</span>
               <Input
                 type="date"
                 value={startDate}
@@ -146,7 +148,7 @@ export default function ReportsPage() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-muted-foreground">To Date:</span>
+              <span className="font-semibold text-muted-foreground">{t('reports.toDate')}</span>
               <Input
                 type="date"
                 value={endDate}
@@ -155,7 +157,7 @@ export default function ReportsPage() {
               />
             </div>
             <Button type="submit" size="sm" className="h-8 text-xs">
-              Apply Date Filter
+              {t('reports.applyFilter')}
             </Button>
             {(startDate || endDate) && (
               <Button
@@ -168,7 +170,7 @@ export default function ReportsPage() {
                 }}
                 className="h-8 text-xs text-muted-foreground"
               >
-                Reset
+                {t('reports.reset')}
               </Button>
             )}
           </form>
@@ -179,10 +181,10 @@ export default function ReportsPage() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <div className="p-12 text-center text-xs text-muted-foreground">Generating report...</div>
+            <div className="p-12 text-center text-xs text-muted-foreground">{t('reports.generating')}</div>
           ) : data.length === 0 ? (
             <div className="p-12 text-center text-xs text-muted-foreground">
-              No report records found for this criteria.
+              {t('reports.noRecords')}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -190,12 +192,12 @@ export default function ReportsPage() {
                 <table className="w-full text-xs">
                   <thead className="bg-muted/30 border-b text-muted-foreground">
                     <tr className="text-left font-semibold">
-                      <th className="p-3">Reference</th>
-                      <th className="p-3">Date</th>
-                      <th className="p-3">Sales Officer</th>
-                      <th className="p-3">Status</th>
-                      <th className="p-3">Approved By</th>
-                      <th className="p-3 text-right">Total Amount</th>
+                      <th className="p-3">{t('sales.refNumber')}</th>
+                      <th className="p-3">{t('sales.date')}</th>
+                      <th className="p-3">{t('reports.officer')}</th>
+                      <th className="p-3">{t('sales.status')}</th>
+                      <th className="p-3">{t('sales.approvedBy')}</th>
+                      <th className="p-3 text-right">{t('sales.totalAmount')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -215,12 +217,16 @@ export default function ReportsPage() {
                             }
                             className="text-[10px] uppercase font-bold"
                           >
-                            {r.status}
+                            {r.status === 'APPROVED'
+                              ? t('statuses.approved')
+                              : r.status === 'PENDING'
+                              ? t('statuses.pending')
+                              : t('statuses.rejected')}
                           </Badge>
                         </td>
                         <td className="p-3 text-muted-foreground">{r.approvedBy || '—'}</td>
                         <td className="p-3 text-right font-bold text-foreground">
-                          {formatCurrency(r.totalAmount)}
+                          {formatMoney(r.totalAmount)}
                         </td>
                       </tr>
                     ))}
@@ -232,14 +238,14 @@ export default function ReportsPage() {
                 <table className="w-full text-xs">
                   <thead className="bg-muted/30 border-b text-muted-foreground">
                     <tr className="text-left font-semibold">
-                      <th className="p-3">SKU</th>
-                      <th className="p-3">Product</th>
-                      <th className="p-3">Category</th>
-                      <th className="p-3 text-center">In Stock</th>
-                      <th className="p-3 text-right">Cost Price</th>
-                      <th className="p-3 text-right">Selling Price</th>
-                      <th className="p-3 text-right">Total Cost Value</th>
-                      <th className="p-3">Status</th>
+                      <th className="p-3">{t('inventory.sku')}</th>
+                      <th className="p-3">{t('inventory.product')}</th>
+                      <th className="p-3">{t('inventory.category')}</th>
+                      <th className="p-3 text-center">{t('inventory.inStock')}</th>
+                      <th className="p-3 text-right">{t('products.costPrice')}</th>
+                      <th className="p-3 text-right">{t('products.sellingPrice')}</th>
+                      <th className="p-3 text-right">{t('inventory.totalCostValue')}</th>
+                      <th className="p-3">{t('inventory.status')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -252,13 +258,13 @@ export default function ReportsPage() {
                           {r.currentQuantity} {r.unit}
                         </td>
                         <td className="p-3 text-right text-muted-foreground">
-                          {formatCurrency(r.costPrice)}
+                          {formatMoney(r.costPrice)}
                         </td>
                         <td className="p-3 text-right font-medium">
-                          {formatCurrency(r.sellingPrice)}
+                          {formatMoney(r.sellingPrice)}
                         </td>
                         <td className="p-3 text-right font-bold text-foreground">
-                          {formatCurrency(r.totalCostValue)}
+                          {formatMoney(r.totalCostValue)}
                         </td>
                         <td className="p-3">
                           <Badge
@@ -271,7 +277,11 @@ export default function ReportsPage() {
                             }
                             className="text-[10px] uppercase font-bold"
                           >
-                            {r.stockStatus.replace('_', ' ')}
+                            {r.stockStatus === 'IN_STOCK'
+                              ? t('products.inStock')
+                              : r.stockStatus === 'LOW_STOCK'
+                              ? t('products.lowStock')
+                              : t('products.outOfStock')}
                           </Badge>
                         </td>
                       </tr>
@@ -284,13 +294,13 @@ export default function ReportsPage() {
                 <table className="w-full text-xs">
                   <thead className="bg-muted/30 border-b text-muted-foreground">
                     <tr className="text-left font-semibold">
-                      <th className="p-3">Date</th>
-                      <th className="p-3">Product</th>
-                      <th className="p-3">Movement Type</th>
-                      <th className="p-3 text-center">Change</th>
-                      <th className="p-3 text-center">Before → After</th>
-                      <th className="p-3">Actor</th>
-                      <th className="p-3">Reason</th>
+                      <th className="p-3">{t('inventory.timestamp')}</th>
+                      <th className="p-3">{t('inventory.product')}</th>
+                      <th className="p-3">{t('inventory.movementType')}</th>
+                      <th className="p-3 text-center">{t('inventory.change')}</th>
+                      <th className="p-3 text-center">{t('inventory.beforeAfter')}</th>
+                      <th className="p-3">{t('inventory.performedBy')}</th>
+                      <th className="p-3">{t('inventory.reason')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -300,7 +310,7 @@ export default function ReportsPage() {
                         <td className="p-3 font-medium text-foreground">{r.product}</td>
                         <td className="p-3">
                           <Badge variant="outline" className="text-[10px] uppercase">
-                            {r.type.replace('_', ' ')}
+                            {(t as any)(`inventory.movementTypes.${r.type}`) || r.type.replace('_', ' ')}
                           </Badge>
                         </td>
                         <td className="p-3 text-center font-bold">
@@ -336,12 +346,12 @@ export default function ReportsPage() {
                 <table className="w-full text-xs">
                   <thead className="bg-muted/30 border-b text-muted-foreground">
                     <tr className="text-left font-semibold">
-                      <th className="p-3">Sales Officer</th>
-                      <th className="p-3 text-center">Submitted</th>
-                      <th className="p-3 text-center">Approved</th>
-                      <th className="p-3 text-center">Pending</th>
-                      <th className="p-3 text-center">Rejected</th>
-                      <th className="p-3 text-right">Approved Revenue</th>
+                      <th className="p-3">{t('reports.officer')}</th>
+                      <th className="p-3 text-center">{t('reports.submitted')}</th>
+                      <th className="p-3 text-center">{t('reports.approved')}</th>
+                      <th className="p-3 text-center">{t('statuses.pending')}</th>
+                      <th className="p-3 text-center">{t('reports.rejected')}</th>
+                      <th className="p-3 text-right">{t('reports.approvedRevenue')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -360,7 +370,7 @@ export default function ReportsPage() {
                         </td>
                         <td className="p-3 text-center text-muted-foreground">{r.rejectedCount}</td>
                         <td className="p-3 text-right font-bold text-foreground text-sm">
-                          {formatCurrency(r.approvedSalesAmount)}
+                          {formatMoney(r.approvedSalesAmount)}
                         </td>
                       </tr>
                     ))}
@@ -372,12 +382,12 @@ export default function ReportsPage() {
                 <table className="w-full text-xs">
                   <thead className="bg-muted/30 border-b text-muted-foreground">
                     <tr className="text-left font-semibold">
-                      <th className="p-3">Sale Reference</th>
-                      <th className="p-3">Confirmed At</th>
-                      <th className="p-3">Sales Officer</th>
-                      <th className="p-3">Cash Handover Confirmed By</th>
-                      <th className="p-3">Customer</th>
-                      <th className="p-3 text-right">Handover Cash Amount</th>
+                      <th className="p-3">{t('sales.refNumber')}</th>
+                      <th className="p-3">{t('inventory.timestamp')}</th>
+                      <th className="p-3">{t('reports.officer')}</th>
+                      <th className="p-3">{t('reports.cashConfirmedBy')}</th>
+                      <th className="p-3">{t('sales.customer')}</th>
+                      <th className="p-3 text-right">{t('reports.handoverAmount')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -393,7 +403,7 @@ export default function ReportsPage() {
                         </td>
                         <td className="p-3 text-muted-foreground">{r.customerName}</td>
                         <td className="p-3 text-right font-bold text-foreground text-sm font-mono">
-                          {formatCurrency(r.amount)}
+                          {formatMoney(r.amount)}
                         </td>
                       </tr>
                     ))}

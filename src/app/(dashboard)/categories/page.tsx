@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api/client';
+import { useLanguage } from '@/lib/context/language-context';
 import { Category } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,6 +13,7 @@ import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } fr
 import { Layers, Plus, Search, Edit2 } from 'lucide-react';
 
 export default function CategoriesPage() {
+  const { t } = useLanguage();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -79,15 +81,15 @@ export default function CategoriesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Layers className="w-6 h-6 text-primary" /> Product Categories
+            <Layers className="w-6 h-6 text-primary" /> {t('categories.title')}
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Organize inventory items into logical classification groups
+            {t('categories.subtitle')}
           </p>
         </div>
 
         <Button onClick={handleOpenCreate} className="gap-2">
-          <Plus className="w-4 h-4" /> Add Category
+          <Plus className="w-4 h-4" /> {t('categories.addCategory')}
         </Button>
       </div>
 
@@ -103,14 +105,14 @@ export default function CategoriesPage() {
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
             <Input
-              placeholder="Search categories by name..."
+              placeholder={t('categories.searchPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 text-xs h-9"
             />
           </div>
           <Button type="submit" size="sm" variant="secondary" className="text-xs">
-            Search
+            {t('common.search')}
           </Button>
         </form>
       </Card>
@@ -119,22 +121,22 @@ export default function CategoriesPage() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <div className="p-12 text-center text-xs text-muted-foreground">Loading categories...</div>
+            <div className="p-12 text-center text-xs text-muted-foreground">{t('common.loading')}</div>
           ) : error ? (
             <div className="p-6 text-center text-xs text-destructive">{error}</div>
           ) : categories.length === 0 ? (
-            <div className="p-12 text-center text-xs text-muted-foreground">No categories found.</div>
+            <div className="p-12 text-center text-xs text-muted-foreground">{t('categories.noCategories')}</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="bg-muted/30 border-b text-muted-foreground">
                   <tr className="text-left font-semibold">
-                    <th className="p-3">Category Name</th>
-                    <th className="p-3">Description</th>
-                    <th className="p-3">Assigned Products</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Created</th>
-                    <th className="p-3 text-right">Actions</th>
+                    <th className="p-3">{t('categories.categoryName')}</th>
+                    <th className="p-3">{t('products.description')}</th>
+                    <th className="p-3">{t('categories.assignedProducts')}</th>
+                    <th className="p-3">{t('common.status')}</th>
+                    <th className="p-3">{t('users.created')}</th>
+                    <th className="p-3 text-right">{t('common.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -143,14 +145,14 @@ export default function CategoriesPage() {
                       <td className="p-3 font-semibold text-foreground">{cat.name}</td>
                       <td className="p-3 text-muted-foreground">{cat.description || '—'}</td>
                       <td className="p-3 font-medium">
-                        {cat._count?.products || 0} product(s)
+                        {cat._count?.products || 0}
                       </td>
                       <td className="p-3">
                         <Badge
                           variant={cat.isActive ? 'success' : 'secondary'}
                           className="text-[10px] uppercase font-bold"
                         >
-                          {cat.isActive ? 'Active' : 'Inactive'}
+                          {cat.isActive ? t('statuses.ACTIVE') : t('statuses.INACTIVE')}
                         </Badge>
                       </td>
                       <td className="p-3 text-muted-foreground">{formatDate(cat.createdAt)}</td>
@@ -161,7 +163,7 @@ export default function CategoriesPage() {
                           className="h-7 text-xs"
                           onClick={() => handleOpenEdit(cat)}
                         >
-                          <Edit2 className="w-3 h-3 mr-1" /> Edit
+                          <Edit2 className="w-3 h-3 mr-1" /> {t('common.edit')}
                         </Button>
                       </td>
                     </tr>
@@ -176,17 +178,17 @@ export default function CategoriesPage() {
       {/* Create / Edit Dialog */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogHeader>
-          <DialogTitle>{editingCategory ? 'Edit Category' : 'Create New Category'}</DialogTitle>
+          <DialogTitle>{editingCategory ? t('categories.editCategory') : t('categories.addCategory')}</DialogTitle>
           <DialogDescription>
             {editingCategory
-              ? 'Update category information or toggle active status.'
-              : 'Add a new product category to the system.'}
+              ? t('categories.subtitle')
+              : t('categories.addCategory')}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSave} className="space-y-3.5">
           <div className="space-y-1">
-            <label className="text-xs font-semibold">Category Name *</label>
+            <label className="text-xs font-semibold">{t('categories.categoryName')} *</label>
             <Input
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -195,11 +197,11 @@ export default function CategoriesPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold">Description</label>
+            <label className="text-xs font-semibold">{t('products.description')}</label>
             <Input
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Brief description of products in this category"
+              placeholder="e.g. Beverages, Electronics"
             />
           </div>
 
@@ -212,7 +214,7 @@ export default function CategoriesPage() {
               className="rounded border-input text-primary"
             />
             <label htmlFor="isActive" className="text-xs font-medium cursor-pointer">
-              Active Category (Products can be created/sold under this category)
+              {t('categories.activeCategory')}
             </label>
           </div>
 
@@ -224,10 +226,10 @@ export default function CategoriesPage() {
               onClick={() => setModalOpen(false)}
               disabled={isSaving}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button type="submit" size="sm" disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Save Category'}
+              {isSaving ? t('common.submitting') : t('categories.saveCategory')}
             </Button>
           </DialogFooter>
         </form>
@@ -235,4 +237,3 @@ export default function CategoriesPage() {
     </div>
   );
 }
-

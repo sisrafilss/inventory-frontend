@@ -3,12 +3,15 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api/client';
+import { useLanguage } from '@/lib/context/language-context';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { CheckCircle2, AlertCircle, ArrowLeft, User, Mail, Lock, Phone, MapPin } from 'lucide-react';
 
 export default function RegisterSalesOfficerPage() {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -30,12 +33,12 @@ export default function RegisterSalesOfficerPage() {
     setError(null);
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t('auth.passwordMismatch'));
       return;
     }
 
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setError(t('auth.passwordMinLength'));
       return;
     }
 
@@ -60,22 +63,21 @@ export default function RegisterSalesOfficerPage() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-muted/40">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/40 relative">
+        <div className="absolute top-4 right-4">
+          <LanguageSwitcher />
+        </div>
         <Card className="w-full max-w-md shadow-md border-border text-center p-6 space-y-4">
           <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-8 h-8" />
           </div>
-          <CardTitle className="text-xl font-bold">Registration Submitted!</CardTitle>
+          <CardTitle className="text-xl font-bold">{t('auth.registrationSuccessTitle')}</CardTitle>
           <CardDescription className="text-sm">
-            Your application as a <strong>Sales Officer</strong> has been recorded and is currently{' '}
-            <span className="text-amber-600 font-semibold">pending administrator verification</span>.
+            {t('auth.registrationSuccessDesc')}
           </CardDescription>
-          <p className="text-xs text-muted-foreground">
-            Once an administrator reviews and approves your account, you will be able to log in.
-          </p>
           <div className="pt-2">
             <Link href="/login">
-              <Button className="w-full">Return to Sign In</Button>
+              <Button className="w-full">{t('auth.returnToSignIn')}</Button>
             </Link>
           </div>
         </Card>
@@ -84,18 +86,22 @@ export default function RegisterSalesOfficerPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-muted/40">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/40 relative">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
+
       <Card className="w-full max-w-lg shadow-md border-border">
         <CardHeader className="space-y-1">
           <Link
             href="/login"
             className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mb-2 font-medium"
           >
-            <ArrowLeft className="w-3.5 h-3.5" /> Back to Sign In
+            <ArrowLeft className="w-3.5 h-3.5" /> {t('auth.backToSignIn')}
           </Link>
-          <CardTitle className="text-2xl font-bold">Sales Officer Registration</CardTitle>
+          <CardTitle className="text-2xl font-bold">{t('auth.registerTitle')}</CardTitle>
           <CardDescription>
-            Register for a Sales Officer account. Administrator approval is required before first login.
+            {t('auth.registerDesc')}
           </CardDescription>
         </CardHeader>
 
@@ -110,7 +116,7 @@ export default function RegisterSalesOfficerPage() {
 
             <div className="space-y-1">
               <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-muted-foreground" /> Full Name *
+                <User className="w-3.5 h-3.5 text-muted-foreground" /> {t('auth.fullName')} *
               </label>
               <Input
                 name="name"
@@ -124,7 +130,7 @@ export default function RegisterSalesOfficerPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-muted-foreground" /> Email Address *
+                  <Mail className="w-3.5 h-3.5 text-muted-foreground" /> {t('auth.email')} *
                 </label>
                 <Input
                   name="email"
@@ -138,7 +144,7 @@ export default function RegisterSalesOfficerPage() {
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-muted-foreground" /> Phone Number
+                  <Phone className="w-3.5 h-3.5 text-muted-foreground" /> {t('auth.phone')}
                 </label>
                 <Input
                   name="phone"
@@ -151,7 +157,7 @@ export default function RegisterSalesOfficerPage() {
 
             <div className="space-y-1">
               <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-muted-foreground" /> Address
+                <MapPin className="w-3.5 h-3.5 text-muted-foreground" /> {t('auth.address')}
               </label>
               <Input
                 name="address"
@@ -164,7 +170,7 @@ export default function RegisterSalesOfficerPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 text-muted-foreground" /> Password *
+                  <Lock className="w-3.5 h-3.5 text-muted-foreground" /> {t('auth.password')} *
                 </label>
                 <Input
                   name="password"
@@ -178,7 +184,7 @@ export default function RegisterSalesOfficerPage() {
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 text-muted-foreground" /> Confirm Password *
+                  <Lock className="w-3.5 h-3.5 text-muted-foreground" /> {t('auth.confirmPassword')} *
                 </label>
                 <Input
                   name="confirmPassword"
@@ -194,11 +200,8 @@ export default function RegisterSalesOfficerPage() {
 
           <CardFooter className="flex flex-col gap-3 pt-2">
             <Button type="submit" className="w-full h-10 font-semibold" disabled={isSubmitting}>
-              {isSubmitting ? 'Submitting Registration...' : 'Submit Registration'}
+              {isSubmitting ? t('auth.submittingRegistration') : t('auth.submitRegistration')}
             </Button>
-            <p className="text-[11px] text-center text-muted-foreground">
-              By registering, you agree that your profile details will be reviewed by system managers.
-            </p>
           </CardFooter>
         </form>
       </Card>
