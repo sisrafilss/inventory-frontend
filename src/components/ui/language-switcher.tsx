@@ -21,3 +21,4 @@ export function LanguageSwitcher({ variant = 'outline', size = 'sm' }: { variant
     </Button>
   );
 }
+
