@@ -100,9 +100,8 @@ export default function SalesListPage() {
               className="text-xs h-9"
             >
               <option value="">{t('sales.allStatuses')}</option>
-              <option value="PENDING">{t('sales.pendingReview')}</option>
-              <option value="APPROVED">{t('sales.approvedDeducted')}</option>
-              <option value="REJECTED">{t('sales.rejected')}</option>
+              <option value="COMPLETED">{t('statuses.completed') || 'Completed'}</option>
+              <option value="CANCELLED">{t('statuses.cancelled') || 'Cancelled'}</option>
             </Select>
           </div>
         </form>
@@ -162,20 +161,12 @@ export default function SalesListPage() {
                       </td>
                       <td className="p-3">
                         <Badge
-                          variant={
-                            sale.status === 'APPROVED'
-                              ? 'success'
-                              : sale.status === 'PENDING'
-                              ? 'warning'
-                              : 'destructive'
-                          }
+                          variant={sale.status === 'COMPLETED' ? 'success' : 'destructive'}
                           className="text-[10px] uppercase font-bold"
                         >
-                          {sale.status === 'APPROVED'
-                            ? t('statuses.approved')
-                            : sale.status === 'PENDING'
-                            ? t('statuses.pending')
-                            : t('statuses.rejected')}
+                          {sale.status === 'COMPLETED'
+                            ? t('statuses.completed') || 'Completed'
+                            : t('statuses.cancelled') || 'Cancelled'}
                         </Badge>
                       </td>
                       <td className="p-3 text-right">
@@ -230,46 +221,22 @@ export default function SalesListPage() {
               <div>
                 <span className="text-muted-foreground block text-[10px]">{t('sales.status')}</span>
                 <Badge
-                  variant={
-                    selectedSale.status === 'APPROVED'
-                      ? 'success'
-                      : selectedSale.status === 'PENDING'
-                      ? 'warning'
-                      : 'destructive'
-                  }
+                  variant={selectedSale.status === 'COMPLETED' ? 'success' : 'destructive'}
                   className="text-[10px] uppercase font-bold mt-0.5"
                 >
-                  {selectedSale.status === 'APPROVED'
-                    ? t('statuses.approved')
-                    : selectedSale.status === 'PENDING'
-                    ? t('statuses.pending')
-                    : t('statuses.rejected')}
+                  {selectedSale.status === 'COMPLETED'
+                    ? t('statuses.completed') || 'Completed'
+                    : t('statuses.cancelled') || 'Cancelled'}
                 </Badge>
               </div>
               <div>
-                <span className="text-muted-foreground block text-[10px]">{t('sales.dateSubmitted')}</span>
+                <span className="text-muted-foreground block text-[10px]">{t('sales.date')}</span>
                 <span className="text-foreground">{formatDate(selectedSale.createdAt)}</span>
               </div>
               <div>
                 <span className="text-muted-foreground block text-[10px]">{t('sales.customer')}</span>
                 <span className="text-foreground">{selectedSale.customerName || t('sales.walkIn')}</span>
               </div>
-              {selectedSale.approvedBy && (
-                <div>
-                  <span className="text-muted-foreground block text-[10px]">{t('sales.approvedBy')}</span>
-                  <span className="text-emerald-700 font-medium">
-                    {selectedSale.approvedBy.name} ({formatDate(selectedSale.approvedAt!)})
-                  </span>
-                </div>
-              )}
-              {selectedSale.rejectedBy && (
-                <div className="col-span-2">
-                  <span className="text-muted-foreground block text-[10px]">{t('sales.rejectionReason')}</span>
-                  <span className="text-destructive font-medium">
-                    {selectedSale.rejectionReason} ({t('sales.rejected')} {selectedSale.rejectedBy.name})
-                  </span>
-                </div>
-              )}
             </div>
 
             {/* Line items table */}

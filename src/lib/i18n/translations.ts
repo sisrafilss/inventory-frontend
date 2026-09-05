@@ -38,6 +38,7 @@ export const translations = {
       MANAGER: "Manager",
     },
     statuses: {
+      COMPLETED: "Completed",
       PENDING: "Pending",
       ACTIVE: "Active",
       REJECTED: "Rejected",
@@ -409,6 +410,7 @@ export const translations = {
       MANAGER: "ম্যানেজার",
     },
     statuses: {
+      COMPLETED: "সম্পন্ন",
       PENDING: "অপেক্ষমান",
       ACTIVE: "সক্রিয়",
       REJECTED: "প্রত্যাখ্যাত",

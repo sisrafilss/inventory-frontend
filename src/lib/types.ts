@@ -14,9 +14,7 @@ export const UserStatus = {
 export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus];
 
 export const SaleStatus = {
-  PENDING: 'PENDING',
-  APPROVED: 'APPROVED',
-  REJECTED: 'REJECTED',
+  COMPLETED: 'COMPLETED',
   CANCELLED: 'CANCELLED',
 } as const;
 export type SaleStatus = (typeof SaleStatus)[keyof typeof SaleStatus];
@@ -280,21 +278,6 @@ export interface Sale {
   customerName?: string | null;
   customerPhone?: string | null;
   note?: string | null;
-  approvedById?: string | null;
-  approvedBy?: {
-    id: string;
-    name: string;
-    email: string;
-  } | null;
-  approvedAt?: string | null;
-  rejectedById?: string | null;
-  rejectedBy?: {
-    id: string;
-    name: string;
-    email: string;
-  } | null;
-  rejectedAt?: string | null;
-  rejectionReason?: string | null;
   createdAt: string;
   updatedAt: string;
   items: SaleItem[];

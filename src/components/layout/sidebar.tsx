@@ -54,12 +54,6 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
-      key: 'pendingSales',
-      href: '/sales/pending',
-      icon: Clock,
-      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
-    },
-    {
       key: 'allSales',
       href: '/sales',
       icon: ShoppingCart,
