@@ -252,7 +252,7 @@ export default function DashboardPage() {
                           {sale.referenceNumber}
                         </td>
                         <td className="py-2.5 text-muted-foreground">{formatDate(sale.createdAt)}</td>
-                        <td className="py-2.5 font-medium">{sale.createdBy?.name || sale.salesOfficer?.name || '—'}</td>
+                        <td className="py-2.5 font-medium">{sale.createdBy?.name || '—'}</td>
                         <td className="py-2.5 text-muted-foreground">
                           {sale.customerName || t('common.walkIn')}
                         </td>
@@ -326,7 +326,7 @@ export default function DashboardPage() {
                         {sale.referenceNumber}
                       </td>
                       <td className="py-2.5 text-muted-foreground">{formatDate(sale.createdAt)}</td>
-                      <td className="py-2.5 font-medium">{sale.createdBy?.name || sale.salesOfficer?.name || '—'}</td>
+                      <td className="py-2.5 font-medium">{sale.createdBy?.name || '—'}</td>
                       <td className="py-2.5">
                         <Badge
                           variant={
@@ -375,7 +375,7 @@ export default function DashboardPage() {
           <div className="flex justify-between">
             <span className="text-muted-foreground">{t('common.createdBy')}:</span>
             <span className="font-semibold text-foreground">
-              {selectedSaleForApproval?.createdBy?.name || selectedSaleForApproval?.salesOfficer?.name || '—'}
+              {selectedSaleForApproval?.createdBy?.name || '—'}
             </span>
           </div>
           <p className="text-[11px] text-amber-700 bg-amber-50 p-2 rounded mt-2 border border-amber-200">

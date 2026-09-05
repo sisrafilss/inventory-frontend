@@ -101,7 +101,7 @@ export default function ProductsPage() {
       sku: p.sku,
       categoryId: p.categoryId,
       unit: p.unit,
-      costPrice: p.costPrice,
+      costPrice: p.costPrice ?? 0,
       sellingPrice: p.sellingPrice,
       quantity: p.quantity,
       reorderLevel: p.reorderLevel,
@@ -258,7 +258,7 @@ export default function ProductsPage() {
                       <td className="p-3 text-muted-foreground">{p.unit}</td>
                       {canManage && (
                         <td className="p-3 text-right font-medium text-muted-foreground">
-                          {formatMoney(p.costPrice)}
+                          {p.costPrice !== undefined ? formatMoney(p.costPrice) : '—'}
                         </td>
                       )}
                       <td className="p-3 text-right font-bold text-foreground">

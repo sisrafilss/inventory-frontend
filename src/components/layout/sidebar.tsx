@@ -18,6 +18,12 @@ import {
   ShieldCheck,
   PlusCircle,
   User as UserIcon,
+  Building2,
+  Warehouse,
+  Contact,
+  Truck,
+  Receipt,
+  BadgeDollarSign,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -69,6 +75,42 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
       key: 'categories',
       href: '/categories',
       icon: Layers,
+      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
+    },
+    {
+      key: 'companies',
+      href: '/companies',
+      icon: Building2,
+      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
+    },
+    {
+      key: 'warehouses',
+      href: '/warehouses',
+      icon: Warehouse,
+      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
+    },
+    {
+      key: 'parties',
+      href: '/parties',
+      icon: Contact,
+      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
+    },
+    {
+      key: 'purchases',
+      href: '/purchases',
+      icon: Truck,
+      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
+    },
+    {
+      key: 'expenses',
+      href: '/expenses',
+      icon: Receipt,
+      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
+    },
+    {
+      key: 'payments',
+      href: '/payments',
+      icon: BadgeDollarSign,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {

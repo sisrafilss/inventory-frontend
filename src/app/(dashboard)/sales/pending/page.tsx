@@ -118,7 +118,7 @@ export default function PendingSalesQueuePage() {
                         {sale.referenceNumber}
                       </td>
                       <td className="p-3 text-muted-foreground">{formatDate(sale.createdAt)}</td>
-                      <td className="p-3 font-medium text-foreground">{sale.createdBy?.name || sale.salesOfficer?.name || '—'}</td>
+                      <td className="p-3 font-medium text-foreground">{sale.createdBy?.name || '—'}</td>
                       <td className="p-3 text-muted-foreground">
                         {sale.customerName || t('sales.walkIn')}
                         {sale.customerPhone && (
@@ -178,8 +178,8 @@ export default function PendingSalesQueuePage() {
           <div className="space-y-3 text-xs">
             <div className="p-3 bg-muted/40 rounded-lg space-y-1.5 font-mono">
               <div className="flex justify-between font-sans">
-                <span className="text-muted-foreground">{t('sales.salesOfficer')}:</span>
-                <span className="font-semibold text-foreground">{approvingSale.salesOfficer?.name}</span>
+                <span className="text-muted-foreground">{t('common.createdBy')}:</span>
+                <span className="font-semibold text-foreground">{approvingSale.createdBy?.name || '—'}</span>
               </div>
               <div className="flex justify-between border-t pt-1.5">
                 <span className="text-muted-foreground font-sans">{t('sales.cashHandoverAmount')}</span>

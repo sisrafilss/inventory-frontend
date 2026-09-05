@@ -13,7 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { ShoppingCart, PlusCircle, Search, Eye, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { ShoppingCart, PlusCircle, Search, Eye, Clock, CheckCircle2, XCircle, Printer } from 'lucide-react';
+import { InvoiceMemoModal } from '@/components/sales/invoice-memo-modal';
 
 export default function SalesListPage() {
   const { user } = useAuth();
@@ -28,6 +29,10 @@ export default function SalesListPage() {
 
   // Sale Details Modal
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+
+  // Memo Modal
+  const [memoSale, setMemoSale] = useState<Sale | null>(null);
+  const [memoOpen, setMemoOpen] = useState(false);
 
   const fetchSales = async () => {
     try {
@@ -137,7 +142,7 @@ export default function SalesListPage() {
                       </td>
                       <td className="p-3 text-muted-foreground">{formatDate(sale.createdAt)}</td>
                       <td className="p-3 font-medium text-foreground">
-                        {sale.createdBy?.name || sale.salesOfficer?.name || '—'}
+                        {sale.createdBy?.name || '—'}
                       </td>
                       <td className="p-3 text-muted-foreground">
                         {sale.customerName ? (
@@ -174,14 +179,27 @@ export default function SalesListPage() {
                         </Badge>
                       </td>
                       <td className="p-3 text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs"
-                          onClick={() => setSelectedSale(sale)}
-                        >
-                          <Eye className="w-3 h-3 mr-1" /> {t('sales.viewDetails')}
-                        </Button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs gap-1"
+                            onClick={() => {
+                              setMemoSale(sale);
+                              setMemoOpen(true);
+                            }}
+                          >
+                            <Printer className="w-3 h-3" /> Memo
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs"
+                            onClick={() => setSelectedSale(sale)}
+                          >
+                            <Eye className="w-3 h-3 mr-1" /> {t('sales.viewDetails')}
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -207,7 +225,7 @@ export default function SalesListPage() {
             <div className="grid grid-cols-2 gap-3 p-3 bg-muted/40 rounded-lg">
               <div>
                 <span className="text-muted-foreground block text-[10px]">{t('sales.createdBy')}</span>
-                <span className="font-semibold text-foreground">{selectedSale.createdBy?.name || selectedSale.salesOfficer?.name || '—'}</span>
+                <span className="font-semibold text-foreground">{selectedSale.createdBy?.name || '—'}</span>
               </div>
               <div>
                 <span className="text-muted-foreground block text-[10px]">{t('sales.status')}</span>
@@ -306,7 +324,18 @@ export default function SalesListPage() {
               </p>
             )}
 
-            <DialogFooter>
+            <DialogFooter className="flex items-center justify-between sm:justify-between w-full">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1 text-xs"
+                onClick={() => {
+                  setMemoSale(selectedSale);
+                  setMemoOpen(true);
+                }}
+              >
+                <Printer className="w-3.5 h-3.5" /> Print Invoice Memo
+              </Button>
               <Button variant="outline" size="sm" onClick={() => setSelectedSale(null)}>
                 {t('sales.close')}
               </Button>
@@ -314,6 +343,12 @@ export default function SalesListPage() {
           </div>
         )}
       </Dialog>
+
+      <InvoiceMemoModal
+        sale={memoSale}
+        open={memoOpen}
+        onOpenChange={setMemoOpen}
+      />
     </div>
   );
 }
