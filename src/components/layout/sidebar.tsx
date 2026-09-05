@@ -39,22 +39,14 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
       key: 'dashboard',
       href: '/dashboard',
       icon: LayoutDashboard,
-      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'SALES_OFFICER'],
+      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
-    // Sales Officer specific
     {
       key: 'newSale',
       href: '/sales/new',
       icon: PlusCircle,
-      roles: ['SALES_OFFICER', 'ADMIN', 'SUPER_ADMIN'],
+      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
-    {
-      key: 'mySales',
-      href: '/sales',
-      icon: ShoppingCart,
-      roles: ['SALES_OFFICER'],
-    },
-    // Admin / Manager / Super Admin
     {
       key: 'pendingSales',
       href: '/sales/pending',
@@ -71,7 +63,7 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
       key: 'products',
       href: '/products',
       icon: Package,
-      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'SALES_OFFICER'],
+      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
       key: 'categories',
@@ -107,7 +99,7 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
       key: 'profile',
       href: '/profile',
       icon: UserIcon,
-      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'SALES_OFFICER'],
+      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
   ];
 

@@ -108,9 +108,6 @@ export default function DashboardPage() {
     );
   }
 
-  const isSalesOfficer = user?.role === 'SALES_OFFICER';
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
-
   return (
     <div className="space-y-6">
       {/* Top Banner */}
@@ -125,163 +122,96 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {isSalesOfficer && (
-          <Link href="/sales/new">
-            <Button className="gap-2 shadow-sm">
-              <PlusCircle className="w-4 h-4" /> {t('sales.createSale')}
-            </Button>
-          </Link>
-        )}
+        <Link href="/sales/new">
+          <Button className="gap-2 shadow-sm">
+            <PlusCircle className="w-4 h-4" /> {t('sales.createSale')}
+          </Button>
+        </Link>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {isSalesOfficer ? (
-          <>
-            <Card className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-amber-500/10 text-amber-600 rounded-xl">
-                <Clock className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">{t('dashboard.myPendingSales')}</p>
-                <h4 className="text-xl font-bold text-foreground">{data.stats.pendingSalesCount}</h4>
-              </div>
-            </Card>
+        <Card className="p-4 flex items-center gap-4">
+          <div className="p-3 bg-amber-500/10 text-amber-600 rounded-xl">
+            <Clock className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground font-medium">{t('dashboard.pendingSalesQueue')}</p>
+            <h4 className="text-xl font-bold text-foreground">{data.stats.pendingSalesCount}</h4>
+          </div>
+        </Card>
 
-            <Card className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-emerald-500/10 text-emerald-600 rounded-xl">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">{t('dashboard.todayApprovedSales')}</p>
-                <h4 className="text-xl font-bold text-foreground">{data.stats.todayApprovedCount}</h4>
-              </div>
-            </Card>
+        <Card className="p-4 flex items-center gap-4">
+          <div className="p-3 bg-emerald-500/10 text-emerald-600 rounded-xl">
+            <DollarSign className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground font-medium">{t('dashboard.todaySalesValue')}</p>
+            <h4 className="text-xl font-bold text-foreground">
+              {formatMoney(data.stats.todaySalesAmount)}
+            </h4>
+          </div>
+        </Card>
 
-            <Card className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-primary/10 text-primary rounded-xl">
-                <DollarSign className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">{t('dashboard.todayRevenue')}</p>
-                <h4 className="text-xl font-bold text-foreground">
-                  {formatMoney(data.stats.todaySalesAmount)}
-                </h4>
-              </div>
-            </Card>
+        <Card className="p-4 flex items-center gap-4">
+          <div className="p-3 bg-destructive/10 text-destructive rounded-xl">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground font-medium">{t('dashboard.lowOutOfStock')}</p>
+            <h4 className="text-xl font-bold text-foreground">
+              {data.stats.lowStockCount + data.stats.outOfStockCount}
+            </h4>
+          </div>
+        </Card>
 
-            <Card className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-sky-500/10 text-sky-600 rounded-xl">
-                <TrendingUp className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">{t('dashboard.monthSalesTotal')}</p>
-                <h4 className="text-xl font-bold text-foreground">
-                  {formatMoney(data.stats.monthSalesAmount)}
-                </h4>
-              </div>
-            </Card>
-          </>
-        ) : (
-          <>
-            <Card className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-amber-500/10 text-amber-600 rounded-xl">
-                <Clock className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">{t('dashboard.pendingSalesQueue')}</p>
-                <h4 className="text-xl font-bold text-foreground">{data.stats.pendingSalesCount}</h4>
-              </div>
-            </Card>
+        <Card className="p-4 flex items-center gap-4">
+          <div className="p-3 bg-primary/10 text-primary rounded-xl">
+            <Boxes className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground font-medium">{t('dashboard.totalStockQuantity')}</p>
+            <h4 className="text-xl font-bold text-foreground">{data.stats.inventoryQuantity}</h4>
+          </div>
+        </Card>
 
-            {isAdmin && (
-              <Card className="p-4 flex items-center gap-4">
-                <div className="p-3 bg-indigo-500/10 text-indigo-600 rounded-xl">
-                  <UserCheck className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">{t('dashboard.pendingRegistrations')}</p>
-                  <h4 className="text-xl font-bold text-foreground">
-                    {data.stats.pendingRegistrationsCount || 0}
-                  </h4>
-                </div>
-              </Card>
-            )}
+        <Card className="p-4 flex items-center gap-4">
+          <div className="p-3 bg-sky-500/10 text-sky-600 rounded-xl">
+            <TrendingUp className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground font-medium">{t('dashboard.estCostValuation')}</p>
+            <h4 className="text-xl font-bold text-foreground">
+              {formatMoney(data.stats.inventoryCostValue)}
+            </h4>
+          </div>
+        </Card>
 
-            <Card className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-emerald-500/10 text-emerald-600 rounded-xl">
-                <DollarSign className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">{t('dashboard.todaySalesValue')}</p>
-                <h4 className="text-xl font-bold text-foreground">
-                  {formatMoney(data.stats.todaySalesAmount)}
-                </h4>
-              </div>
-            </Card>
+        <Card className="p-4 flex items-center gap-4">
+          <div className="p-3 bg-purple-500/10 text-purple-600 rounded-xl">
+            <Package className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground font-medium">{t('dashboard.activeProducts')}</p>
+            <h4 className="text-xl font-bold text-foreground">{data.stats.productsCount}</h4>
+          </div>
+        </Card>
 
-            <Card className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-destructive/10 text-destructive rounded-xl">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">{t('dashboard.lowOutOfStock')}</p>
-                <h4 className="text-xl font-bold text-foreground">
-                  {data.stats.lowStockCount + data.stats.outOfStockCount}
-                </h4>
-              </div>
-            </Card>
-
-            <Card className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-primary/10 text-primary rounded-xl">
-                <Boxes className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">{t('dashboard.totalStockQuantity')}</p>
-                <h4 className="text-xl font-bold text-foreground">{data.stats.inventoryQuantity}</h4>
-              </div>
-            </Card>
-
-            <Card className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-sky-500/10 text-sky-600 rounded-xl">
-                <TrendingUp className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">{t('dashboard.estCostValuation')}</p>
-                <h4 className="text-xl font-bold text-foreground">
-                  {formatMoney(data.stats.inventoryCostValue)}
-                </h4>
-              </div>
-            </Card>
-
-            <Card className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-purple-500/10 text-purple-600 rounded-xl">
-                <Package className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">{t('dashboard.activeProducts')}</p>
-                <h4 className="text-xl font-bold text-foreground">{data.stats.productsCount}</h4>
-              </div>
-            </Card>
-
-            <Card className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-emerald-500/10 text-emerald-600 rounded-xl">
-                <TrendingUp className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">{t('dashboard.monthSalesTotal')}</p>
-                <h4 className="text-xl font-bold text-foreground">
-                  {formatMoney(data.stats.monthSalesAmount)}
-                </h4>
-              </div>
-            </Card>
-          </>
-        )}
+        <Card className="p-4 flex items-center gap-4">
+          <div className="p-3 bg-emerald-500/10 text-emerald-600 rounded-xl">
+            <TrendingUp className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground font-medium">{t('dashboard.monthSalesTotal')}</p>
+            <h4 className="text-xl font-bold text-foreground">
+              {formatMoney(data.stats.monthSalesAmount)}
+            </h4>
+          </div>
+        </Card>
       </div>
 
       {/* Action Queue: Pending Sales for Admin & Manager */}
-      {!isSalesOfficer && (
-        <Card>
+      <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div>
               <CardTitle className="text-base font-bold flex items-center gap-2">
@@ -309,7 +239,7 @@ export default function DashboardPage() {
                     <tr className="border-b text-left text-muted-foreground font-semibold">
                       <th className="pb-2">{t('dashboard.refNumber')}</th>
                       <th className="pb-2">{t('common.date')}</th>
-                      <th className="pb-2">{t('dashboard.salesOfficer')}</th>
+                      <th className="pb-2">{t('common.createdBy')}</th>
                       <th className="pb-2">{t('dashboard.customer')}</th>
                       <th className="pb-2 text-right">{t('dashboard.amount')}</th>
                       <th className="pb-2 text-right">{t('common.actions')}</th>
@@ -322,7 +252,7 @@ export default function DashboardPage() {
                           {sale.referenceNumber}
                         </td>
                         <td className="py-2.5 text-muted-foreground">{formatDate(sale.createdAt)}</td>
-                        <td className="py-2.5 font-medium">{sale.salesOfficer?.name}</td>
+                        <td className="py-2.5 font-medium">{sale.createdBy?.name || sale.salesOfficer?.name || '—'}</td>
                         <td className="py-2.5 text-muted-foreground">
                           {sale.customerName || t('common.walkIn')}
                         </td>
@@ -354,14 +284,13 @@ export default function DashboardPage() {
             )}
           </CardContent>
         </Card>
-      )}
 
       {/* Recent Sales List */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div>
             <CardTitle className="text-base font-bold">
-              {isSalesOfficer ? t('dashboard.myRecentSalesTitle') : t('dashboard.recentSalesTitle')}
+              {t('dashboard.recentSalesTitle')}
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-0.5">
               {t('dashboard.recentSalesDesc')}
@@ -385,7 +314,7 @@ export default function DashboardPage() {
                   <tr className="border-b text-left text-muted-foreground font-semibold">
                     <th className="pb-2">{t('dashboard.refNumber')}</th>
                     <th className="pb-2">{t('common.date')}</th>
-                    {!isSalesOfficer && <th className="pb-2">{t('dashboard.salesOfficer')}</th>}
+                    <th className="pb-2">{t('common.createdBy')}</th>
                     <th className="pb-2">{t('common.status')}</th>
                     <th className="pb-2 text-right">{t('dashboard.amount')}</th>
                   </tr>
@@ -397,9 +326,7 @@ export default function DashboardPage() {
                         {sale.referenceNumber}
                       </td>
                       <td className="py-2.5 text-muted-foreground">{formatDate(sale.createdAt)}</td>
-                      {!isSalesOfficer && (
-                        <td className="py-2.5 font-medium">{sale.salesOfficer?.name}</td>
-                      )}
+                      <td className="py-2.5 font-medium">{sale.createdBy?.name || sale.salesOfficer?.name || '—'}</td>
                       <td className="py-2.5">
                         <Badge
                           variant={
@@ -446,9 +373,9 @@ export default function DashboardPage() {
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">{t('dashboard.salesOfficer')}:</span>
+            <span className="text-muted-foreground">{t('common.createdBy')}:</span>
             <span className="font-semibold text-foreground">
-              {selectedSaleForApproval?.salesOfficer?.name}
+              {selectedSaleForApproval?.createdBy?.name || selectedSaleForApproval?.salesOfficer?.name || '—'}
             </span>
           </div>
           <p className="text-[11px] text-amber-700 bg-amber-50 p-2 rounded mt-2 border border-amber-200">

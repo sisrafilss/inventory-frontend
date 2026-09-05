@@ -2,7 +2,6 @@ export const Role = {
   SUPER_ADMIN: 'SUPER_ADMIN',
   ADMIN: 'ADMIN',
   MANAGER: 'MANAGER',
-  SALES_OFFICER: 'SALES_OFFICER',
 } as const;
 export type Role = (typeof Role)[keyof typeof Role];
 
@@ -51,8 +50,8 @@ export interface Category {
   name: string;
   description?: string | null;
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
   _count?: {
     products: number;
   };
@@ -63,11 +62,7 @@ export interface Product {
   name: string;
   sku: string;
   categoryId: string;
-  category?: {
-    id: string;
-    name: string;
-    isActive?: boolean;
-  };
+  category?: Category;
   unit: string;
   costPrice: number;
   sellingPrice: number;
@@ -75,20 +70,20 @@ export interface Product {
   reorderLevel: number;
   description?: string | null;
   isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
   stockStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK';
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface SaleItem {
-  id: string;
+  id?: string;
   saleId: string;
   productId: string;
   product?: {
     id: string;
     name: string;
     sku: string;
-    unit: string;
+    unit?: string;
     quantity?: number;
   };
   quantity: number;
@@ -99,7 +94,14 @@ export interface SaleItem {
 export interface Sale {
   id: string;
   referenceNumber: string;
-  salesOfficerId: string;
+  createdById: string;
+  salesOfficerId?: string;
+  createdBy?: {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string | null;
+  };
   salesOfficer?: {
     id: string;
     name: string;

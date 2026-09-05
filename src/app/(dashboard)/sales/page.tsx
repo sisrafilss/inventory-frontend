@@ -49,20 +49,16 @@ export default function SalesListPage() {
     fetchSales();
   }, [statusFilter]);
 
-  const isSalesOfficer = user?.role === 'SALES_OFFICER';
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <ShoppingCart className="w-6 h-6 text-primary" />
-            {isSalesOfficer ? t('sales.mySales') : t('sales.allSales')}
+            {t('sales.allSales')}
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {isSalesOfficer
-              ? t('sales.subtitleMy')
-              : t('sales.subtitleAll')}
+            {t('sales.subtitleAll')}
           </p>
         </div>
 
@@ -125,7 +121,7 @@ export default function SalesListPage() {
                   <tr className="text-left font-semibold">
                     <th className="p-3">{t('sales.refNumber')}</th>
                     <th className="p-3">{t('sales.date')}</th>
-                    {!isSalesOfficer && <th className="p-3">{t('sales.salesOfficer')}</th>}
+                    <th className="p-3">{t('sales.createdBy')}</th>
                     <th className="p-3">{t('sales.customer')}</th>
                     <th className="p-3">{t('sales.items')}</th>
                     <th className="p-3 text-right">{t('sales.totalAmount')}</th>
@@ -140,11 +136,9 @@ export default function SalesListPage() {
                         {sale.referenceNumber}
                       </td>
                       <td className="p-3 text-muted-foreground">{formatDate(sale.createdAt)}</td>
-                      {!isSalesOfficer && (
-                        <td className="p-3 font-medium text-foreground">
-                          {sale.salesOfficer?.name || '—'}
-                        </td>
-                      )}
+                      <td className="p-3 font-medium text-foreground">
+                        {sale.createdBy?.name || sale.salesOfficer?.name || '—'}
+                      </td>
                       <td className="p-3 text-muted-foreground">
                         {sale.customerName ? (
                           <>
@@ -212,8 +206,8 @@ export default function SalesListPage() {
             {/* Meta details */}
             <div className="grid grid-cols-2 gap-3 p-3 bg-muted/40 rounded-lg">
               <div>
-                <span className="text-muted-foreground block text-[10px]">{t('sales.salesOfficer')}</span>
-                <span className="font-semibold text-foreground">{selectedSale.salesOfficer?.name}</span>
+                <span className="text-muted-foreground block text-[10px]">{t('sales.createdBy')}</span>
+                <span className="font-semibold text-foreground">{selectedSale.createdBy?.name || selectedSale.salesOfficer?.name || '—'}</span>
               </div>
               <div>
                 <span className="text-muted-foreground block text-[10px]">{t('sales.status')}</span>

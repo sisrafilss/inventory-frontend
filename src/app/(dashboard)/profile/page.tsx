@@ -96,9 +96,7 @@ export default function ProfilePage() {
                     ? t('roles.SUPER_ADMIN')
                     : user.role === 'ADMIN'
                     ? t('roles.ADMIN')
-                    : user.role === 'MANAGER'
-                    ? t('roles.MANAGER')
-                    : t('roles.SALES_OFFICER')}
+                    : t('roles.MANAGER')}
                 </Badge>
               </div>
 

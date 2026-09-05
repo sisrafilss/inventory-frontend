@@ -36,7 +36,6 @@ export const translations = {
       SUPER_ADMIN: "Super Admin",
       ADMIN: "Admin",
       MANAGER: "Manager",
-      SALES_OFFICER: "Sales Officer",
     },
     statuses: {
       PENDING: "Pending",
@@ -126,6 +125,7 @@ export const translations = {
       noSalesFound: "No sales records yet.",
       refNumber: "Ref #",
       salesOfficer: "Sales Officer",
+      createdBy: "Created By",
       customer: "Customer",
       amount: "Amount",
       approveAndHandover: "Approve & Handover",
@@ -222,10 +222,14 @@ export const translations = {
     },
     sales: {
       title: "All Sales Records",
+      allSales: "All Sales",
+      subtitleAll: "Complete sales register across all staff members",
       myTitle: "My Sales Entries",
       subtitle: "Complete sales register across all staff members",
       mySubtitle: "Track your submitted sales and review approval status",
       createSale: "Create New Sale",
+      createdBy: "Created By",
+      salesOfficer: "Created By",
       searchPlaceholder:
         "Search by reference number, customer name or phone...",
       pendingReview: "Pending Review",
@@ -262,7 +266,7 @@ export const translations = {
       submittingSale: "Submitting Sale...",
       pendingQueueTitle: "Pending Sales Review Queue",
       pendingQueueDesc:
-        "Review pending sales submitted by Sales Officers, confirm physical cash handover, and execute stock deduction",
+        "Review pending sales, confirm physical cash handover, and execute stock deduction",
       itemsSummary: "Items Summary",
       totalCashRequired: "Total Cash Required",
       cashHandoverAmount: "Cash Handover Amount:",
@@ -274,7 +278,7 @@ export const translations = {
     users: {
       title: "User Management",
       subtitle:
-        "Manage administrative staff, verify Sales Officers, and control system access",
+        "Manage administrative staff and control system access",
       addUser: "Add New User",
       searchPlaceholder: "Search by name, email, or phone...",
       allRoles: "All Roles",
@@ -298,18 +302,18 @@ export const translations = {
       newTempPassword: "New Temporary Password",
       resetNotice:
         "The user will be required to change this password immediately upon their next login.",
-      rejectTitle: "Reject Sales Officer Application",
+      rejectTitle: "Reject User Application",
       rejectReason: "Rejection Reason",
     },
     reports: {
       title: "Operational Reports",
       subtitle:
-        "Audit inventory, track sales metrics, review cashier handovers, and evaluate staff performance",
+        "Audit inventory, track sales metrics, and review cashier handovers",
       exportCSV: "Export CSV",
       tabSales: "Sales Report",
       tabInventory: "Product Inventory & Valuation",
       tabAdjustments: "Stock Movement Audits",
-      tabPerformance: "Sales Officer Performance",
+      tabPerformance: "Sales Performance",
       tabCash: "Cash Handover Register",
       fromDate: "From Date:",
       toDate: "To Date:",
@@ -317,7 +321,8 @@ export const translations = {
       reset: "Reset",
       generating: "Generating report...",
       noRecords: "No report records found for this criteria.",
-      officer: "Sales Officer",
+      officer: "Created By",
+      createdBy: "Created By",
       submitted: "Submitted",
       approved: "Approved",
       rejected: "Rejected",
@@ -389,7 +394,6 @@ export const translations = {
       SUPER_ADMIN: "সুপার অ্যাডমিন",
       ADMIN: "অ্যাডমিন",
       MANAGER: "ম্যানেজার",
-      SALES_OFFICER: "সেলস অফিসার",
     },
     statuses: {
       PENDING: "অপেক্ষমান",
@@ -480,6 +484,7 @@ export const translations = {
       noSalesFound: "এখনও কোনো বিক্রয়ের তথ্য নেই।",
       refNumber: "রেফারেন্স #",
       salesOfficer: "সেলস অফিসার",
+      createdBy: "তৈরি করেছেন",
       customer: "ক্রেতা",
       amount: "পরিমাণ",
       approveAndHandover: "নগদ গ্রহণ ও অনুমোদন",
@@ -577,11 +582,15 @@ export const translations = {
     },
     sales: {
       title: "সকল বিক্রয় তালিকা",
+      allSales: "সকল বিক্রয়",
+      subtitleAll: "সকল কর্মীদের সামগ্রিক বিক্রয় রেজিস্টার",
       myTitle: "আমার বিক্রয় এন্ট্রিসমূহ",
       subtitle: "সকল কর্মীদের সামগ্রিক বিক্রয় রেজিস্টার",
       mySubtitle:
         "আপনার জমা দেওয়া বিক্রয় ট্র্যাক করুন এবং অনুমোদনের অবস্থা দেখুন",
       createSale: "নতুন বিক্রয় তৈরি করুন",
+      createdBy: "তৈরি করেছেন",
+      salesOfficer: "তৈরি করেছেন",
       searchPlaceholder:
         "রেফারেন্স নম্বর, ক্রেতার নাম বা ফোন দিয়ে অনুসন্ধান...",
       pendingReview: "পর্যালোচনার অপেক্ষায়",
@@ -619,7 +628,7 @@ export const translations = {
       submittingSale: "বিক্রয় জমা হচ্ছে...",
       pendingQueueTitle: "অপেক্ষমান বিক্রয় পর্যালোচনা তালিকা",
       pendingQueueDesc:
-        "সেলস অফিসারদের জমা দেওয়া বিক্রয় পর্যালোচনা করুন, শারীরিক নগদ হস্তান্তর নিশ্চিত করুন এবং মজুদ কর্তন করুন",
+        "অপেক্ষমান বিক্রয় পর্যালোচনা করুন, নগদ অর্থ গ্রহণ নিশ্চিত করুন এবং মজুদ কর্তন করুন",
       itemsSummary: "পণ্যের বিবরণ",
       totalCashRequired: "প্রয়োজনীয় নগদ অর্থ",
       cashHandoverAmount: "নগদ হস্তান্তরের পরিমাণ:",
@@ -631,7 +640,7 @@ export const translations = {
     users: {
       title: "ব্যবহারকারী ব্যবস্থাপনা",
       subtitle:
-        "প্রশাসনিক কর্মকর্তা পরিচালনা, সেলস অফিসার যাচাই এবং অ্যাক্সেস নিয়ন্ত্রণ করুন",
+        "প্রশাসনিক কর্মকর্তা পরিচালনা এবং সিস্টেম অ্যাক্সেস নিয়ন্ত্রণ করুন",
       addUser: "নতুন ব্যবহারকারী যোগ করুন",
       searchPlaceholder: "নাম, ইমেইল বা ফোন নম্বর দিয়ে অনুসন্ধান...",
       allRoles: "সকল ভূমিকা (Role)",
@@ -655,18 +664,18 @@ export const translations = {
       newTempPassword: "নতুন অস্থায়ী পাসওয়ার্ড",
       resetNotice:
         "পরবর্তী লগইনে ব্যবহারকারীকে তাৎক্ষণিকভাবে এই পাসওয়ার্ড পরিবর্তন করতে হবে।",
-      rejectTitle: "সেলস অফিসার আবেদন প্রত্যাখ্যান",
+      rejectTitle: "ব্যবহারকারী আবেদন প্রত্যাখ্যান",
       rejectReason: "প্রত্যাখ্যানের কারণ",
     },
     reports: {
       title: "কার্যক্রম প্রতিবেদন (Reports)",
       subtitle:
-        "ইনভেন্টরি অডিট, বিক্রয় মেট্রিক্স ট্র্যাক, ক্যাশিয়ার হস্তান্তর পর্যালোচনা এবং কর্মীদের কর্মক্ষমতা মূল্যায়ন",
+        "ইনভেন্টরি অডিট, বিক্রয় মেট্রিক্স ট্র্যাক এবং ক্যাশিয়ার হস্তান্তর পর্যালোচনা করুন",
       exportCSV: "সিএসভি (CSV) ডাউনলোড",
       tabSales: "বিক্রয় প্রতিবেদন",
       tabInventory: "পণ্য ইনভেন্টরি ও মূল্যায়ন",
       tabAdjustments: "স্টক মুভমেন্ট অডিট",
-      tabPerformance: "সেলস অফিসারদের কর্মক্ষমতা",
+      tabPerformance: "বিক্রয় কর্মক্ষমতা",
       tabCash: "নগদ অর্থ হস্তান্তর রেজিস্টার",
       fromDate: "শুরুর তারিখ:",
       toDate: "শেষ তারিখ:",
@@ -674,7 +683,8 @@ export const translations = {
       reset: "রিসেট",
       generating: "প্রতিবেদন তৈরি হচ্ছে...",
       noRecords: "এই শর্তে কোনো প্রতিবেদনের তথ্য পাওয়া যায়নি।",
-      officer: "সেলস অফিসার",
+      officer: "তৈরি করেছেন",
+      createdBy: "তৈরি করেছেন",
       submitted: "মোট জমা",
       approved: "অনুমোদিত",
       rejected: "প্রত্যাখ্যাত",

@@ -103,16 +103,6 @@ export default function LoginPage() {
             <Button type="submit" className="w-full h-10 font-semibold" disabled={isSubmitting}>
               {isSubmitting ? t('auth.signingIn') : t('auth.signIn')}
             </Button>
-
-            <div className="text-center text-xs text-muted-foreground mt-2">
-              {t('auth.newSalesOfficerPrompt')}{' '}
-              <Link
-                href="/register-sales-officer"
-                className="text-primary font-semibold hover:underline"
-              >
-                {t('auth.registerHere')}
-              </Link>
-            </div>
           </CardFooter>
         </form>
       </Card>

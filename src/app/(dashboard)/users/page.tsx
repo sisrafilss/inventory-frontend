@@ -16,8 +16,6 @@ import {
   Users,
   UserPlus,
   Search,
-  CheckCircle,
-  XCircle,
   KeyRound,
   PowerOff,
   Power,
@@ -50,11 +48,6 @@ export default function UsersPage() {
   const [selectedUserForReset, setSelectedUserForReset] = useState<User | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [isResetting, setIsResetting] = useState(false);
-
-  // Reject Modal
-  const [selectedUserForReject, setSelectedUserForReject] = useState<User | null>(null);
-  const [rejectReason, setRejectReason] = useState('');
-  const [isRejecting, setIsRejecting] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -103,30 +96,6 @@ export default function UsersPage() {
     }
   };
 
-  const handleVerify = async (userId: string) => {
-    if (!confirm('Verify and activate this Sales Officer?')) return;
-    try {
-      await api.post(`/users/${userId}/verify`);
-      await fetchUsers();
-    } catch (err: any) {
-      alert(err.message || 'Failed to verify user.');
-    }
-  };
-
-  const handleReject = async () => {
-    if (!selectedUserForReject) return;
-    setIsRejecting(true);
-    try {
-      await api.post(`/users/${selectedUserForReject.id}/reject`, { reason: rejectReason });
-      setSelectedUserForReject(null);
-      setRejectReason('');
-      await fetchUsers();
-    } catch (err: any) {
-      alert(err.message || 'Failed to reject registration.');
-    } finally {
-      setIsRejecting(false);
-    }
-  };
 
   const handleToggleStatus = async (user: User) => {
     const nextStatus = user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
@@ -196,7 +165,6 @@ export default function UsersPage() {
               <option value="">{t('users.allRoles')}</option>
               {isSuperAdmin && <option value="ADMIN">{t('roles.ADMIN')}</option>}
               <option value="MANAGER">{t('roles.MANAGER')}</option>
-              <option value="SALES_OFFICER">{t('roles.SALES_OFFICER')}</option>
             </Select>
           </div>
 
@@ -207,10 +175,8 @@ export default function UsersPage() {
               className="text-xs h-9"
             >
               <option value="">{t('users.allStatuses')}</option>
-              <option value="PENDING">{t('statuses.PENDING')}</option>
               <option value="ACTIVE">{t('statuses.ACTIVE')}</option>
               <option value="INACTIVE">{t('statuses.INACTIVE')}</option>
-              <option value="REJECTED">{t('statuses.REJECTED')}</option>
             </Select>
           </div>
         </form>
@@ -289,26 +255,6 @@ export default function UsersPage() {
                         {u.createdAt ? formatDate(u.createdAt) : t('common.na')}
                       </td>
                       <td className="p-3 text-right space-x-1.5 whitespace-nowrap">
-                        {u.status === 'PENDING' && (
-                          <>
-                            <Button
-                              size="sm"
-                              className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700"
-                              onClick={() => handleVerify(u.id)}
-                            >
-                              <CheckCircle className="w-3.5 h-3.5 mr-1" /> {t('users.verify')}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              className="h-7 text-xs"
-                              onClick={() => setSelectedUserForReject(u)}
-                            >
-                              <XCircle className="w-3.5 h-3.5 mr-1" /> {t('users.reject')}
-                            </Button>
-                          </>
-                        )}
-
                         <Button
                           size="sm"
                           variant="outline"
@@ -391,7 +337,6 @@ export default function UsersPage() {
             >
               {isSuperAdmin && <option value="ADMIN">{t('roles.ADMIN')}</option>}
               <option value="MANAGER">{t('roles.MANAGER')}</option>
-              <option value="SALES_OFFICER">{t('roles.SALES_OFFICER')}</option>
             </Select>
           </div>
 
@@ -465,47 +410,6 @@ export default function UsersPage() {
             disabled={isResetting || !newPassword.trim()}
           >
             {isResetting ? t('common.submitting') : t('common.save')}
-          </Button>
-        </DialogFooter>
-      </Dialog>
-
-      {/* Reject Registration Dialog */}
-      <Dialog
-        open={!!selectedUserForReject}
-        onOpenChange={(open) => !open && setSelectedUserForReject(null)}
-      >
-        <DialogHeader>
-          <DialogTitle>{t('users.rejectTitle')}</DialogTitle>
-          <DialogDescription>
-            {t('common.delete')}: <strong>{selectedUserForReject?.name}</strong> ({selectedUserForReject?.email})
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-2">
-          <label className="text-xs font-semibold">{t('users.rejectReason')}</label>
-          <Input
-            placeholder="e.g. Unverified employee reference"
-            value={rejectReason}
-            onChange={(e) => setRejectReason(e.target.value)}
-          />
-        </div>
-
-        <DialogFooter>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setSelectedUserForReject(null)}
-            disabled={isRejecting}
-          >
-            {t('common.cancel')}
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleReject}
-            disabled={isRejecting}
-          >
-            {isRejecting ? t('common.submitting') : t('users.reject')}
           </Button>
         </DialogFooter>
       </Dialog>

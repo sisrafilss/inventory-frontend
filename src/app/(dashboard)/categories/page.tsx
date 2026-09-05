@@ -155,7 +155,7 @@ export default function CategoriesPage() {
                           {cat.isActive ? t('statuses.ACTIVE') : t('statuses.INACTIVE')}
                         </Badge>
                       </td>
-                      <td className="p-3 text-muted-foreground">{formatDate(cat.createdAt)}</td>
+                      <td className="p-3 text-muted-foreground">{cat.createdAt ? formatDate(cat.createdAt) : '—'}</td>
                       <td className="p-3 text-right">
                         <Button
                           size="sm"

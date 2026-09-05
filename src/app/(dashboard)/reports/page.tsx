@@ -14,7 +14,7 @@ import { BarChart3, Download, Search, Filter, Calendar } from 'lucide-react';
 export default function ReportsPage() {
   const { t, formatMoney } = useLanguage();
   const [activeReport, setActiveReport] = useState<
-    'sales' | 'inventory' | 'adjustments' | 'performance' | 'cash'
+    'sales' | 'inventory' | 'adjustments' | 'cash'
   >('sales');
 
   const [data, setData] = useState<any[]>([]);
@@ -28,7 +28,6 @@ export default function ReportsPage() {
       let endpoint = '/reports/sales';
       if (activeReport === 'inventory') endpoint = '/reports/inventory';
       else if (activeReport === 'adjustments') endpoint = '/reports/stock-adjustments';
-      else if (activeReport === 'performance') endpoint = '/reports/sales-officers';
       else if (activeReport === 'cash') endpoint = '/reports/cash-handover';
 
       const res = await api.get<any>(endpoint, {
@@ -111,7 +110,6 @@ export default function ReportsPage() {
           { id: 'sales', label: t('reports.tabSales') },
           { id: 'inventory', label: t('reports.tabInventory') },
           { id: 'adjustments', label: t('reports.tabAdjustments') },
-          { id: 'performance', label: t('reports.tabPerformance') },
           { id: 'cash', label: t('reports.tabCash') },
         ].map((tab) => (
           <button
@@ -194,7 +192,7 @@ export default function ReportsPage() {
                     <tr className="text-left font-semibold">
                       <th className="p-3">{t('sales.refNumber')}</th>
                       <th className="p-3">{t('sales.date')}</th>
-                      <th className="p-3">{t('reports.officer')}</th>
+                      <th className="p-3">{t('sales.createdBy')}</th>
                       <th className="p-3">{t('sales.status')}</th>
                       <th className="p-3">{t('sales.approvedBy')}</th>
                       <th className="p-3 text-right">{t('sales.totalAmount')}</th>
@@ -205,7 +203,7 @@ export default function ReportsPage() {
                       <tr key={i} className="hover:bg-muted/40">
                         <td className="p-3 font-mono font-medium">{r.referenceNumber}</td>
                         <td className="p-3 text-muted-foreground">{formatDate(r.date)}</td>
-                        <td className="p-3 font-medium">{r.salesOfficer}</td>
+                        <td className="p-3 font-medium">{r.createdBy || r.salesOfficer || '—'}</td>
                         <td className="p-3">
                           <Badge
                             variant={
@@ -342,49 +340,13 @@ export default function ReportsPage() {
                 </table>
               )}
 
-              {activeReport === 'performance' && (
-                <table className="w-full text-xs">
-                  <thead className="bg-muted/30 border-b text-muted-foreground">
-                    <tr className="text-left font-semibold">
-                      <th className="p-3">{t('reports.officer')}</th>
-                      <th className="p-3 text-center">{t('reports.submitted')}</th>
-                      <th className="p-3 text-center">{t('reports.approved')}</th>
-                      <th className="p-3 text-center">{t('statuses.pending')}</th>
-                      <th className="p-3 text-center">{t('reports.rejected')}</th>
-                      <th className="p-3 text-right">{t('reports.approvedRevenue')}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {data.map((r, i) => (
-                      <tr key={i} className="hover:bg-muted/40">
-                        <td className="p-3">
-                          <span className="font-semibold text-foreground">{r.name}</span>
-                          <span className="text-[10px] text-muted-foreground block">{r.email}</span>
-                        </td>
-                        <td className="p-3 text-center font-medium">{r.totalSubmitted}</td>
-                        <td className="p-3 text-center font-bold text-emerald-600">
-                          {r.approvedCount}
-                        </td>
-                        <td className="p-3 text-center font-medium text-amber-600">
-                          {r.pendingCount}
-                        </td>
-                        <td className="p-3 text-center text-muted-foreground">{r.rejectedCount}</td>
-                        <td className="p-3 text-right font-bold text-foreground text-sm">
-                          {formatMoney(r.approvedSalesAmount)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-
               {activeReport === 'cash' && (
                 <table className="w-full text-xs">
                   <thead className="bg-muted/30 border-b text-muted-foreground">
                     <tr className="text-left font-semibold">
                       <th className="p-3">{t('sales.refNumber')}</th>
                       <th className="p-3">{t('inventory.timestamp')}</th>
-                      <th className="p-3">{t('reports.officer')}</th>
+                      <th className="p-3">{t('sales.createdBy')}</th>
                       <th className="p-3">{t('reports.cashConfirmedBy')}</th>
                       <th className="p-3">{t('sales.customer')}</th>
                       <th className="p-3 text-right">{t('reports.handoverAmount')}</th>
@@ -397,7 +359,7 @@ export default function ReportsPage() {
                           {r.referenceNumber}
                         </td>
                         <td className="p-3 text-muted-foreground">{formatDate(r.confirmedAt)}</td>
-                        <td className="p-3 font-medium">{r.salesOfficer}</td>
+                        <td className="p-3 font-medium">{r.createdBy || r.salesOfficer || '—'}</td>
                         <td className="p-3">
                           <span className="font-semibold text-emerald-700">{r.confirmedBy}</span>
                         </td>

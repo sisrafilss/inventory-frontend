@@ -104,7 +104,7 @@ export default function PendingSalesQueuePage() {
                   <tr className="text-left font-semibold">
                     <th className="p-3">{t('sales.refNumber')}</th>
                     <th className="p-3">{t('sales.dateSubmitted')}</th>
-                    <th className="p-3">{t('sales.salesOfficer')}</th>
+                    <th className="p-3">{t('sales.createdBy')}</th>
                     <th className="p-3">{t('sales.customer')}</th>
                     <th className="p-3">{t('sales.itemsSummary')}</th>
                     <th className="p-3 text-right">{t('sales.totalCashRequired')}</th>
@@ -118,7 +118,7 @@ export default function PendingSalesQueuePage() {
                         {sale.referenceNumber}
                       </td>
                       <td className="p-3 text-muted-foreground">{formatDate(sale.createdAt)}</td>
-                      <td className="p-3 font-medium text-foreground">{sale.salesOfficer?.name}</td>
+                      <td className="p-3 font-medium text-foreground">{sale.createdBy?.name || sale.salesOfficer?.name || '—'}</td>
                       <td className="p-3 text-muted-foreground">
                         {sale.customerName || t('sales.walkIn')}
                         {sale.customerPhone && (
