@@ -6,6 +6,7 @@ import { useLanguage } from '@/lib/context/language-context';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { LanguageSwitcher } from '../ui/language-switcher';
+import { ThemeSwitcher } from '../ui/theme-switcher';
 import { Menu, LogOut, Shield } from 'lucide-react';
 
 interface HeaderProps {
@@ -49,6 +50,9 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-2.5 sm:gap-3">
+        {/* Theme Switcher Button */}
+        <ThemeSwitcher />
+
         {/* Language Switcher Button */}
         <LanguageSwitcher />
 

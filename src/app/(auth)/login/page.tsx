@@ -11,6 +11,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
+import { ThemeSwitcher } from '@/components/ui/theme-switcher';
 import { Lock, Mail, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
@@ -45,8 +46,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/40 relative">
-      {/* Top right language switcher */}
-      <div className="absolute top-4 right-4">
+      {/* Top right theme and language switchers */}
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        <ThemeSwitcher />
         <LanguageSwitcher />
       </div>
 

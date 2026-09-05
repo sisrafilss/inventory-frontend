@@ -9,6 +9,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
+import { ThemeSwitcher } from '@/components/ui/theme-switcher';
 import { KeyRound, Lock, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 function ChangePasswordContent() {
@@ -62,7 +63,8 @@ function ChangePasswordContent() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/40 relative">
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        <ThemeSwitcher />
         <LanguageSwitcher />
       </div>
 

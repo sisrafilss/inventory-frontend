@@ -364,6 +364,13 @@ export const translations = {
       updatePasswordDesc: "Change your password to keep your account secure",
       changePasswordBtn: "Change Password",
     },
+    theme: {
+      light: "Light",
+      dark: "Dark",
+      switchToLight: "Switch to Light Mode",
+      switchToDark: "Switch to Dark Mode",
+      toggleTheme: "Toggle Theme",
+    },
   },
   bn: {
     common: {
@@ -732,6 +739,13 @@ export const translations = {
       updatePasswordDesc:
         "অ্যাকাউন্টের নিরাপত্তা নিশ্চিত করতে নিয়মিত পাসওয়ার্ড পরিবর্তন করুন",
       changePasswordBtn: "পাসওয়ার্ড পরিবর্তন করুন",
+    },
+    theme: {
+      light: "লাইট",
+      dark: "ডার্ক",
+      switchToLight: "লাইট মোডে পরিবর্তন করুন",
+      switchToDark: "ডার্ক মোডে পরিবর্তন করুন",
+      toggleTheme: "থিম পরিবর্তন করুন",
     },
   },
 } as const;
