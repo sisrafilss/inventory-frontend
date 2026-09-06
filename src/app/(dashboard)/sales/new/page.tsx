@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { InvoiceMemoModal } from '@/components/sales/invoice-memo-modal';
+import { ProductCombobox } from '@/components/ui/product-combobox';
 import {
   Plus,
   Trash2,
@@ -26,6 +27,7 @@ import {
 
 interface FormItem {
   productId: string;
+  product?: Product | null;
   quantity: number;
   unitPrice: number;
 }
@@ -34,7 +36,6 @@ export default function CreateSalePage() {
   const router = useRouter();
   const { t, formatMoney } = useLanguage();
 
-  const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +51,9 @@ export default function CreateSalePage() {
   const [paidTouched, setPaidTouched] = useState<boolean>(false);
   const [note, setNote] = useState('');
 
-  const [items, setItems] = useState<FormItem[]>([{ productId: '', quantity: 1, unitPrice: 0 }]);
+  const [items, setItems] = useState<FormItem[]>([
+    { productId: '', product: null, quantity: 1, unitPrice: 0 },
+  ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Created Sale Memo Modal
@@ -61,27 +64,16 @@ export default function CreateSalePage() {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [prodRes, custRes, whRes] = await Promise.all([
-          api.get<Product[]>('/products', { isActive: 'true' }),
+        const [custRes, whRes] = await Promise.all([
           api.get<Customer[]>('/parties/customers'),
           api.get<Warehouse[]>('/warehouses'),
         ]);
 
-        setProducts(prodRes.data);
         setCustomers(custRes.data);
         setWarehouses(whRes.data);
 
-        if (prodRes.data.length > 0) {
-          setItems([
-            {
-              productId: prodRes.data[0].id,
-              quantity: 1,
-              unitPrice: Number(prodRes.data[0].sellingPrice),
-            },
-          ]);
-        }
-
-        const defWh = whRes.data.find((w) => w.isDefault && w.isActive) || whRes.data[0];
+        const defWh =
+          whRes.data.find((w) => w.isDefault && w.isActive) || whRes.data[0];
         if (defWh) setWarehouseId(defWh.id);
       } catch (err: any) {
         setError('Failed to fetch initial sales data.');
@@ -92,17 +84,14 @@ export default function CreateSalePage() {
     loadData();
   }, []);
 
-  const productMap = new Map(products.map((p) => [p.id, p]));
-
   const handleAddItem = () => {
-    if (products.length === 0) return;
-    const firstProd = products[0];
     setItems([
       ...items,
       {
-        productId: firstProd.id,
+        productId: '',
+        product: null,
         quantity: 1,
-        unitPrice: Number(firstProd.sellingPrice),
+        unitPrice: 0,
       },
     ]);
   };
@@ -112,13 +101,24 @@ export default function CreateSalePage() {
     setItems(items.filter((_, idx) => idx !== index));
   };
 
-  const handleProductSelect = (index: number, pId: string) => {
-    const prod = productMap.get(pId);
+  const handleProductSelect = (index: number, prod: Product) => {
     const updated = [...items];
     updated[index] = {
       ...updated[index],
-      productId: pId,
-      unitPrice: prod ? Number(prod.sellingPrice) : 0,
+      productId: prod.id,
+      product: prod,
+      unitPrice: Number(prod.sellingPrice),
+    };
+    setItems(updated);
+  };
+
+  const handleProductClear = (index: number) => {
+    const updated = [...items];
+    updated[index] = {
+      ...updated[index],
+      productId: '',
+      product: null,
+      unitPrice: 0,
     };
     setItems(updated);
   };
@@ -147,11 +147,16 @@ export default function CreateSalePage() {
   // Grand Total calculation
   let grandTotal = 0;
   const lineDetails = items.map((item) => {
-    const prod = productMap.get(item.productId);
+    const prod = item.product;
+    let availableStock = prod ? prod.quantity : 0;
+    if (prod && warehouseId && prod.warehouseStocks) {
+      const ws = prod.warehouseStocks.find((s) => s.warehouseId === warehouseId);
+      if (ws !== undefined) availableStock = ws.quantity;
+    }
     const lineTotal = (item.unitPrice || 0) * (item.quantity || 0);
     grandTotal += lineTotal;
-    const isExceedingStock = prod ? item.quantity > prod.quantity : false;
-    return { prod, lineTotal, isExceedingStock };
+    const isExceedingStock = prod ? item.quantity > availableStock : false;
+    return { prod, availableStock, lineTotal, isExceedingStock };
   });
 
   const effectivePaid = paymentType === 'CASH' && !paidTouched ? grandTotal : paidAmount;
@@ -352,17 +357,14 @@ export default function CreateSalePage() {
                     {/* Product Selector */}
                     <div className="col-span-2 sm:col-span-5 space-y-1">
                       <label className="font-semibold text-foreground">Product *</label>
-                      <select
+                      <ProductCombobox
                         value={item.productId}
-                        onChange={(e) => handleProductSelect(index, e.target.value)}
-                        className="w-full h-9 px-3 rounded-md border border-input bg-background text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                      >
-                        {products.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name} (SKU: {p.sku}) - Avail: {p.quantity} {p.unit}
-                          </option>
-                        ))}
-                      </select>
+                        selectedProduct={item.product}
+                        warehouseId={warehouseId}
+                        onSelect={(p) => handleProductSelect(index, p)}
+                        onClear={() => handleProductClear(index)}
+                        placeholder="Search 10k+ items by name, SKU, or scan barcode..."
+                      />
                     </div>
 
                     {/* Unit Price Override */}
@@ -415,7 +417,7 @@ export default function CreateSalePage() {
 
                   {details.isExceedingStock && (
                     <div className="text-[11px] text-destructive font-medium flex items-center gap-1">
-                      <AlertCircle className="w-3.5 h-3.5" /> Quantity exceeds current available stock ({details.prod?.quantity || 0}).
+                      <AlertCircle className="w-3.5 h-3.5" /> Quantity exceeds current available stock ({details.availableStock}).
                     </div>
                   )}
                 </div>

@@ -20,6 +20,7 @@ import {
   Calculator,
   Building2,
   Warehouse as WarehouseIcon,
+  Loader2,
 } from 'lucide-react';
 
 interface PurchaseLineItem {
@@ -40,7 +41,6 @@ export default function NewPurchasePage() {
 
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
 
   const [supplierId, setSupplierId] = useState<string>('');
   const [supplierName, setSupplierName] = useState<string>('');
@@ -56,18 +56,18 @@ export default function NewPurchasePage() {
   // Product Selection Modal
   const [productSearchModalOpen, setProductSearchModalOpen] = useState(false);
   const [productSearchQuery, setProductSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     const initData = async () => {
       try {
-        const [supRes, whRes, prodRes] = await Promise.all([
+        const [supRes, whRes] = await Promise.all([
           api.get<Supplier[]>('/parties/suppliers'),
           api.get<Warehouse[]>('/warehouses'),
-          api.get<Product[]>('/products', { limit: 500 }),
         ]);
         setSuppliers(supRes.data);
         setWarehouses(whRes.data);
-        setAllProducts(prodRes.data);
 
         // Auto-select default warehouse if available
         const defWh = whRes.data.find((w) => w.isDefault && w.isActive) || whRes.data[0];
@@ -78,6 +78,29 @@ export default function NewPurchasePage() {
     };
     initData();
   }, []);
+
+  // Debounced search for product modal across 10,000+ catalog items
+  useEffect(() => {
+    if (!productSearchModalOpen) return;
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const res = await api.get<Product[]>('/products', {
+          search: productSearchQuery.trim() || undefined,
+          limit: 30,
+          isActive: 'true',
+        });
+        setSearchResults(res.data || []);
+      } catch (err) {
+        console.error('Failed to search products:', err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [productSearchQuery, productSearchModalOpen]);
 
   const handleAddProduct = (prod: Product) => {
     const existing = items.find((i) => i.productId === prod.id);
@@ -183,13 +206,6 @@ export default function NewPurchasePage() {
       setIsSubmitting(false);
     }
   };
-
-  const filteredProducts = allProducts.filter(
-    (p) =>
-      p.name.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
-      p.sku.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
-      (p.barcode && p.barcode.toLowerCase().includes(productSearchQuery.toLowerCase())),
-  );
 
   return (
     <div className="space-y-6">
@@ -474,12 +490,19 @@ export default function NewPurchasePage() {
             </div>
 
             <div className="max-h-80 overflow-y-auto divide-y divide-border border border-border rounded-md">
-              {filteredProducts.length === 0 ? (
-                <div className="p-6 text-center text-muted-foreground text-xs">
-                  No products matched "{productSearchQuery}".
+              {isSearching ? (
+                <div className="p-8 text-center text-muted-foreground text-xs flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  Searching 10,000+ catalog items...
+                </div>
+              ) : searchResults.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-xs">
+                  {productSearchQuery.trim()
+                    ? `No products found matching "${productSearchQuery}".`
+                    : 'Type product name, SKU, or barcode above to search.'}
                 </div>
               ) : (
-                filteredProducts.slice(0, 30).map((prod) => (
+                searchResults.map((prod) => (
                   <div
                     key={prod.id}
                     className="p-3 flex items-center justify-between hover:bg-muted/50 cursor-pointer transition-colors"

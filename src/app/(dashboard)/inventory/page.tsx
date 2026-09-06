@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { ProductCombobox } from '@/components/ui/product-combobox';
 import {
   Boxes,
   PlusCircle,
@@ -22,6 +23,8 @@ import {
   Filter,
   ArrowUpRight,
   ArrowDownRight,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 export default function InventoryPage() {
@@ -29,10 +32,15 @@ export default function InventoryPage() {
   const { t, formatMoney } = useLanguage();
   const [activeTab, setActiveTab] = useState<'overview' | 'history'>('overview');
 
-  // Overview state
+  // Overview state & pagination
   const [products, setProducts] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [loadingOverview, setLoadingOverview] = useState(true);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [meta, setMeta] = useState({ page: 1, limit: 20, total: 0, totalPages: 1 });
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // History state
   const [movements, setMovements] = useState<StockMovement[]>([]);
@@ -42,19 +50,40 @@ export default function InventoryPage() {
   // Adjustment Modal
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState('');
+  const [adjustSelectedProduct, setAdjustSelectedProduct] = useState<any>(null);
   const [adjustType, setAdjustType] = useState<StockMovementType>('RESTOCK');
   const [adjustQty, setAdjustQty] = useState<number>(1);
   const [adjustReason, setAdjustReason] = useState('');
   const [isAdjusting, setIsAdjusting] = useState(false);
 
+  // Debounce search (300ms)
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [search]);
+
   const fetchOverview = async () => {
     try {
       setLoadingOverview(true);
-      const res = await api.get<{ summary: any; products: any[] }>('/inventory/overview');
+      const res = await api.get<{ summary: any; products: any[]; meta: any }>(
+        '/inventory/overview',
+        {
+          page,
+          limit,
+          search: debouncedSearch || undefined,
+        },
+      );
       setSummary(res.data.summary);
       setProducts(res.data.products);
+      if (res.data.meta) {
+        setMeta(res.data.meta);
+      }
       if (res.data.products.length > 0 && !selectedProductId) {
         setSelectedProductId(res.data.products[0].id);
+        setAdjustSelectedProduct(res.data.products[0]);
       }
     } catch (err: any) {
       console.error(err);
@@ -79,7 +108,7 @@ export default function InventoryPage() {
 
   useEffect(() => {
     fetchOverview();
-  }, []);
+  }, [page, limit, debouncedSearch]);
 
   useEffect(() => {
     if (activeTab === 'history') {
@@ -87,7 +116,8 @@ export default function InventoryPage() {
     }
   }, [activeTab, historyFilterType]);
 
-  const selectedProduct = products.find((p) => p.id === selectedProductId);
+  const selectedProduct =
+    adjustSelectedProduct || products.find((p) => p.id === selectedProductId);
 
   // Live preview calculation for adjustment
   const calculatePreview = () => {
@@ -214,6 +244,20 @@ export default function InventoryPage() {
       {/* Tab 1: Current Stock Overview */}
       {activeTab === 'overview' && (
         <Card>
+          <div className="p-3 border-b flex flex-col sm:flex-row items-center justify-between gap-3 bg-card">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-muted-foreground" />
+              <Input
+                placeholder="Search 10k+ items by name, SKU, or barcode..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 h-8 text-xs"
+              />
+            </div>
+            <div className="text-xs text-muted-foreground self-start sm:self-center">
+              Total {meta.total || products.length} catalog products
+            </div>
+          </div>
           <CardContent className="p-0">
             {loadingOverview ? (
               <div className="p-12 text-center text-xs text-muted-foreground">{t('inventory.loading')}</div>
@@ -273,6 +317,7 @@ export default function InventoryPage() {
                               className="h-7 text-xs"
                               onClick={() => {
                                 setSelectedProductId(p.id);
+                                setAdjustSelectedProduct(p);
                                 setAdjustOpen(true);
                               }}
                             >
@@ -284,6 +329,75 @@ export default function InventoryPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Pagination Controls */}
+            {!loadingOverview && products.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t bg-muted/20 text-xs">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <span>
+                    Showing{' '}
+                    <span className="font-semibold text-foreground">
+                      {(page - 1) * limit + 1}
+                    </span>{' '}
+                    to{' '}
+                    <span className="font-semibold text-foreground">
+                      {Math.min(page * limit, meta.total)}
+                    </span>{' '}
+                    of{' '}
+                    <span className="font-semibold text-foreground">
+                      {meta.total}
+                    </span>{' '}
+                    products
+                  </span>
+                  <span className="hidden sm:inline text-muted-foreground/40">•</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="hidden sm:inline">Per page:</span>
+                    <select
+                      value={limit}
+                      onChange={(e) => {
+                        setLimit(Number(e.target.value));
+                        setPage(1);
+                      }}
+                      aria-label="Stock items per page"
+                      className="h-7 px-2 text-xs rounded border border-input bg-background font-medium focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                    >
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">
+                    Page <span className="font-semibold text-foreground">{page}</span> of{' '}
+                    <span className="font-semibold text-foreground">{meta.totalPages || 1}</span>
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      disabled={page <= 1}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      disabled={page >= (meta.totalPages || 1)}
+                      onClick={() => setPage((p) => Math.min(meta.totalPages || 1, p + 1))}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>
@@ -412,17 +526,19 @@ export default function InventoryPage() {
         <form onSubmit={handleAdjustSubmit} className="space-y-3.5 text-xs">
           <div className="space-y-1">
             <label className="font-semibold">{t('inventory.selectProduct')} *</label>
-            <Select
+            <ProductCombobox
               value={selectedProductId}
-              onChange={(e) => setSelectedProductId(e.target.value)}
-              required
-            >
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} (SKU: {p.sku}) — {t('inventory.inStock')}: {p.quantity} {p.unit}
-                </option>
-              ))}
-            </Select>
+              selectedProduct={selectedProduct}
+              onSelect={(p) => {
+                setSelectedProductId(p.id);
+                setAdjustSelectedProduct(p);
+              }}
+              onClear={() => {
+                setSelectedProductId('');
+                setAdjustSelectedProduct(null);
+              }}
+              placeholder="Search 10k+ catalog products by name, SKU, or barcode..."
+            />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

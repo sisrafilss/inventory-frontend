@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Package, Plus, Search, Edit2, AlertCircle } from 'lucide-react';
+import { Package, Plus, Search, Edit2, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function ProductsPage() {
   const { user } = useAuth();
@@ -21,10 +21,23 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filters
+  // Pagination & Filters
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [meta, setMeta] = useState({ page: 1, limit: 20, total: 0, totalPages: 1 });
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [stockFilter, setStockFilter] = useState('ALL');
+
+  // Debounce search query (300ms)
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [search]);
 
   // Modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -57,11 +70,16 @@ export default function ProductsPage() {
       setLoading(true);
       setError(null);
       const res = await api.get<Product[]>('/products', {
-        search,
+        page,
+        limit,
+        search: debouncedSearch || undefined,
         categoryId: categoryFilter || undefined,
         stockStatus: stockFilter !== 'ALL' ? stockFilter : undefined,
       });
       setProducts(res.data);
+      if (res.meta) {
+        setMeta(res.meta);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load products.');
     } finally {
@@ -75,7 +93,7 @@ export default function ProductsPage() {
 
   useEffect(() => {
     fetchProducts();
-  }, [categoryFilter, stockFilter]);
+  }, [page, limit, debouncedSearch, categoryFilter, stockFilter]);
 
   const handleOpenCreate = () => {
     setEditingProduct(null);
@@ -188,7 +206,10 @@ export default function ProductsPage() {
           <div className="sm:col-span-3">
             <Select
               value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
+              onChange={(e) => {
+                setCategoryFilter(e.target.value);
+                setPage(1);
+              }}
               className="text-xs h-9"
             >
               <option value="">{t('products.allCategories')}</option>
@@ -203,7 +224,10 @@ export default function ProductsPage() {
           <div className="sm:col-span-3">
             <Select
               value={stockFilter}
-              onChange={(e) => setStockFilter(e.target.value)}
+              onChange={(e) => {
+                setStockFilter(e.target.value);
+                setPage(1);
+              }}
               className="text-xs h-9"
             >
               <option value="ALL">{t('products.allStockStatuses')}</option>
@@ -227,7 +251,8 @@ export default function ProductsPage() {
               {t('products.noProducts')}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              <div className="overflow-x-auto">
               <table className="w-full text-xs min-w-[750px]">
                 <thead className="bg-muted/30 border-b text-muted-foreground">
                   <tr className="text-left font-semibold">
@@ -313,9 +338,79 @@ export default function ProductsPage() {
                 </tbody>
               </table>
             </div>
-          )}
-        </CardContent>
-      </Card>
+
+            {/* Pagination Controls */}
+            {!loading && products.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t bg-muted/20 text-xs">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <span>
+                    Showing{' '}
+                    <span className="font-semibold text-foreground">
+                      {(page - 1) * limit + 1}
+                    </span>{' '}
+                    to{' '}
+                    <span className="font-semibold text-foreground">
+                      {Math.min(page * limit, meta.total)}
+                    </span>{' '}
+                    of{' '}
+                    <span className="font-semibold text-foreground">
+                      {meta.total}
+                    </span>{' '}
+                    products
+                  </span>
+                  <span className="hidden sm:inline text-muted-foreground/40">•</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="hidden sm:inline">Per page:</span>
+                    <select
+                      value={limit}
+                      onChange={(e) => {
+                        setLimit(Number(e.target.value));
+                        setPage(1);
+                      }}
+                      aria-label="Products per page"
+                      className="h-7 px-2 text-xs rounded border border-input bg-background font-medium focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                    >
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">
+                    Page <span className="font-semibold text-foreground">{page}</span> of{' '}
+                    <span className="font-semibold text-foreground">{meta.totalPages || 1}</span>
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      disabled={page <= 1}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      disabled={page >= (meta.totalPages || 1)}
+                      onClick={() => setPage((p) => Math.min(meta.totalPages || 1, p + 1))}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
 
       {/* Create / Edit Dialog */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
