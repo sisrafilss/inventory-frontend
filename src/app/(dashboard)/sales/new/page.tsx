@@ -12,8 +12,10 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog } from '@/components/ui/dialog';
 import { InvoiceMemoModal } from '@/components/sales/invoice-memo-modal';
+import { SaleManualModal } from '@/components/sales/sale-manual-modal';
 import {
   ShoppingBag,
+  Barcode,
   ArrowLeft,
   Search,
   Plus,
@@ -97,6 +99,7 @@ export default function CreateSalePage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [createdSale, setCreatedSale] = useState<Sale | null>(null);
   const [memoOpen, setMemoOpen] = useState(false);
+  const [manualModalOpen, setManualModalOpen] = useState(false);
 
   const qtyInputRef = useRef<HTMLInputElement>(null);
   const rateInputRef = useRef<HTMLInputElement>(null);
@@ -376,6 +379,22 @@ export default function CreateSalePage() {
           <p className="text-xs text-muted-foreground">
             Fast counter sales, live stock validation, gross profit tracking & instant memo printing
           </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setManualModalOpen(true)}
+            className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm"
+          >
+            <ShoppingBag className="w-4 h-4" /> Sale by Manual
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => alert('Sale by Bar Code scanner mode is coming soon! Please use Sale by Manual.')}
+            className="gap-2 border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 font-semibold"
+          >
+            <Barcode className="w-4 h-4" /> Sale by Bar Code
+          </Button>
         </div>
       </div>
 
@@ -976,6 +995,13 @@ export default function CreateSalePage() {
           }}
         />
       )}
+
+      {/* Desktop Sale Manual Modal */}
+      <SaleManualModal
+        open={manualModalOpen}
+        onOpenChange={setManualModalOpen}
+        onSaveSuccess={() => router.push('/sales')}
+      />
     </div>
   );
 }

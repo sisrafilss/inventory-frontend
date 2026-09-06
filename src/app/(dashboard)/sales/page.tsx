@@ -13,8 +13,9 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { ShoppingCart, PlusCircle, Search, Eye, Clock, CheckCircle2, XCircle, Printer } from 'lucide-react';
+import { ShoppingCart, PlusCircle, Search, Eye, Clock, CheckCircle2, XCircle, Printer, ShoppingBag } from 'lucide-react';
 import { InvoiceMemoModal } from '@/components/sales/invoice-memo-modal';
+import { SaleManualModal } from '@/components/sales/sale-manual-modal';
 
 export default function SalesListPage() {
   const { user } = useAuth();
@@ -33,6 +34,7 @@ export default function SalesListPage() {
   // Memo Modal
   const [memoSale, setMemoSale] = useState<Sale | null>(null);
   const [memoOpen, setMemoOpen] = useState(false);
+  const [saleManualModalOpen, setSaleManualModalOpen] = useState(false);
 
   const fetchSales = async () => {
     try {
@@ -67,11 +69,20 @@ export default function SalesListPage() {
           </p>
         </div>
 
-        <Link href="/sales/new">
-          <Button className="gap-2 shadow-sm">
-            <PlusCircle className="w-4 h-4" /> {t('sales.createSale')}
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setSaleManualModalOpen(true)}
+            variant="outline"
+            className="gap-2 border-[#006400] text-[#006400] hover:bg-emerald-50 dark:border-emerald-600 dark:text-emerald-400 dark:hover:bg-emerald-950/40 font-semibold"
+          >
+            <ShoppingBag className="w-4 h-4" /> Sale by Manual
           </Button>
-        </Link>
+          <Link href="/sales/new">
+            <Button className="gap-2 shadow-sm">
+              <PlusCircle className="w-4 h-4" /> {t('sales.createSale')}
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filter Bar */}
@@ -315,6 +326,13 @@ export default function SalesListPage() {
         sale={memoSale}
         open={memoOpen}
         onOpenChange={setMemoOpen}
+      />
+
+      {/* Sale Manual Modal */}
+      <SaleManualModal
+        open={saleManualModalOpen}
+        onOpenChange={setSaleManualModalOpen}
+        onSaveSuccess={fetchSales}
       />
     </div>
   );
