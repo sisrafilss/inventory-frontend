@@ -61,6 +61,7 @@ export const translations = {
       warehouses: "Warehouses",
       parties: "Suppliers & Customers",
       purchases: "Purchases",
+      saleRate: "Sale Rate",
       expenses: "Daily Costs / Expenses",
       payments: "Collection & Paid",
       inventory: "Inventory & Stock",
@@ -284,8 +285,7 @@ export const translations = {
     },
     users: {
       title: "User Management",
-      subtitle:
-        "Manage administrative staff and control system access",
+      subtitle: "Manage administrative staff and control system access",
       addUser: "Add New User",
       searchPlaceholder: "Search by name, email, or phone...",
       allRoles: "All Roles",
@@ -433,6 +433,7 @@ export const translations = {
       warehouses: "ওয়্যারহাউস / গোডাউন",
       parties: "সাপ্লায়ার ও কাস্টমার",
       purchases: "পণ্য ক্রয় (পারচেজ)",
+      saleRate: "বিক্রয় রেট নির্ধারণ",
       expenses: "দৈনিক খরচ",
       payments: "আদায় ও পরিশোধ (কালেকশন)",
       inventory: "ইনভেন্টরি ও মজুদ",

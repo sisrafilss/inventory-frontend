@@ -24,6 +24,7 @@ import {
   Truck,
   Receipt,
   BadgeDollarSign,
+  Tag,
   X,
 } from 'lucide-react';
 
@@ -94,6 +95,12 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
       key: 'purchases',
       href: '/purchases',
       icon: Truck,
+      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
+    },
+    {
+      key: 'saleRate',
+      href: '/products/sale-rate',
+      icon: Tag,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {

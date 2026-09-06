@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/context/auth-context';
 import { api } from '@/lib/api/client';
-import { Product, Category } from '@/lib/types';
+import { Product, Category, Company } from '@/lib/types';
 import { useLanguage } from '@/lib/context/language-context';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,13 +11,14 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Package, Plus, Search, Edit2, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Package, Plus, Search, Edit2, AlertCircle, ChevronLeft, ChevronRight, Building2, HelpCircle } from 'lucide-react';
 
 export default function ProductsPage() {
   const { user } = useAuth();
   const { t, formatMoney } = useLanguage();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,24 +43,31 @@ export default function ProductsPage() {
   // Modal
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [showConfirmSave, setShowConfirmSave] = useState(false);
   const [form, setForm] = useState({
     name: '',
     sku: '',
     categoryId: '',
-    unit: 'piece',
+    companyId: '',
+    unit: 'Pieces',
+    dpRate: 0,
     costPrice: 0,
     sellingPrice: 0,
     quantity: 0,
     reorderLevel: 10,
-    description: '',
+    description: 'None',
     isActive: true,
   });
   const [isSaving, setIsSaving] = useState(false);
 
-  const fetchCategories = async () => {
+  const fetchMetadata = async () => {
     try {
-      const res = await api.get<Category[]>('/categories');
-      setCategories(res.data);
+      const [catRes, compRes] = await Promise.all([
+        api.get<Category[]>('/categories'),
+        api.get<Company[]>('/companies'),
+      ]);
+      setCategories(catRes.data);
+      setCompanies(compRes.data);
     } catch {
       // ignore
     }
@@ -88,7 +96,7 @@ export default function ProductsPage() {
   };
 
   useEffect(() => {
-    fetchCategories();
+    fetchMetadata();
   }, []);
 
   useEffect(() => {
@@ -100,13 +108,15 @@ export default function ProductsPage() {
     setForm({
       name: '',
       sku: '',
-      categoryId: categories[0]?.id || '',
-      unit: 'piece',
+      categoryId: '',
+      companyId: companies[0]?.id || '',
+      unit: 'Pieces',
+      dpRate: 0,
       costPrice: 0,
       sellingPrice: 0,
       quantity: 0,
       reorderLevel: 10,
-      description: '',
+      description: 'None',
       isActive: true,
     });
     setModalOpen(true);
@@ -117,28 +127,37 @@ export default function ProductsPage() {
     setForm({
       name: p.name,
       sku: p.sku,
-      categoryId: p.categoryId,
-      unit: p.unit,
+      categoryId: p.categoryId || '',
+      companyId: p.companyId || '',
+      unit: p.unit || 'Pieces',
+      dpRate: p.dpRate ? Number(p.dpRate) : 0,
       costPrice: p.costPrice ?? 0,
       sellingPrice: p.sellingPrice,
       quantity: p.quantity,
       reorderLevel: p.reorderLevel,
-      description: p.description || '',
+      description: p.description || 'None',
       isActive: p.isActive,
     });
     setModalOpen(true);
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setShowConfirmSave(true);
+  };
+
+  const executeSaveProduct = async () => {
+    setShowConfirmSave(false);
     setIsSaving(true);
     try {
       if (editingProduct) {
         await api.patch(`/products/${editingProduct.id}`, {
           name: form.name,
           sku: form.sku,
-          categoryId: form.categoryId,
+          categoryId: form.categoryId || undefined,
+          companyId: form.companyId || undefined,
           unit: form.unit,
+          dpRate: Number(form.dpRate),
           costPrice: Number(form.costPrice),
           sellingPrice: Number(form.sellingPrice),
           reorderLevel: Number(form.reorderLevel),
@@ -148,6 +167,9 @@ export default function ProductsPage() {
       } else {
         await api.post('/products', {
           ...form,
+          categoryId: form.categoryId || undefined,
+          companyId: form.companyId || undefined,
+          dpRate: Number(form.dpRate),
           costPrice: Number(form.costPrice),
           sellingPrice: Number(form.sellingPrice),
           quantity: Number(form.quantity),
@@ -423,22 +445,24 @@ export default function ProductsPage() {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSave} className="space-y-3 text-xs">
+        <form onSubmit={handleFormSubmit} className="space-y-3 text-xs">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="font-semibold">{t('products.name')} *</label>
+              <label className="font-semibold">{t('products.sku')} (Item Code) *</label>
               <Input
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                value={form.sku}
+                onChange={(e) => setForm({ ...form, sku: e.target.value.toUpperCase() })}
+                placeholder="e.g. 937095"
+                className="font-mono font-bold"
                 required
               />
             </div>
             <div className="space-y-1">
-              <label className="font-semibold">{t('products.sku')} *</label>
+              <label className="font-semibold">{t('products.name')} (Item Name) *</label>
               <Input
-                value={form.sku}
-                onChange={(e) => setForm({ ...form, sku: e.target.value.toUpperCase() })}
-                placeholder="e.g. BEV-WAT-001"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="e.g. baby reading table"
                 required
               />
             </div>
@@ -446,13 +470,38 @@ export default function ProductsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="font-semibold">{t('products.category')} *</label>
+              <label className="font-semibold">Company / Brand</label>
+              <Select
+                value={form.companyId}
+                onChange={(e) => setForm({ ...form, companyId: e.target.value })}
+              >
+                <option value="">-- Select Company --</option>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="font-semibold">Type (Unit) *</label>
+              <Input
+                value={form.unit}
+                onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                placeholder="Pieces, Dozen, Box, Kg"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="font-semibold">{t('products.category')} (Optional)</label>
               <Select
                 value={form.categoryId}
                 onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-                required
               >
-                <option value="">{t('products.selectCategory')}</option>
+                <option value="">-- Select Category --</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -461,37 +510,39 @@ export default function ProductsPage() {
               </Select>
             </div>
             <div className="space-y-1">
-              <label className="font-semibold">{t('products.unit')} *</label>
+              <label className="font-semibold">DP Rate (Tk)</label>
               <Input
-                value={form.unit}
-                onChange={(e) => setForm({ ...form, unit: e.target.value })}
-                placeholder="piece, bottle, box, kg, ream"
-                required
+                type="number"
+                step="any"
+                min="0"
+                value={form.dpRate}
+                onChange={(e) => setForm({ ...form, dpRate: parseFloat(e.target.value) || 0 })}
+                placeholder="0.00"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="font-semibold">{t('products.costPrice')} *</label>
+              <label className="font-semibold">{t('products.costPrice')} (Purchase Rate)</label>
               <Input
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 value={form.costPrice}
                 onChange={(e) => setForm({ ...form, costPrice: parseFloat(e.target.value) || 0 })}
-                required
+                placeholder="0.00"
               />
             </div>
             <div className="space-y-1">
-              <label className="font-semibold">{t('products.sellingPrice')} *</label>
+              <label className="font-semibold">{t('products.sellingPrice')} (Sale Rate)</label>
               <Input
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 value={form.sellingPrice}
                 onChange={(e) => setForm({ ...form, sellingPrice: parseFloat(e.target.value) || 0 })}
-                required
+                placeholder="0.00"
               />
             </div>
           </div>
@@ -509,13 +560,12 @@ export default function ProductsPage() {
               </div>
             )}
             <div className="space-y-1">
-              <label className="font-semibold">{t('products.reorderLevel')} *</label>
+              <label className="font-semibold">{t('products.reorderLevel')}</label>
               <Input
                 type="number"
                 min="0"
                 value={form.reorderLevel}
                 onChange={(e) => setForm({ ...form, reorderLevel: parseInt(e.target.value, 10) || 0 })}
-                required
               />
             </div>
           </div>
@@ -525,7 +575,7 @@ export default function ProductsPage() {
             <Input
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Packaging notes, specifications, etc."
+              placeholder="None"
             />
           </div>
 
@@ -561,11 +611,32 @@ export default function ProductsPage() {
             >
               {t('common.cancel')}
             </Button>
-            <Button type="submit" size="sm" disabled={isSaving}>
+            <Button type="submit" size="sm" disabled={isSaving} className="bg-emerald-600 hover:bg-emerald-700 text-white">
               {isSaving ? t('products.saving') : t('products.save')}
             </Button>
           </DialogFooter>
         </form>
+      </Dialog>
+
+      {/* Save Confirmation Dialog (Exact workflow from video) */}
+      <Dialog open={showConfirmSave} onOpenChange={setShowConfirmSave}>
+        <div className="p-6 text-center space-y-4 max-w-sm mx-auto">
+          <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center">
+            <HelpCircle className="w-7 h-7" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100">Confirmation</h3>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">Do you want to save the information?</p>
+          </div>
+          <div className="flex justify-center gap-3 pt-3">
+            <Button variant="outline" size="sm" onClick={() => setShowConfirmSave(false)} className="min-w-[80px]">
+              No
+            </Button>
+            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white min-w-[80px]" onClick={executeSaveProduct}>
+              Yes
+            </Button>
+          </div>
+        </div>
       </Dialog>
     </div>
   );

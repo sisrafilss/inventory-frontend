@@ -1,13 +1,56 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { Sale } from '@/lib/types';
+import type { Sale } from '../../lib/types';
 import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Printer, X } from 'lucide-react';
 
+export interface MemoSaleItem {
+  id?: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+  product?: {
+    name?: string;
+    sku?: string;
+    unit?: string;
+  };
+}
+
+export interface MemoSale {
+  id?: string;
+  referenceNumber?: string;
+  totalAmount: number;
+  paidAmount?: number;
+  paymentType?: 'CASH' | 'CREDIT';
+  dueAmount?: number;
+  discount?: number;
+  netAmount?: number;
+  totalPurchaseCost?: number;
+  profit?: number;
+  customer?: {
+    id?: string;
+    name?: string;
+    phone?: string;
+    address?: string | null;
+    currentDue?: number;
+  } | null;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  createdBy?: {
+    id?: string;
+    name?: string;
+    email?: string;
+    phone?: string | null;
+  };
+  note?: string | null;
+  createdAt?: string;
+  items: MemoSaleItem[];
+}
+
 interface InvoiceMemoModalProps {
-  sale: Sale | null;
+  sale: MemoSale | Sale | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -21,10 +64,11 @@ export function InvoiceMemoModal({ sale, open, onOpenChange }: InvoiceMemoModalP
     window.print();
   };
 
-  const totalAmount = Number(sale.totalAmount);
-  const paidAmount = Number(sale.paidAmount || (sale.paymentType === 'CASH' ? totalAmount : 0));
-  const dueAmount = Number(sale.dueAmount || Math.max(0, totalAmount - paidAmount));
-  const prevDue = Number(sale.customer?.currentDue || 0);
+  const memoSale = sale as MemoSale;
+  const totalAmount = Number(memoSale.totalAmount || 0);
+  const paidAmount = Number(memoSale.paidAmount ?? (memoSale.paymentType === 'CASH' ? totalAmount : 0));
+  const dueAmount = Number(memoSale.dueAmount ?? Math.max(0, totalAmount - paidAmount));
+  const prevDue = Number(memoSale.customer?.currentDue || 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -58,7 +102,7 @@ export function InvoiceMemoModal({ sale, open, onOpenChange }: InvoiceMemoModalP
               Station Road, Tongi Bazar, Gazipur, Bangladesh
             </p>
             <div className="inline-block mt-2 px-3 py-0.5 border border-neutral-800 rounded text-xs font-bold uppercase tracking-widest bg-neutral-100">
-              {sale.paymentType === 'CASH' ? 'Cash Memo' : 'Credit Memo / Challan'}
+              {memoSale.paymentType === 'CASH' ? 'Cash Memo' : 'Credit Memo / Challan'}
             </div>
           </div>
 
@@ -68,31 +112,31 @@ export function InvoiceMemoModal({ sale, open, onOpenChange }: InvoiceMemoModalP
               <div>
                 <span className="font-semibold text-neutral-700">Customer Name: </span>
                 <span className="font-bold text-neutral-900">
-                  {sale.customer?.name || sale.customerName || 'Walk-in Customer'}
+                  {memoSale.customer?.name || memoSale.customerName || 'Walk-in Customer'}
                 </span>
               </div>
               <div>
                 <span className="font-semibold text-neutral-700">Mobile: </span>
-                <span>{sale.customer?.phone || sale.customerPhone || 'N/A'}</span>
+                <span>{memoSale.customer?.phone || memoSale.customerPhone || 'N/A'}</span>
               </div>
               <div>
                 <span className="font-semibold text-neutral-700">Address: </span>
-                <span>{sale.customer?.address || 'Local'}</span>
+                <span>{memoSale.customer?.address || 'Local'}</span>
               </div>
             </div>
 
             <div className="sm:text-right space-y-1">
               <div>
                 <span className="font-semibold text-neutral-700">Memo No: </span>
-                <span className="font-mono font-bold text-neutral-900">{sale.referenceNumber}</span>
+                <span className="font-mono font-bold text-neutral-900">{memoSale.referenceNumber}</span>
               </div>
               <div>
                 <span className="font-semibold text-neutral-700">Date: </span>
-                <span>{new Date(sale.createdAt).toLocaleDateString()}</span>
+                <span>{new Date(memoSale.createdAt || Date.now()).toLocaleDateString()}</span>
               </div>
               <div>
                 <span className="font-semibold text-neutral-700">Issued By: </span>
-                <span>{sale.createdBy?.name || 'Cashier'}</span>
+                <span>{memoSale.createdBy?.name || 'Cashier'}</span>
               </div>
             </div>
           </div>
@@ -110,7 +154,7 @@ export function InvoiceMemoModal({ sale, open, onOpenChange }: InvoiceMemoModalP
                 </tr>
               </thead>
               <tbody>
-                {sale.items.map((item, idx) => (
+                {memoSale.items.map((item, idx) => (
                   <tr key={idx} className="border-b border-neutral-300">
                     <td className="p-2 border-r border-neutral-400 text-center">{idx + 1}</td>
                     <td className="p-2 border-r border-neutral-400 font-medium">
@@ -137,10 +181,10 @@ export function InvoiceMemoModal({ sale, open, onOpenChange }: InvoiceMemoModalP
           {/* Financial Totals */}
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4 text-xs pt-1">
             <div className="max-w-xs space-y-1">
-              {sale.note && (
+              {memoSale.note && (
                 <p className="text-neutral-600">
                   <span className="font-semibold">Note: </span>
-                  {sale.note}
+                  {memoSale.note}
                 </p>
               )}
               <p className="text-[10px] text-neutral-500 italic mt-3">
@@ -148,11 +192,23 @@ export function InvoiceMemoModal({ sale, open, onOpenChange }: InvoiceMemoModalP
               </p>
             </div>
 
-            <div className="w-full sm:w-56 space-y-1.5 border-t border-neutral-400 pt-1">
+            <div className="w-full sm:w-60 space-y-1.5 border-t border-neutral-400 pt-1">
               <div className="flex justify-between">
                 <span className="font-semibold text-neutral-700">Sub Total:</span>
                 <span className="font-bold">৳{totalAmount.toFixed(2)}</span>
               </div>
+              {Number(memoSale.discount || 0) > 0 && (
+                <div className="flex justify-between text-rose-600 font-medium">
+                  <span>Discount:</span>
+                  <span>-৳{Number(memoSale.discount).toFixed(2)}</span>
+                </div>
+              )}
+              {Number(memoSale.discount || 0) > 0 && (
+                <div className="flex justify-between font-bold text-neutral-900 border-t border-neutral-200 pt-1">
+                  <span>Net Amount:</span>
+                  <span>৳{Number(memoSale.netAmount || (totalAmount - (memoSale.discount || 0))).toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="font-semibold text-neutral-700">Paid Amount:</span>
                 <span className="font-bold text-neutral-900">৳{paidAmount.toFixed(2)}</span>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api/client';
@@ -10,26 +10,40 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Dialog } from '@/components/ui/dialog';
 import { InvoiceMemoModal } from '@/components/sales/invoice-memo-modal';
-import { ProductCombobox } from '@/components/ui/product-combobox';
 import {
-  Plus,
-  Trash2,
   ShoppingBag,
   ArrowLeft,
-  AlertCircle,
-  CheckCircle2,
   Search,
-  Printer,
-  CreditCard,
+  Plus,
+  Trash2,
+  Package,
+  Calculator,
+  RotateCcw,
+  Save,
+  AlertCircle,
+  Calendar,
+  FileText,
   UserCheck,
+  Building2,
+  CheckCircle2,
+  Printer,
+  TrendingUp,
+  DollarSign,
 } from 'lucide-react';
 
-interface FormItem {
+interface SaleLineItem {
   productId: string;
-  product?: Product | null;
+  code: string;
+  name: string;
+  companyName?: string;
+  type: string;
   quantity: number;
-  unitPrice: number;
+  saleRate: number;
+  amount: number;
+  purchaseRate: number;
+  purchaseAmount: number;
 }
 
 export default function CreateSalePage() {
@@ -38,101 +52,128 @@ export default function CreateSalePage() {
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [warehouseId, setWarehouseId] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // Form State
+  // Top Form Metadata
+  const [saleMode, setSaleMode] = useState<'CASH' | 'CUSTOMER'>('CASH');
+  const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [invoiceNumber, setInvoiceNumber] = useState(() => `INV-${Date.now().toString().slice(-6)}`);
+  const [memoPreview, setMemoPreview] = useState<boolean>(true);
+
+  // Customer Details
   const [customerId, setCustomerId] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [warehouseId, setWarehouseId] = useState('');
-  const [paymentType, setPaymentType] = useState<'CASH' | 'CREDIT'>('CASH');
-  const [paidAmount, setPaidAmount] = useState<number>(0);
-  const [paidTouched, setPaidTouched] = useState<boolean>(false);
-  const [note, setNote] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('');
+  const [customerDues, setCustomerDues] = useState<number>(0);
 
-  const [items, setItems] = useState<FormItem[]>([
-    { productId: '', product: null, quantity: 1, unitPrice: 0 },
-  ]);
+  // Item Entry Row State
+  const [entryCode, setEntryCode] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [entryName, setEntryName] = useState('');
+  const [entryCompany, setEntryCompany] = useState('');
+  const [entryType, setEntryType] = useState('Pieces');
+  const [entryDpRate, setEntryDpRate] = useState<number>(0);
+  const [entryCommission, setEntryCommission] = useState<number>(0);
+  const [entryPurchaseRate, setEntryPurchaseRate] = useState<number>(0);
+  const [entryQuantity, setEntryQuantity] = useState<string>('1');
+  const [entrySaleRate, setEntrySaleRate] = useState<string>('0');
+  const [availableStock, setAvailableStock] = useState<number>(0);
+  const [isSearchingProduct, setIsSearchingProduct] = useState(false);
+
+  // Table items
+  const [items, setItems] = useState<SaleLineItem[]>([]);
+
+  // Totals
+  const [discount, setDiscount] = useState<string>('0');
+  const [paid, setPaid] = useState<string>('0');
+  const [paidTouched, setPaidTouched] = useState(false);
+  const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Created Sale Memo Modal
+  // Dialogs & Modals
+  const [invoiceAlertOpen, setInvoiceAlertOpen] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [createdSale, setCreatedSale] = useState<Sale | null>(null);
   const [memoOpen, setMemoOpen] = useState(false);
 
+  const qtyInputRef = useRef<HTMLInputElement>(null);
+  const rateInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
-    const loadData = async () => {
+    const loadInitialData = async () => {
       try {
         setLoading(true);
         const [custRes, whRes] = await Promise.all([
           api.get<Customer[]>('/parties/customers'),
           api.get<Warehouse[]>('/warehouses'),
         ]);
-
         setCustomers(custRes.data);
         setWarehouses(whRes.data);
 
-        const defWh =
-          whRes.data.find((w) => w.isDefault && w.isActive) || whRes.data[0];
+        const defWh = whRes.data.find((w) => w.isDefault && w.isActive) || whRes.data[0];
         if (defWh) setWarehouseId(defWh.id);
-      } catch (err: any) {
-        setError('Failed to fetch initial sales data.');
+      } catch (err) {
+        console.error('Failed to load customers/warehouses:', err);
+        setErrorMsg('Failed to load initial sales data.');
       } finally {
         setLoading(false);
       }
     };
-    loadData();
+    loadInitialData();
   }, []);
 
-  const handleAddItem = () => {
-    setItems([
-      ...items,
-      {
-        productId: '',
-        product: null,
-        quantity: 1,
-        unitPrice: 0,
-      },
-    ]);
+  // Update stock when warehouse changes
+  useEffect(() => {
+    if (selectedProduct) {
+      updateStockForProduct(selectedProduct, warehouseId);
+    }
+  }, [warehouseId]);
+
+  const updateStockForProduct = (prod: Product, whId: string) => {
+    let stock = prod.quantity;
+    if (whId && prod.warehouseStocks) {
+      const ws = prod.warehouseStocks.find((s) => s.warehouseId === whId);
+      if (ws !== undefined) stock = ws.quantity;
+    }
+    setAvailableStock(stock);
   };
 
-  const handleRemoveItem = (index: number) => {
-    if (items.length <= 1) return;
-    setItems(items.filter((_, idx) => idx !== index));
-  };
+  // Lookup Product by Item Code (View button or Enter)
+  const handleLookupProduct = async () => {
+    const code = entryCode.trim();
+    if (!code) return;
 
-  const handleProductSelect = (index: number, prod: Product) => {
-    const updated = [...items];
-    updated[index] = {
-      ...updated[index],
-      productId: prod.id,
-      product: prod,
-      unitPrice: Number(prod.sellingPrice),
-    };
-    setItems(updated);
-  };
+    setIsSearchingProduct(true);
+    setErrorMsg(null);
+    try {
+      const res = await api.get<Product>(`/products/by-code/${encodeURIComponent(code)}`);
+      const prod = res.data;
+      setSelectedProduct(prod);
+      setEntryName(prod.name);
+      setEntryCompany(prod.company?.name || '');
+      setEntryType(prod.unit || 'Pieces');
 
-  const handleProductClear = (index: number) => {
-    const updated = [...items];
-    updated[index] = {
-      ...updated[index],
-      productId: '',
-      product: null,
-      unitPrice: 0,
-    };
-    setItems(updated);
-  };
+      const dp = prod.dpRate ? Number(prod.dpRate) : (Number(prod.costPrice) || 0);
+      const comm = Number(prod.commissionPercent || 0);
+      const pRate = Number(prod.costPrice) || (dp - (dp * comm) / 100);
 
-  const handlePriceChange = (index: number, price: number) => {
-    const updated = [...items];
-    updated[index] = { ...updated[index], unitPrice: Math.max(0, price) };
-    setItems(updated);
-  };
+      setEntryDpRate(dp);
+      setEntryCommission(comm);
+      setEntryPurchaseRate(Number(pRate.toFixed(2)));
+      setEntrySaleRate(String(prod.sellingPrice || 0));
 
-  const handleQuantityChange = (index: number, qty: number) => {
-    const updated = [...items];
-    updated[index] = { ...updated[index], quantity: Math.max(1, qty) };
-    setItems(updated);
+      updateStockForProduct(prod, warehouseId);
+
+      // Focus on quantity
+      setTimeout(() => qtyInputRef.current?.focus(), 50);
+    } catch (err: any) {
+      setSelectedProduct(null);
+      setErrorMsg(`Product code "${code}" not found in catalog.`);
+    } finally {
+      setIsSearchingProduct(false);
+    }
   };
 
   const handleCustomerSelect = (cId: string) => {
@@ -141,85 +182,187 @@ export default function CreateSalePage() {
     if (selected) {
       setCustomerName(selected.name);
       setCustomerPhone(selected.phone);
+      setCustomerAddress(selected.address || '');
+      setCustomerDues(Number(selected.currentDue || 0));
+    } else {
+      setCustomerName('');
+      setCustomerPhone('');
+      setCustomerAddress('');
+      setCustomerDues(0);
     }
   };
 
-  // Grand Total calculation
-  let grandTotal = 0;
-  const lineDetails = items.map((item) => {
-    const prod = item.product;
-    let availableStock = prod ? prod.quantity : 0;
-    if (prod && warehouseId && prod.warehouseStocks) {
-      const ws = prod.warehouseStocks.find((s) => s.warehouseId === warehouseId);
-      if (ws !== undefined) availableStock = ws.quantity;
-    }
-    const lineTotal = (item.unitPrice || 0) * (item.quantity || 0);
-    grandTotal += lineTotal;
-    const isExceedingStock = prod ? item.quantity > availableStock : false;
-    return { prod, availableStock, lineTotal, isExceedingStock };
-  });
-
-  const effectivePaid = paymentType === 'CASH' && !paidTouched ? grandTotal : paidAmount;
-  const dueAmount = Math.max(0, grandTotal - effectivePaid);
-
-  const selectedCustomerObj = customers.find((c) => c.id === customerId);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    // Validate items
-    for (const item of items) {
-      if (!item.productId) {
-        setError('Please select a valid product for each line.');
-        return;
-      }
-      if (item.quantity <= 0) {
-        setError('Item quantity must be greater than zero.');
-        return;
-      }
+  const handleAddItem = () => {
+    if (!selectedProduct) {
+      setErrorMsg('Please enter an Item Code and click View first.');
+      return;
     }
 
-    if (paymentType === 'CREDIT' && !customerId && !customerName.trim()) {
-      setError('Please provide customer details for credit sale.');
+    const qty = parseInt(entryQuantity, 10);
+    if (isNaN(qty) || qty <= 0) {
+      setErrorMsg('Quantity must be greater than 0.');
+      return;
+    }
+
+    const saleRate = parseFloat(entrySaleRate);
+    if (isNaN(saleRate) || saleRate < 0) {
+      setErrorMsg('Please enter a valid sale rate.');
+      return;
+    }
+
+    // Check against available stock
+    const existingQty = items
+      .filter((i) => i.productId === selectedProduct.id)
+      .reduce((sum, i) => sum + i.quantity, 0);
+
+    if (existingQty + qty > availableStock) {
+      setErrorMsg(
+        `Warning: Quantity (${existingQty + qty}) exceeds available stock (${availableStock}) for "${selectedProduct.name}".`
+      );
+    }
+
+    const amount = Number((qty * saleRate).toFixed(2));
+    const purchaseAmount = Number((qty * entryPurchaseRate).toFixed(2));
+
+    const newItem: SaleLineItem = {
+      productId: selectedProduct.id,
+      code: selectedProduct.sku,
+      name: entryName,
+      companyName: entryCompany,
+      type: entryType,
+      quantity: qty,
+      saleRate,
+      amount,
+      purchaseRate: entryPurchaseRate,
+      purchaseAmount,
+    };
+
+    setItems((prev) => [...prev, newItem]);
+
+    // Reset item entry
+    setEntryCode('');
+    setSelectedProduct(null);
+    setEntryName('');
+    setEntryCompany('');
+    setEntryQuantity('1');
+    setEntryDpRate(0);
+    setEntryCommission(0);
+    setEntryPurchaseRate(0);
+    setEntrySaleRate('0');
+    setAvailableStock(0);
+    setErrorMsg(null);
+  };
+
+  const handleRemoveItem = (index: number) => {
+    setItems((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleReset = () => {
+    if (items.length > 0 && !confirm('Are you sure you want to reset this sale?')) {
+      return;
+    }
+    setItems([]);
+    setEntryCode('');
+    setSelectedProduct(null);
+    setEntryName('');
+    setEntryCompany('');
+    setEntryQuantity('1');
+    setEntrySaleRate('0');
+    setDiscount('0');
+    setPaid('0');
+    setPaidTouched(false);
+    setNote('');
+    setErrorMsg(null);
+    setInvoiceNumber(`INV-${Date.now().toString().slice(-6)}`);
+  };
+
+  // Financial Calculations
+  const totalAmount = Number(items.reduce((sum, item) => sum + item.amount, 0).toFixed(2));
+  const totalCost = Number(items.reduce((sum, item) => sum + item.purchaseAmount, 0).toFixed(2));
+  const discountAmount = Math.max(0, parseFloat(discount) || 0);
+  const netAmount = Math.max(0, Number((totalAmount - discountAmount).toFixed(2)));
+  const grossProfit = Number((netAmount - totalCost).toFixed(2));
+  const profitMargin = netAmount > 0 ? Number(((grossProfit / netAmount) * 100).toFixed(1)) : 0;
+
+  const effectivePaid =
+    saleMode === 'CASH' && !paidTouched
+      ? netAmount
+      : Math.max(0, parseFloat(paid) || 0);
+  const currentDues = Math.max(0, Number((netAmount - effectivePaid).toFixed(2)));
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setErrorMsg(null);
+
+    // 1. Check invoice number
+    if (!invoiceNumber.trim()) {
+      setInvoiceAlertOpen(true);
+      return;
+    }
+
+    // 2. Validate items
+    if (items.length === 0) {
+      setErrorMsg('Please add at least one item to the sale.');
+      return;
+    }
+
+    // 3. Validate customer if Customer mode
+    if (saleMode === 'CUSTOMER' && !customerId && !customerName.trim()) {
+      setErrorMsg('Please select or specify a customer for Customer sale.');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const res = await api.post<Sale>('/sales', {
-        customerId: customerId || undefined,
+      const payload = {
+        referenceNumber: invoiceNumber.trim(),
+        customerId: saleMode === 'CUSTOMER' && customerId ? customerId : undefined,
         customerName: customerName.trim() || undefined,
         customerPhone: customerPhone.trim() || undefined,
         warehouseId: warehouseId || undefined,
-        paymentType,
+        paymentType: saleMode === 'CASH' ? ('CASH' as const) : ('CREDIT' as const),
+        discount: discountAmount,
         paidAmount: effectivePaid,
-        note: note || undefined,
+        note: note.trim() || undefined,
         items: items.map((i) => ({
           productId: i.productId,
           warehouseId: warehouseId || undefined,
           quantity: i.quantity,
-          unitPrice: i.unitPrice,
+          unitPrice: i.saleRate,
+          purchaseCost: i.purchaseRate,
         })),
-      });
+      };
 
+      const res = await api.post<Sale>('/sales', payload);
       setCreatedSale(res.data);
-      setMemoOpen(true);
+
+      if (memoPreview) {
+        setMemoOpen(true);
+      } else {
+        router.push('/sales');
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to submit sale.');
+      console.error('Failed to create sale:', err);
+      setErrorMsg(err.message || 'Failed to complete sale.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   if (loading) {
-    return <div className="p-12 text-center text-xs text-muted-foreground">Loading POS checkout...</div>;
+    return (
+      <div className="p-12 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
+        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        Loading POS sale workspace...
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 max-w-[1400px] mx-auto pb-10">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
         <div>
           <Link
             href="/sales"
@@ -227,280 +370,600 @@ export default function CreateSalePage() {
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Back to Sales
           </Link>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <ShoppingBag className="w-6 h-6 text-primary" /> New Sale / POS Checkout
-          </h2>
+          <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <ShoppingBag className="w-5 h-5 text-emerald-600" /> Sale Manual (POS Billing)
+          </h1>
           <p className="text-xs text-muted-foreground">
-            Create cash or customer credit sale with live price overrides & instant memo printing
+            Fast counter sales, live stock validation, gross profit tracking & instant memo printing
           </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {error && (
-          <div className="p-3 bg-destructive/15 border border-destructive/30 rounded-lg flex items-start gap-2.5 text-sm text-destructive font-medium">
-            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
+      {errorMsg && (
+        <div className="p-3 bg-destructive/15 border border-destructive/30 rounded-lg flex items-start gap-2.5 text-xs text-destructive font-medium">
+          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
 
-        {/* Customer & Location Details */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <UserCheck className="w-4 h-4 text-primary" /> Customer & Dispatch Information
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Select existing customer to view credit dues or enter walk-in details
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="font-semibold text-foreground">Select Customer</label>
+      {/* Top Configuration & Party Header */}
+      <Card className="shadow-sm border-border/80">
+        <CardContent className="p-4 space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+            {/* Payment Mode Selector */}
+            <div className="md:col-span-3 space-y-1.5">
+              <label className="text-xs font-bold text-foreground">Sale Mode</label>
+              <div className="flex items-center gap-4 h-9 px-3 bg-muted/40 rounded-md border border-border">
+                <label className="flex items-center gap-1.5 text-xs font-medium cursor-pointer text-foreground">
+                  <input
+                    type="radio"
+                    name="saleMode"
+                    value="CASH"
+                    checked={saleMode === 'CASH'}
+                    onChange={() => {
+                      setSaleMode('CASH');
+                      setPaidTouched(false);
+                    }}
+                    className="accent-emerald-600 w-3.5 h-3.5"
+                  />
+                  Cash Sale
+                </label>
+                <label className="flex items-center gap-1.5 text-xs font-medium cursor-pointer text-foreground">
+                  <input
+                    type="radio"
+                    name="saleMode"
+                    value="CUSTOMER"
+                    checked={saleMode === 'CUSTOMER'}
+                    onChange={() => {
+                      setSaleMode('CUSTOMER');
+                      setPaidTouched(true);
+                      setPaid('0');
+                    }}
+                    className="accent-emerald-600 w-3.5 h-3.5"
+                  />
+                  Customer (Credit)
+                </label>
+              </div>
+            </div>
+
+            {/* Date */}
+            <div className="md:col-span-2 space-y-1">
+              <label className="text-xs font-bold text-foreground flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5 text-muted-foreground" /> Date
+              </label>
+              <Input
+                type="date"
+                value={saleDate}
+                onChange={(e) => setSaleDate(e.target.value)}
+                className="h-9 text-xs"
+              />
+            </div>
+
+            {/* Invoice No */}
+            <div className="md:col-span-3 space-y-1">
+              <label className="text-xs font-bold text-foreground flex items-center gap-1">
+                <FileText className="w-3.5 h-3.5 text-muted-foreground" /> Invoice / Memo No *
+              </label>
+              <Input
+                placeholder="INV-XXXXXX"
+                value={invoiceNumber}
+                onChange={(e) => setInvoiceNumber(e.target.value)}
+                className="h-9 text-xs font-mono font-medium"
+              />
+            </div>
+
+            {/* Warehouse */}
+            <div className="md:col-span-2 space-y-1">
+              <label className="text-xs font-bold text-foreground flex items-center gap-1">
+                <Building2 className="w-3.5 h-3.5 text-muted-foreground" /> Godown / Store
+              </label>
+              <select
+                value={warehouseId}
+                onChange={(e) => setWarehouseId(e.target.value)}
+                className="w-full h-9 px-2 rounded-md border border-input bg-background text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                {warehouses.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name} {w.isDefault ? '(Main)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Memo Preview Toggle */}
+            <div className="md:col-span-2 flex items-center h-9 pt-2">
+              <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer text-foreground bg-primary/5 hover:bg-primary/10 border border-primary/20 px-3 py-1.5 rounded-md transition-colors w-full justify-center">
+                <input
+                  type="checkbox"
+                  checked={memoPreview}
+                  onChange={(e) => setMemoPreview(e.target.checked)}
+                  className="accent-emerald-600 rounded w-4 h-4 cursor-pointer"
+                />
+                <span className="flex items-center gap-1">
+                  <Printer className="w-3.5 h-3.5 text-primary" /> Memo Preview
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* Customer Selection Row */}
+          {saleMode === 'CUSTOMER' ? (
+            <div className="pt-2 border-t border-border/40 grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+              <div className="sm:col-span-4 space-y-1">
+                <label className="text-xs font-bold text-foreground flex items-center gap-1">
+                  <UserCheck className="w-3.5 h-3.5 text-primary" /> Select Customer *
+                </label>
                 <select
                   value={customerId}
                   onChange={(e) => handleCustomerSelect(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full h-9 px-2 rounded-md border border-input bg-background text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 >
-                  <option value="">— Walk-in Customer (Unregistered) —</option>
+                  <option value="">— Select Customer from Ledger —</option>
                   {customers.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} ({c.phone}) - Due: ৳{Number(c.currentDue).toLocaleString()}
+                      {c.name} ({c.phone})
                     </option>
                   ))}
                 </select>
               </div>
 
+              <div className="sm:col-span-3 space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Address / Area</label>
+                <Input
+                  placeholder="Customer address"
+                  value={customerAddress}
+                  onChange={(e) => setCustomerAddress(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </div>
+
+              <div className="sm:col-span-3 space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Mobile Contact</label>
+                <Input
+                  placeholder="01XXXXXXXXX"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </div>
+
+              <div className="sm:col-span-2 space-y-1 text-right">
+                <label className="text-xs font-semibold text-rose-600 block">Previous Due</label>
+                <div className="h-9 flex items-center justify-end px-3 rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-400 font-bold text-xs">
+                  ৳{customerDues.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="pt-2 border-t border-border/40 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="font-semibold text-foreground">Warehouse / Godown</label>
-                <select
-                  value={warehouseId}
-                  onChange={(e) => setWarehouseId(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                <label className="text-xs font-medium text-muted-foreground">
+                  Walk-in Customer Name (Optional)
+                </label>
+                <Input
+                  placeholder="Walk-in Customer"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Mobile / Reference (Optional)
+                </label>
+                <Input
+                  placeholder="01XXXXXXXXX"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Item Entry Row (Video Workflow: Item Code -> View -> Autofill -> Qty -> Sale Rate -> Add) */}
+      <Card className="shadow-sm border-border/80 bg-card/60">
+        <CardHeader className="py-2.5 px-4 border-b border-border/50">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-xs font-bold tracking-wider uppercase text-foreground flex items-center gap-2">
+              <Package className="w-3.5 h-3.5 text-primary" /> Item Entry & Rate Resolution
+            </CardTitle>
+            {selectedProduct && (
+              <Badge
+                variant="outline"
+                className={`text-[11px] font-semibold ${
+                  availableStock > 0
+                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    : 'border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                }`}
+              >
+                In Stock: {availableStock} {selectedProduct.unit || 'Pieces'}
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
+            {/* Item Code + View */}
+            <div className="sm:col-span-2 space-y-1">
+              <label className="text-xs font-bold text-foreground">Item Code *</label>
+              <div className="flex gap-1">
+                <Input
+                  placeholder="Code/SKU"
+                  value={entryCode}
+                  onChange={(e) => setEntryCode(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleLookupProduct();
+                    }
+                  }}
+                  className="h-9 text-xs font-mono"
+                  autoFocus
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleLookupProduct}
+                  disabled={isSearchingProduct || !entryCode.trim()}
+                  className="h-9 px-2.5 text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shrink-0"
                 >
-                  {warehouses.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name} {w.isDefault ? '(Default)' : ''}
-                    </option>
-                  ))}
-                </select>
+                  {isSearchingProduct ? '...' : 'View'}
+                </Button>
               </div>
             </div>
 
-            {selectedCustomerObj && (
-              <div className="p-3 bg-primary/10 rounded-md border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <span className="font-semibold text-foreground">{selectedCustomerObj.name}</span>
-                  <span className="text-muted-foreground ml-2">Phone: {selectedCustomerObj.phone}</span>
-                  {selectedCustomerObj.address && (
-                    <span className="text-muted-foreground ml-2">({selectedCustomerObj.address})</span>
-                  )}
-                </div>
-                <div className="text-left sm:text-right font-bold text-rose-600">
-                  Previous Due: ৳{Number(selectedCustomerObj.currentDue).toLocaleString()}
-                </div>
-              </div>
-            )}
-
-            {!customerId && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                <div className="space-y-1">
-                  <label className="font-semibold text-foreground">Customer Name</label>
-                  <Input
-                    placeholder="Walk-in Customer Name"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="font-semibold text-foreground">Customer Phone</label>
-                  <Input
-                    placeholder="01XXXXXXXXX"
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                  />
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Product Line Items */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <div>
-              <CardTitle className="text-sm font-bold">Cart Items & Dynamic Price Overrides</CardTitle>
-              <CardDescription className="text-xs">
-                Unit prices default to catalog MRP but can be modified on the fly by cashier
-              </CardDescription>
+            {/* Product Name */}
+            <div className="sm:col-span-3 space-y-1">
+              <label className="text-xs font-bold text-foreground">Item Name</label>
+              <Input
+                placeholder="Product name"
+                value={entryName}
+                readOnly
+                className="h-9 text-xs bg-muted/30 font-medium"
+              />
             </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={handleAddItem}
-              className="text-xs gap-1.5 h-8"
-            >
-              <Plus className="w-3.5 h-3.5" /> Add Line Item
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {items.map((item, index) => {
-              const details = lineDetails[index];
-              return (
-                <div
-                  key={index}
-                  className="p-3.5 border border-border rounded-lg bg-card/50 space-y-3 text-xs"
-                >
-                  <div className="grid grid-cols-2 sm:grid-cols-12 gap-3 items-end">
-                    {/* Product Selector */}
-                    <div className="col-span-2 sm:col-span-5 space-y-1">
-                      <label className="font-semibold text-foreground">Product *</label>
-                      <ProductCombobox
-                        value={item.productId}
-                        selectedProduct={item.product}
-                        warehouseId={warehouseId}
-                        onSelect={(p) => handleProductSelect(index, p)}
-                        onClear={() => handleProductClear(index)}
-                        placeholder="Search 10k+ items by name, SKU, or scan barcode..."
-                      />
-                    </div>
 
-                    {/* Unit Price Override */}
-                    <div className="col-span-1 sm:col-span-2 space-y-1">
-                      <label className="font-semibold text-foreground">Rate (৳)</label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={item.unitPrice}
-                        onChange={(e) => handlePriceChange(index, parseFloat(e.target.value) || 0)}
-                        className="h-9 text-xs"
-                      />
-                    </div>
+            {/* Company */}
+            <div className="sm:col-span-2 space-y-1">
+              <label className="text-xs font-bold text-foreground">Company</label>
+              <Input
+                placeholder="Company/Brand"
+                value={entryCompany}
+                readOnly
+                className="h-9 text-xs bg-muted/30"
+              />
+            </div>
 
-                    {/* Quantity */}
-                    <div className="col-span-1 sm:col-span-2 space-y-1">
-                      <label className="font-semibold text-foreground">Qty</label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) => handleQuantityChange(index, parseInt(e.target.value, 10) || 1)}
-                        className="h-9 text-xs"
-                      />
-                    </div>
+            {/* Purchase Rate (P_Rate) Reference */}
+            <div className="sm:col-span-1 space-y-1">
+              <label className="text-xs font-semibold text-muted-foreground" title="Purchase Cost Rate">
+                P_Rate
+              </label>
+              <div className="h-9 flex items-center justify-end px-2 rounded-md bg-muted/40 border border-input text-xs font-mono font-medium text-muted-foreground">
+                {entryPurchaseRate.toFixed(2)}
+              </div>
+            </div>
 
-                    {/* Line Total */}
-                    <div className="col-span-1 sm:col-span-2 space-y-1">
-                      <label className="font-semibold text-muted-foreground">Line Total</label>
-                      <div className="h-9 flex items-center font-bold text-foreground text-sm">
-                        ৳{details.lineTotal.toFixed(2)}
-                      </div>
-                    </div>
+            {/* Quantity */}
+            <div className="sm:col-span-1 space-y-1">
+              <label className="text-xs font-bold text-foreground">Qty *</label>
+              <Input
+                ref={qtyInputRef}
+                type="number"
+                min="1"
+                value={entryQuantity}
+                onChange={(e) => setEntryQuantity(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    rateInputRef.current?.focus();
+                  }
+                }}
+                className="h-9 text-xs text-right font-semibold"
+              />
+            </div>
 
-                    {/* Delete */}
-                    <div className="col-span-1 sm:col-span-1 flex justify-end pb-0.5">
+            {/* Sale Rate */}
+            <div className="sm:col-span-1 space-y-1">
+              <label className="text-xs font-bold text-foreground">Rate (৳) *</label>
+              <Input
+                ref={rateInputRef}
+                type="number"
+                step="0.01"
+                min="0"
+                value={entrySaleRate}
+                onChange={(e) => setEntrySaleRate(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddItem();
+                  }
+                }}
+                className="h-9 text-xs text-right font-semibold text-emerald-600 dark:text-emerald-400"
+              />
+            </div>
+
+            {/* Line Amount Preview */}
+            <div className="sm:col-span-1 space-y-1">
+              <label className="text-xs font-bold text-muted-foreground">Amount (৳)</label>
+              <div className="h-9 flex items-center justify-end px-2 rounded-md bg-muted/40 border border-input text-xs font-bold text-foreground font-mono">
+                {(
+                  (parseInt(entryQuantity, 10) || 0) * (parseFloat(entrySaleRate) || 0)
+                ).toFixed(2)}
+              </div>
+            </div>
+
+            {/* Add Button */}
+            <div className="sm:col-span-1">
+              <Button
+                type="button"
+                onClick={handleAddItem}
+                disabled={!selectedProduct}
+                className="w-full h-9 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-1"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Line Items Table (Matches Video Grid Columns) */}
+      <Card className="shadow-sm border-border/80 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs text-left border-collapse">
+            <thead className="bg-muted/60 text-muted-foreground uppercase text-[11px] font-bold border-b border-border">
+              <tr>
+                <th className="py-2.5 px-3 w-10 text-center">SN</th>
+                <th className="py-2.5 px-3 w-28">Item Code</th>
+                <th className="py-2.5 px-3">Item Name</th>
+                <th className="py-2.5 px-3">Company</th>
+                <th className="py-2.5 px-3 w-20">Type</th>
+                <th className="py-2.5 px-3 w-20 text-center">Qty</th>
+                <th className="py-2.5 px-3 w-24 text-right">Rate (৳)</th>
+                <th className="py-2.5 px-3 w-28 text-right font-bold text-foreground">Amount (৳)</th>
+                <th className="py-2.5 px-3 w-24 text-right text-muted-foreground">P_Rate</th>
+                <th className="py-2.5 px-3 w-28 text-right text-muted-foreground">P_Amount</th>
+                <th className="py-2.5 px-3 w-12 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/60 font-medium">
+              {items.length === 0 ? (
+                <tr>
+                  <td colSpan={11} className="py-8 text-center text-muted-foreground text-xs">
+                    No items added to invoice yet. Enter an Item Code above and click View.
+                  </td>
+                </tr>
+              ) : (
+                items.map((item, index) => (
+                  <tr key={index} className="hover:bg-muted/30 transition-colors">
+                    <td className="py-2.5 px-3 text-center text-muted-foreground">{index + 1}</td>
+                    <td className="py-2.5 px-3 font-mono text-primary font-semibold">{item.code}</td>
+                    <td className="py-2.5 px-3 font-semibold text-foreground">{item.name}</td>
+                    <td className="py-2.5 px-3 text-muted-foreground">{item.companyName || '—'}</td>
+                    <td className="py-2.5 px-3 text-muted-foreground">{item.type}</td>
+                    <td className="py-2.5 px-3 text-center font-bold">{item.quantity}</td>
+                    <td className="py-2.5 px-3 text-right font-semibold">
+                      {item.saleRate.toFixed(2)}
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-bold text-foreground">
+                      ৳{item.amount.toFixed(2)}
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-muted-foreground font-mono">
+                      {item.purchaseRate.toFixed(2)}
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-muted-foreground font-mono">
+                      ৳{item.purchaseAmount.toFixed(2)}
+                    </td>
+                    <td className="py-2.5 px-3 text-center">
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => handleRemoveItem(index)}
-                        disabled={items.length <= 1}
-                        className="h-9 w-9 p-0 text-destructive hover:text-destructive"
+                        className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </Button>
-                    </div>
-                  </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
-                  {details.isExceedingStock && (
-                    <div className="text-[11px] text-destructive font-medium flex items-center gap-1">
-                      <AlertCircle className="w-3.5 h-3.5" /> Quantity exceeds current available stock ({details.availableStock}).
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-
-        {/* Payment & Invoice Summary */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="p-4 space-y-3">
-            <h4 className="text-xs font-semibold text-foreground">Payment Type & Notes</h4>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Sale Payment Type</label>
-              <select
-                value={paymentType}
-                onChange={(e) => {
-                  const val = e.target.value as 'CASH' | 'CREDIT';
-                  setPaymentType(val);
-                  if (val === 'CASH') setPaidAmount(grandTotal);
-                  else setPaidAmount(0);
-                  setPaidTouched(true);
-                }}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="CASH">Cash Sale (Full Payment / Handover)</option>
-                <option value="CREDIT">Credit Sale (Increases Customer Due)</option>
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Sale / Delivery Note</label>
-              <Input
-                placeholder="Optional memo notes, vehicle number, etc."
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-              />
-            </div>
+      {/* Bottom Summary Bar & Executive Profit Dashboard */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        {/* Remarks / Sale Note */}
+        <div className="lg:col-span-4 space-y-3">
+          <Card className="shadow-sm border-border/80 p-4 space-y-2">
+            <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-muted-foreground" /> Sale / Memo Note
+            </label>
+            <Input
+              placeholder="Delivery notes, vehicle number, or special instructions..."
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="text-xs h-10"
+            />
+            <p className="text-[11px] text-muted-foreground italic">
+              * Included directly in printed customer memo voucher
+            </p>
           </Card>
 
-          <Card className="p-4 space-y-3 bg-muted/20">
-            <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider text-muted-foreground">
-              Financial Summary
-            </h4>
-
-            <div className="flex justify-between items-center text-sm py-1 border-b border-border">
-              <span className="text-muted-foreground">Grand Total:</span>
-              <span className="text-xl font-bold text-foreground">৳{grandTotal.toFixed(2)}</span>
-            </div>
-
-            <div className="flex justify-between items-center text-sm py-1 border-b border-border">
-              <span className="text-muted-foreground">Paid Amount (৳):</span>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                value={effectivePaid}
-                onChange={(e) => {
-                  setPaidAmount(parseFloat(e.target.value) || 0);
-                  setPaidTouched(true);
-                }}
-                className="w-36 h-9 text-right font-semibold text-sm"
-              />
-            </div>
-
-            <div className="flex justify-between items-center text-sm py-1 border-b border-border">
-              <span className="text-muted-foreground">Customer Due Generated:</span>
-              <span className={`text-lg font-bold ${dueAmount > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                ৳{dueAmount.toFixed(2)}
+          {/* Executive Profit Overview Card (Exact match to video counters!) */}
+          <Card className="shadow-sm border-emerald-500/30 bg-emerald-500/5 p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                <TrendingUp className="w-4 h-4" /> Real-time Profit Counter
               </span>
+              <Badge variant="outline" className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400 text-[10px]">
+                Live Metric
+              </Badge>
             </div>
-
-            <Button
-              type="submit"
-              disabled={isSubmitting || grandTotal <= 0}
-              className="w-full h-11 text-base font-semibold mt-4"
-            >
-              {isSubmitting ? 'Recording Sale...' : 'Complete Sale & Print Memo'}
-            </Button>
+            <div className="grid grid-cols-3 gap-2 pt-1 border-t border-emerald-500/20 text-center">
+              <div>
+                <div className="text-[10px] text-muted-foreground font-semibold">Total Cost</div>
+                <div className="text-xs font-bold text-foreground">৳{totalCost.toFixed(2)}</div>
+              </div>
+              <div>
+                <div className="text-[10px] text-muted-foreground font-semibold">Gross Profit</div>
+                <div
+                  className={`text-xs font-bold ${
+                    grossProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600'
+                  }`}
+                >
+                  ৳{grossProfit.toFixed(2)}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] text-muted-foreground font-semibold">Margin</div>
+                <div className="text-xs font-bold text-foreground">{profitMargin}%</div>
+              </div>
+            </div>
           </Card>
         </div>
-      </form>
+
+        {/* Financial Billing Totals & Actions */}
+        <div className="lg:col-span-8">
+          <Card className="shadow-sm border-border/80 bg-muted/20 p-4 space-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 items-center">
+              {/* Total Amount */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-muted-foreground uppercase">
+                  Total (৳)
+                </label>
+                <div className="h-9 flex items-center px-2.5 rounded-md bg-background border border-input text-sm font-bold text-foreground">
+                  ৳{totalAmount.toFixed(2)}
+                </div>
+              </div>
+
+              {/* Discount (৳) */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-foreground uppercase">
+                  Discount (৳)
+                </label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={discount}
+                  onChange={(e) => setDiscount(e.target.value)}
+                  className="h-9 text-xs font-semibold text-right"
+                />
+              </div>
+
+              {/* Net Amount */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-primary uppercase">
+                  Net Amount (৳)
+                </label>
+                <div className="h-9 flex items-center px-2.5 rounded-md bg-primary/10 border border-primary/30 text-sm font-black text-primary">
+                  ৳{netAmount.toFixed(2)}
+                </div>
+              </div>
+
+              {/* Paid (৳) */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">
+                  Paid (৳)
+                </label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={effectivePaid}
+                  onChange={(e) => {
+                    setPaid(e.target.value);
+                    setPaidTouched(true);
+                  }}
+                  className="h-9 text-xs font-bold text-right text-emerald-600 dark:text-emerald-400"
+                />
+              </div>
+
+              {/* Current Dues */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-rose-600 uppercase">
+                  Current Dues (৳)
+                </label>
+                <div
+                  className={`h-9 flex items-center px-2.5 rounded-md border text-sm font-bold ${
+                    currentDues > 0
+                      ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-900 text-rose-600'
+                      : 'bg-background border-input text-muted-foreground'
+                  }`}
+                >
+                  ৳{currentDues.toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2 border-t border-border/50">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleReset}
+                disabled={isSubmitting}
+                className="w-full sm:w-auto text-xs gap-1.5 h-10 px-4 text-muted-foreground hover:text-foreground"
+              >
+                <RotateCcw className="w-3.5 h-3.5" /> Reset
+              </Button>
+
+              <Button
+                type="button"
+                onClick={() => handleSubmit()}
+                disabled={isSubmitting || items.length === 0}
+                className="w-full sm:w-auto text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 h-10 px-6 shadow"
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Saving Sale...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Save & {memoPreview ? 'Preview Memo' : 'Complete Sale'}
+                  </>
+                )}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Invoice Empty Alert Dialog (Exact match from video!) */}
+      <Dialog open={invoiceAlertOpen} onOpenChange={setInvoiceAlertOpen}>
+        <div className="p-6 text-center space-y-4 max-w-sm mx-auto">
+          <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 mx-auto flex items-center justify-center">
+            <AlertCircle className="w-7 h-7" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100">
+              Invoice Required
+            </h3>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">
+              Sorry! Invoice Box is Empty. Please enter an invoice number to continue.
+            </p>
+          </div>
+          <div className="pt-2">
+            <Button
+              size="sm"
+              onClick={() => setInvoiceAlertOpen(false)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white min-w-[90px]"
+            >
+              OK
+            </Button>
+          </div>
+        </div>
+      </Dialog>
 
       {/* Printable Invoice Memo Modal */}
       {createdSale && (
