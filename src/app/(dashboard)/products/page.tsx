@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Package, Plus, Search, Edit2, AlertCircle, ChevronLeft, ChevronRight, Building2, HelpCircle, X, Loader2, Check } from 'lucide-react';
+import { Package, Plus, Search, Edit2, AlertCircle, ChevronLeft, ChevronRight, Building2, HelpCircle, X, Loader2, Check, ShoppingCart } from 'lucide-react';
+import { PurchaseModal } from '@/components/purchases/purchase-modal';
 
 export default function ProductsPage() {
   const { user } = useAuth();
@@ -42,6 +43,8 @@ export default function ProductsPage() {
 
   // Modal
   const [modalOpen, setModalOpen] = useState(false);
+  const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
+  const [purchaseModalCode, setPurchaseModalCode] = useState<string | undefined>(undefined);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showConfirmSave, setShowConfirmSave] = useState(false);
   const [showTableProducts, setShowTableProducts] = useState(false);
@@ -464,9 +467,21 @@ export default function ProductsPage() {
         </div>
 
         {canManage && (
-          <Button onClick={handleOpenCreate} className="gap-2">
-            <Plus className="w-4 h-4" /> {t('products.addProduct')}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => {
+                setPurchaseModalCode(undefined);
+                setPurchaseModalOpen(true);
+              }}
+              variant="outline"
+              className="gap-2 border-[#800000] text-[#800000] hover:bg-rose-50 dark:border-rose-600 dark:text-rose-400 dark:hover:bg-rose-950/40 font-semibold"
+            >
+              <ShoppingCart className="w-4 h-4" /> Purchase
+            </Button>
+            <Button onClick={handleOpenCreate} className="gap-2">
+              <Plus className="w-4 h-4" /> {t('products.addProduct')}
+            </Button>
+          </div>
         )}
       </div>
 
@@ -1045,6 +1060,14 @@ export default function ProductsPage() {
           </div>
         </div>
       </Dialog>
+
+      {/* Purchase Dialog */}
+      <PurchaseModal
+        open={purchaseModalOpen}
+        onOpenChange={setPurchaseModalOpen}
+        initialProductCode={purchaseModalCode}
+        onSaveSuccess={fetchProducts}
+      />
     </div>
   );
 }

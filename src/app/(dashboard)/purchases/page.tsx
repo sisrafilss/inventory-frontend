@@ -20,6 +20,7 @@ import {
   CheckCircle2,
   AlertCircle,
 } from 'lucide-react';
+import { PurchaseModal } from '@/components/purchases/purchase-modal';
 
 export default function PurchasesPage() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
@@ -30,6 +31,7 @@ export default function PurchasesPage() {
 
   // View modal
   const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(null);
+  const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
 
   const fetchPurchases = async () => {
     try {
@@ -67,11 +69,9 @@ export default function PurchasesPage() {
           </p>
         </div>
 
-        <Link href="/purchases/new">
-          <Button className="gap-2">
-            <Plus className="w-4 h-4" /> New Purchase Entry
-          </Button>
-        </Link>
+        <Button onClick={() => setPurchaseModalOpen(true)} className="gap-2">
+          <Plus className="w-4 h-4" /> New Purchase Entry
+        </Button>
       </div>
 
       {/* Summary KPI Cards */}
@@ -321,6 +321,13 @@ export default function PurchasesPage() {
           </div>
         )}
       </Dialog>
+
+      {/* Purchase Modal */}
+      <PurchaseModal
+        open={purchaseModalOpen}
+        onOpenChange={setPurchaseModalOpen}
+        onSaveSuccess={fetchPurchases}
+      />
     </div>
   );
 }
