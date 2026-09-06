@@ -11,8 +11,9 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Package, Plus, Search, Edit2, AlertCircle, ChevronLeft, ChevronRight, Building2, HelpCircle, X, Loader2, Check, ShoppingCart } from 'lucide-react';
+import { Package, Plus, Search, Edit2, AlertCircle, ChevronLeft, ChevronRight, Building2, HelpCircle, X, Loader2, Check, ShoppingCart, Tag } from 'lucide-react';
 import { PurchaseModal } from '@/components/purchases/purchase-modal';
+import { SaleRateModal } from '@/components/products/sale-rate-modal';
 
 export default function ProductsPage() {
   const { user } = useAuth();
@@ -45,6 +46,7 @@ export default function ProductsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
   const [purchaseModalCode, setPurchaseModalCode] = useState<string | undefined>(undefined);
+  const [saleRateModalOpen, setSaleRateModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showConfirmSave, setShowConfirmSave] = useState(false);
   const [showTableProducts, setShowTableProducts] = useState(false);
@@ -468,6 +470,13 @@ export default function ProductsPage() {
 
         {canManage && (
           <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setSaleRateModalOpen(true)}
+              variant="outline"
+              className="gap-2 border-[#006400] text-[#006400] hover:bg-emerald-50 dark:border-emerald-600 dark:text-emerald-400 dark:hover:bg-emerald-950/40 font-semibold"
+            >
+              <Tag className="w-4 h-4" /> Sale Rate
+            </Button>
             <Button
               onClick={() => {
                 setPurchaseModalCode(undefined);
@@ -1066,6 +1075,13 @@ export default function ProductsPage() {
         open={purchaseModalOpen}
         onOpenChange={setPurchaseModalOpen}
         initialProductCode={purchaseModalCode}
+        onSaveSuccess={fetchProducts}
+      />
+
+      {/* Sale Rate Dialog */}
+      <SaleRateModal
+        open={saleRateModalOpen}
+        onOpenChange={setSaleRateModalOpen}
         onSaveSuccess={fetchProducts}
       />
     </div>
