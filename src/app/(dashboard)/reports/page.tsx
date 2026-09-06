@@ -211,7 +211,7 @@ export default function ReportsPage() {
           {activeReport === 'daily-sales' && (
             <div className="space-y-4">
               {/* Daily Summary Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="p-4 border-l-4 border-l-primary">
                   <span className="text-xs text-muted-foreground">Total Sales</span>
                   <h4 className="text-xl font-bold mt-1 text-foreground">
@@ -246,7 +246,7 @@ export default function ReportsPage() {
               {/* Table */}
               <Card>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
+                  <table className="w-full text-left text-xs min-w-[650px]">
                     <thead className="bg-muted/50 border-b border-border text-muted-foreground uppercase font-semibold">
                       <tr>
                         <th className="p-3">Reference #</th>
@@ -414,7 +414,7 @@ export default function ReportsPage() {
                   </div>
 
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
+                    <table className="w-full text-left text-xs min-w-[550px]">
                       <thead className="bg-muted/60 border-b border-border text-muted-foreground uppercase font-semibold">
                         <tr>
                           <th className="p-2.5">Product Name</th>
@@ -482,7 +482,7 @@ export default function ReportsPage() {
 
               <Card>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
+                  <table className="w-full text-left text-xs min-w-[600px]">
                     <thead className="bg-muted/50 border-b border-border text-muted-foreground uppercase font-semibold">
                       <tr>
                         <th className="p-3">Invoice #</th>
@@ -529,7 +529,7 @@ export default function ReportsPage() {
 
               <Card>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
+                  <table className="w-full text-left text-xs min-w-[550px]">
                     <thead className="bg-muted/50 border-b border-border text-muted-foreground uppercase font-semibold">
                       <tr>
                         <th className="p-3">Date</th>
@@ -561,7 +561,7 @@ export default function ReportsPage() {
           {/* TAB 6: PROFIT BY INVOICE (ADMIN ONLY) */}
           {activeReport === 'profit-by-invoice' && isAdmin && (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="p-4 border-l-4 border-l-neutral-600">
                   <span className="text-xs text-muted-foreground">Total Invoiced Retail</span>
                   <h4 className="text-xl font-bold mt-1 text-foreground">
@@ -596,7 +596,7 @@ export default function ReportsPage() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
+                  <table className="w-full text-left text-xs min-w-[650px]">
                     <thead className="bg-muted/60 border-b border-border text-muted-foreground uppercase font-semibold">
                       <tr>
                         <th className="p-3">Product Name</th>
@@ -729,7 +729,7 @@ export default function ReportsPage() {
           {Array.isArray(data) && activeReport !== 'warehouse-stock' && (
             <Card>
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+                <table className="w-full text-left text-xs min-w-[600px]">
                   <thead className="bg-muted/50 border-b border-border text-muted-foreground uppercase font-semibold">
                     <tr>
                       {data.length > 0 &&

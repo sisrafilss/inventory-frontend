@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -299,7 +299,7 @@ export default function NewPurchasePage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full text-left text-sm min-w-[850px]">
               <thead className="bg-muted/60 border-b border-border text-xs text-muted-foreground uppercase font-semibold">
                 <tr>
                   <th className="p-3 w-8">#</th>

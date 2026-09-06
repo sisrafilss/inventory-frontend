@@ -98,7 +98,7 @@ export default function AuditLogsPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <table className="w-full text-xs min-w-[650px]">
                 <thead className="bg-muted/30 border-b text-muted-foreground">
                   <tr className="text-left font-semibold">
                     <th className="p-3">{t('inventory.timestamp')}</th>

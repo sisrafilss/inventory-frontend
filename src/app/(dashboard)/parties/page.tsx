@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api/client';
@@ -337,7 +337,7 @@ export default function PartiesPage() {
           </button>
         </div>
 
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex-1 w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder={`Search ${activeTab}...`}
@@ -360,7 +360,7 @@ export default function PartiesPage() {
       ) : activeTab === 'suppliers' ? (
         <Card>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full text-left text-sm min-w-[700px]">
               <thead className="bg-muted/50 border-b border-border text-xs text-muted-foreground uppercase font-semibold">
                 <tr>
                   <th className="p-3.5">Supplier Name</th>
@@ -428,7 +428,7 @@ export default function PartiesPage() {
       ) : (
         <Card>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full text-left text-sm min-w-[600px]">
               <thead className="bg-muted/50 border-b border-border text-xs text-muted-foreground uppercase font-semibold">
                 <tr>
                   <th className="p-3.5">Customer Name</th>

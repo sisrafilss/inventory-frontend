@@ -24,6 +24,7 @@ import {
   Truck,
   Receipt,
   BadgeDollarSign,
+  X,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -144,18 +145,30 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
   return (
     <aside className="w-64 border-r bg-card flex flex-col h-full select-none">
       {/* Brand */}
-      <div className="h-16 flex items-center px-6 border-b gap-3">
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-lg shadow-sm">
-          I
+      <div className="h-16 flex items-center justify-between px-5 border-b">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-lg shadow-sm">
+            I
+          </div>
+          <div>
+            <h1 className="font-bold text-sm tracking-tight leading-none text-foreground">
+              {t('common.appName')}
+            </h1>
+            <p className="text-[11px] text-muted-foreground mt-0.5 font-medium">
+              {t('common.appSubtitle')}
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="font-bold text-sm tracking-tight leading-none text-foreground">
-            {t('common.appName')}
-          </h1>
-          <p className="text-[11px] text-muted-foreground mt-0.5 font-medium">
-            {t('common.appSubtitle')}
-          </p>
-        </div>
+
+        {onCloseMobile && (
+          <button
+            onClick={onCloseMobile}
+            className="lg:hidden p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Close menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Navigation list */}

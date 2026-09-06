@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useRef } from 'react';
 import { Sale } from '@/lib/types';
@@ -41,7 +41,7 @@ export function InvoiceMemoModal({ sale, open, onOpenChange }: InvoiceMemoModalP
         {/* Printable Memo Container */}
         <div
           ref={printRef}
-          className="p-6 bg-white text-black font-sans border border-neutral-300 rounded-md my-3 print:border-none print:p-0 print:m-0"
+          className="p-4 sm:p-6 bg-white text-black font-sans border border-neutral-300 rounded-md my-3 print:border-none print:p-0 print:m-0"
         >
           {/* Header */}
           <div className="text-center border-b-2 border-neutral-800 pb-3 mb-4">
@@ -63,7 +63,7 @@ export function InvoiceMemoModal({ sale, open, onOpenChange }: InvoiceMemoModalP
           </div>
 
           {/* Invoice Metadata & Customer Info */}
-          <div className="grid grid-cols-2 gap-4 text-xs mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs mb-4">
             <div className="space-y-1">
               <div>
                 <span className="font-semibold text-neutral-700">Customer Name: </span>
@@ -81,7 +81,7 @@ export function InvoiceMemoModal({ sale, open, onOpenChange }: InvoiceMemoModalP
               </div>
             </div>
 
-            <div className="text-right space-y-1">
+            <div className="sm:text-right space-y-1">
               <div>
                 <span className="font-semibold text-neutral-700">Memo No: </span>
                 <span className="font-mono font-bold text-neutral-900">{sale.referenceNumber}</span>
@@ -98,42 +98,44 @@ export function InvoiceMemoModal({ sale, open, onOpenChange }: InvoiceMemoModalP
           </div>
 
           {/* Items Table */}
-          <table className="w-full text-xs text-left border-collapse border border-neutral-400 mb-4">
-            <thead>
-              <tr className="bg-neutral-100 text-neutral-800 uppercase font-bold border-b border-neutral-400">
-                <th className="p-2 border-r border-neutral-400 w-8 text-center">SL</th>
-                <th className="p-2 border-r border-neutral-400">Description of Item</th>
-                <th className="p-2 border-r border-neutral-400 text-center w-16">Qty</th>
-                <th className="p-2 border-r border-neutral-400 text-right w-24">Rate (৳)</th>
-                <th className="p-2 text-right w-28">Amount (৳)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sale.items.map((item, idx) => (
-                <tr key={idx} className="border-b border-neutral-300">
-                  <td className="p-2 border-r border-neutral-400 text-center">{idx + 1}</td>
-                  <td className="p-2 border-r border-neutral-400 font-medium">
-                    {item.product?.name || 'Item'}
-                    {item.product?.sku && (
-                      <span className="text-neutral-500 text-[10px] ml-1">({item.product.sku})</span>
-                    )}
-                  </td>
-                  <td className="p-2 border-r border-neutral-400 text-center font-semibold">
-                    {item.quantity} {item.product?.unit || ''}
-                  </td>
-                  <td className="p-2 border-r border-neutral-400 text-right">
-                    {Number(item.unitPrice).toFixed(2)}
-                  </td>
-                  <td className="p-2 text-right font-semibold">
-                    {Number(item.lineTotal).toFixed(2)}
-                  </td>
+          <div className="overflow-x-auto mb-4">
+            <table className="w-full text-xs text-left border-collapse border border-neutral-400 min-w-[440px]">
+              <thead>
+                <tr className="bg-neutral-100 text-neutral-800 uppercase font-bold border-b border-neutral-400">
+                  <th className="p-2 border-r border-neutral-400 w-8 text-center">SL</th>
+                  <th className="p-2 border-r border-neutral-400">Description of Item</th>
+                  <th className="p-2 border-r border-neutral-400 text-center w-16">Qty</th>
+                  <th className="p-2 border-r border-neutral-400 text-right w-24">Rate (৳)</th>
+                  <th className="p-2 text-right w-28">Amount (৳)</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sale.items.map((item, idx) => (
+                  <tr key={idx} className="border-b border-neutral-300">
+                    <td className="p-2 border-r border-neutral-400 text-center">{idx + 1}</td>
+                    <td className="p-2 border-r border-neutral-400 font-medium">
+                      {item.product?.name || 'Item'}
+                      {item.product?.sku && (
+                        <span className="text-neutral-500 text-[10px] ml-1">({item.product.sku})</span>
+                      )}
+                    </td>
+                    <td className="p-2 border-r border-neutral-400 text-center font-semibold">
+                      {item.quantity} {item.product?.unit || ''}
+                    </td>
+                    <td className="p-2 border-r border-neutral-400 text-right">
+                      {Number(item.unitPrice).toFixed(2)}
+                    </td>
+                    <td className="p-2 text-right font-semibold">
+                      {Number(item.lineTotal).toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           {/* Financial Totals */}
-          <div className="flex justify-between items-start text-xs pt-1">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-4 text-xs pt-1">
             <div className="max-w-xs space-y-1">
               {sale.note && (
                 <p className="text-neutral-600">
@@ -146,7 +148,7 @@ export function InvoiceMemoModal({ sale, open, onOpenChange }: InvoiceMemoModalP
               </p>
             </div>
 
-            <div className="w-56 space-y-1.5 border-t border-neutral-400 pt-1">
+            <div className="w-full sm:w-56 space-y-1.5 border-t border-neutral-400 pt-1">
               <div className="flex justify-between">
                 <span className="font-semibold text-neutral-700">Sub Total:</span>
                 <span className="font-bold">৳{totalAmount.toFixed(2)}</span>
@@ -169,14 +171,14 @@ export function InvoiceMemoModal({ sale, open, onOpenChange }: InvoiceMemoModalP
           </div>
 
           {/* Signature Lines */}
-          <div className="grid grid-cols-2 gap-8 pt-16 text-center text-xs">
+          <div className="grid grid-cols-2 gap-4 sm:gap-8 pt-10 sm:pt-16 text-center text-xs">
             <div>
-              <div className="border-t border-neutral-800 w-40 mx-auto pt-1 font-semibold text-neutral-800">
+              <div className="border-t border-neutral-800 w-full max-w-[140px] sm:max-w-[160px] mx-auto pt-1 font-semibold text-neutral-800">
                 Customer Signature
               </div>
             </div>
             <div>
-              <div className="border-t border-neutral-800 w-48 mx-auto pt-1 font-semibold text-neutral-800">
+              <div className="border-t border-neutral-800 w-full max-w-[140px] sm:max-w-[180px] mx-auto pt-1 font-semibold text-neutral-800">
                 For M.R. Enterprise
               </div>
             </div>

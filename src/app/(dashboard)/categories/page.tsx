@@ -128,7 +128,7 @@ export default function CategoriesPage() {
             <div className="p-12 text-center text-xs text-muted-foreground">{t('categories.noCategories')}</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <table className="w-full text-xs min-w-[550px]">
                 <thead className="bg-muted/30 border-b text-muted-foreground">
                   <tr className="text-left font-semibold">
                     <th className="p-3">{t('categories.categoryName')}</th>

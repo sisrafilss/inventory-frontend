@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -284,7 +284,7 @@ export default function CreateSalePage() {
             </div>
 
             {selectedCustomerObj && (
-              <div className="p-3 bg-primary/10 rounded-md border border-primary/20 flex items-center justify-between">
+              <div className="p-3 bg-primary/10 rounded-md border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <span className="font-semibold text-foreground">{selectedCustomerObj.name}</span>
                   <span className="text-muted-foreground ml-2">Phone: {selectedCustomerObj.phone}</span>
@@ -292,7 +292,7 @@ export default function CreateSalePage() {
                     <span className="text-muted-foreground ml-2">({selectedCustomerObj.address})</span>
                   )}
                 </div>
-                <div className="text-right font-bold text-rose-600">
+                <div className="text-left sm:text-right font-bold text-rose-600">
                   Previous Due: ৳{Number(selectedCustomerObj.currentDue).toLocaleString()}
                 </div>
               </div>
@@ -348,9 +348,9 @@ export default function CreateSalePage() {
                   key={index}
                   className="p-3.5 border border-border rounded-lg bg-card/50 space-y-3 text-xs"
                 >
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                  <div className="grid grid-cols-2 sm:grid-cols-12 gap-3 items-end">
                     {/* Product Selector */}
-                    <div className="sm:col-span-5 space-y-1">
+                    <div className="col-span-2 sm:col-span-5 space-y-1">
                       <label className="font-semibold text-foreground">Product *</label>
                       <select
                         value={item.productId}
@@ -366,7 +366,7 @@ export default function CreateSalePage() {
                     </div>
 
                     {/* Unit Price Override */}
-                    <div className="sm:col-span-2 space-y-1">
+                    <div className="col-span-1 sm:col-span-2 space-y-1">
                       <label className="font-semibold text-foreground">Rate (৳)</label>
                       <Input
                         type="number"
@@ -379,7 +379,7 @@ export default function CreateSalePage() {
                     </div>
 
                     {/* Quantity */}
-                    <div className="sm:col-span-2 space-y-1">
+                    <div className="col-span-1 sm:col-span-2 space-y-1">
                       <label className="font-semibold text-foreground">Qty</label>
                       <Input
                         type="number"
@@ -391,7 +391,7 @@ export default function CreateSalePage() {
                     </div>
 
                     {/* Line Total */}
-                    <div className="sm:col-span-2 space-y-1">
+                    <div className="col-span-1 sm:col-span-2 space-y-1">
                       <label className="font-semibold text-muted-foreground">Line Total</label>
                       <div className="h-9 flex items-center font-bold text-foreground text-sm">
                         ৳{details.lineTotal.toFixed(2)}
@@ -399,7 +399,7 @@ export default function CreateSalePage() {
                     </div>
 
                     {/* Delete */}
-                    <div className="sm:col-span-1 flex justify-end">
+                    <div className="col-span-1 sm:col-span-1 flex justify-end pb-0.5">
                       <Button
                         type="button"
                         variant="ghost"
@@ -494,7 +494,7 @@ export default function CreateSalePage() {
               disabled={isSubmitting || grandTotal <= 0}
               className="w-full h-11 text-base font-semibold mt-4"
             >
-              {isSubmitting ? 'Submitting Sale...' : 'Submit Sale for Approval'}
+              {isSubmitting ? 'Recording Sale...' : 'Complete Sale & Print Memo'}
             </Button>
           </Card>
         </div>

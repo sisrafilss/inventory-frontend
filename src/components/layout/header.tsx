@@ -49,15 +49,18 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2.5 sm:gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-2.5">
         {/* Theme Switcher Button */}
         <ThemeSwitcher />
 
         {/* Language Switcher Button */}
         <LanguageSwitcher />
 
-        {/* Role Badge */}
-        <Badge variant={getRoleBadgeVariant(user.role)} className="uppercase text-[10px] tracking-wider py-1 px-2.5">
+        {/* Role Badge - hidden on small mobile to avoid header crowding */}
+        <Badge
+          variant={getRoleBadgeVariant(user.role)}
+          className="uppercase text-[10px] tracking-wider py-1 px-2 hidden sm:inline-flex"
+        >
           <Shield className="w-3 h-3 mr-1 inline" />
           {t(`roles.${user.role}`)}
         </Badge>

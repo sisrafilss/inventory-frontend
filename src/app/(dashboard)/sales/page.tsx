@@ -120,7 +120,7 @@ export default function SalesListPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <table className="w-full text-xs min-w-[750px]">
                 <thead className="bg-muted/30 border-b text-muted-foreground">
                   <tr className="text-left font-semibold">
                     <th className="p-3">{t('sales.refNumber')}</th>
@@ -242,8 +242,8 @@ export default function SalesListPage() {
             {/* Line items table */}
             <div>
               <h4 className="font-bold mb-1.5 text-foreground">{t('sales.itemsInSale')}</h4>
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full text-xs">
+              <div className="border rounded-lg overflow-x-auto">
+                <table className="w-full text-xs min-w-[380px]">
                   <thead className="bg-muted/50 border-b">
                     <tr className="text-left font-semibold text-muted-foreground">
                       <th className="p-2">{t('sales.product')}</th>
@@ -291,11 +291,11 @@ export default function SalesListPage() {
               </p>
             )}
 
-            <DialogFooter className="flex items-center justify-between sm:justify-between w-full">
+            <DialogFooter className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 w-full">
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1 text-xs"
+                className="gap-1 text-xs w-full sm:w-auto"
                 onClick={() => {
                   setMemoSale(selectedSale);
                   setMemoOpen(true);
@@ -303,7 +303,7 @@ export default function SalesListPage() {
               >
                 <Printer className="w-3.5 h-3.5" /> Print Invoice Memo
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setSelectedSale(null)}>
+              <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => setSelectedSale(null)}>
                 {t('sales.close')}
               </Button>
             </DialogFooter>

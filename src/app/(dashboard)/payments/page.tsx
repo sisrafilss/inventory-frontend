@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api/client';
@@ -152,17 +152,17 @@ export default function PaymentsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
           <Button
             onClick={() => setCollectModalOpen(true)}
-            className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+            className="w-full sm:w-auto gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
           >
             <ArrowDownLeft className="w-4 h-4" /> Collect from Customer
           </Button>
           <Button
             onClick={() => setPayModalOpen(true)}
             variant="outline"
-            className="gap-2 border-rose-300 text-rose-600 hover:bg-rose-50"
+            className="w-full sm:w-auto gap-2 border-rose-300 text-rose-600 hover:bg-rose-50"
           >
             <ArrowUpRight className="w-4 h-4" /> Pay Supplier
           </Button>
@@ -215,11 +215,11 @@ export default function PaymentsPage() {
       </div>
 
       {/* Tabs & Date Filters */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-        <div className="flex rounded-lg bg-muted p-1">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+        <div className="flex rounded-lg bg-muted p-1 overflow-x-auto max-w-full">
           <button
             onClick={() => setActiveTab('ALL')}
-            className={`px-4 py-1.5 text-xs font-medium rounded-md transition-all ${
+            className={`whitespace-nowrap px-4 py-1.5 text-xs font-medium rounded-md transition-all ${
               activeTab === 'ALL'
                 ? 'bg-background text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
@@ -229,7 +229,7 @@ export default function PaymentsPage() {
           </button>
           <button
             onClick={() => setActiveTab('CUSTOMER_COLLECTION')}
-            className={`px-4 py-1.5 text-xs font-medium rounded-md transition-all ${
+            className={`whitespace-nowrap px-4 py-1.5 text-xs font-medium rounded-md transition-all ${
               activeTab === 'CUSTOMER_COLLECTION'
                 ? 'bg-background text-emerald-600 shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
@@ -239,7 +239,7 @@ export default function PaymentsPage() {
           </button>
           <button
             onClick={() => setActiveTab('SUPPLIER_PAYMENT')}
-            className={`px-4 py-1.5 text-xs font-medium rounded-md transition-all ${
+            className={`whitespace-nowrap px-4 py-1.5 text-xs font-medium rounded-md transition-all ${
               activeTab === 'SUPPLIER_PAYMENT'
                 ? 'bg-background text-rose-600 shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
@@ -249,21 +249,21 @@ export default function PaymentsPage() {
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
           <Input
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="w-36 h-9"
+            className="w-full sm:w-36 h-9"
           />
           <span className="text-muted-foreground text-xs">to</span>
           <Input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="w-36 h-9"
+            className="w-full sm:w-36 h-9"
           />
-          <Button variant="secondary" size="sm" onClick={fetchPayments}>
+          <Button variant="secondary" size="sm" onClick={fetchPayments} className="w-full sm:w-auto">
             Filter
           </Button>
         </div>
@@ -275,7 +275,7 @@ export default function PaymentsPage() {
       ) : (
         <Card>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full text-left text-sm min-w-[720px]">
               <thead className="bg-muted/50 border-b border-border text-xs text-muted-foreground uppercase font-semibold">
                 <tr>
                   <th className="p-3.5">Receipt #</th>

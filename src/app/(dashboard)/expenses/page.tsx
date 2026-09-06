@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api/client';
@@ -178,23 +178,23 @@ export default function ExpensesPage() {
             ))}
           </select>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
             <Input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-36"
+              className="w-full sm:w-36"
             />
             <span className="text-muted-foreground text-xs">to</span>
             <Input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-36"
+              className="w-full sm:w-36"
             />
           </div>
 
-          <Button type="submit" variant="secondary">
+          <Button type="submit" variant="secondary" className="w-full sm:w-auto">
             Filter
           </Button>
         </form>
@@ -206,7 +206,7 @@ export default function ExpensesPage() {
       ) : (
         <Card>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full text-left text-sm min-w-[620px]">
               <thead className="bg-muted/50 border-b border-border text-xs text-muted-foreground uppercase font-semibold">
                 <tr>
                   <th className="p-3.5">Date</th>

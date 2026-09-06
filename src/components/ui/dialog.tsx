@@ -14,14 +14,14 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity animate-in fade-in"
         onClick={() => onOpenChange(false)}
       />
       {/* Modal Card */}
-      <div className="relative z-50 w-full max-w-lg rounded-xl bg-card p-6 shadow-lg animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+      <div className="relative z-50 w-full max-w-lg rounded-xl bg-card p-4 sm:p-6 shadow-lg animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
         {children}
       </div>
     </div>
@@ -41,6 +41,6 @@ export function DialogDescription({ className, children, ...props }: React.HTMLA
 }
 
 export function DialogFooter({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-6', className)} {...props}>{children}</div>;
+  return <div className={cn('flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 gap-2 mt-6', className)} {...props}>{children}</div>;
 }
 
