@@ -447,7 +447,7 @@ export function SaleManualModal({
         onOpenChange={(isOpen) => !isSaving && onOpenChange(isOpen)}
         draggable={true}
         closeOnBackdropClick={false}
-        className="p-0 max-w-5xl w-full border-2 border-[#800000] dark:border-rose-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 overflow-hidden shadow-2xl"
+        className="p-0 max-w-6xl w-full border-2 border-[#800000] dark:border-rose-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 overflow-hidden shadow-2xl"
       >
         {/* Dark Green Banner Header with Drag Handle */}
         <div
@@ -477,11 +477,11 @@ export function SaleManualModal({
 
         {/* Modal Main Body */}
         <div className="p-3 sm:p-4 space-y-3 select-none text-xs text-neutral-900 dark:text-neutral-100">
-          {/* Top Form Area (3 Columns: Item Details on Left, Product Financials in Center, Customer & Options on Right) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
-            {/* Column 1: Item Details Inputs (col-span-5) */}
-            <div className="lg:col-span-5 space-y-1.5">
-              {/* Invoice Number */}
+          {/* Top Form Area (3 Columns: Item Details on Left, Financials in Center, Customer & Options on Right with generous gap) */}
+          <div className="flex flex-col lg:flex-row items-start justify-between gap-y-3 gap-x-4 lg:gap-x-6">
+            {/* Column 1: Item Details Inputs & Action Buttons (w-[420px]) */}
+            <div className="w-full lg:w-[420px] shrink-0 space-y-1.5">
+              {/* Row 1: Invoice Number */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Invoice
@@ -495,7 +495,7 @@ export function SaleManualModal({
                 />
               </div>
 
-              {/* Item Code + View Button */}
+              {/* Row 2: Item Code + View Button */}
               <div>
                 <div className="flex items-center gap-2">
                   <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
@@ -552,7 +552,7 @@ export function SaleManualModal({
                 )}
               </div>
 
-              {/* Item Name */}
+              {/* Row 3: Item Name */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Item Name
@@ -562,11 +562,11 @@ export function SaleManualModal({
                   value={itemName}
                   readOnly
                   placeholder="Product name"
-                  className="flex-1 h-6 px-2 bg-white/90 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-medium focus:outline-none"
+                  className="w-[320px] h-6 px-2 bg-white/90 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-medium focus:outline-none"
                 />
               </div>
 
-              {/* Quantity & Stock */}
+              {/* Row 4: Quantity & Stock */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Quantity
@@ -587,13 +587,13 @@ export function SaleManualModal({
                       }
                     }}
                     placeholder="0"
-                    className={`w-28 h-6 px-2 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none transition-colors ${
+                    className={`w-24 h-6 px-2 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none transition-colors ${
                       activeFocusedField === 'quantity'
                         ? 'bg-[#ffff00] text-black ring-1 ring-amber-500'
                         : 'bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100'
                     }`}
                   />
-                  <span className="text-xs font-bold text-neutral-800 dark:text-neutral-200">Stock</span>
+                  <span className="text-xs font-bold text-neutral-800 dark:text-neutral-200 w-10 text-center">Stock</span>
                   <input
                     type="text"
                     readOnly
@@ -603,7 +603,7 @@ export function SaleManualModal({
                 </div>
               </div>
 
-              {/* Sale Rate & Type */}
+              {/* Row 5: Sale Rate & Type */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Sale Rate
@@ -615,9 +615,9 @@ export function SaleManualModal({
                     value={saleRate}
                     onChange={(e) => setSaleRate(e.target.value)}
                     placeholder="0.00"
-                    className="w-28 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none"
+                    className="w-24 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none"
                   />
-                  <span className="text-xs font-bold text-neutral-800 dark:text-neutral-200">Type</span>
+                  <span className="text-xs font-bold text-neutral-800 dark:text-neutral-200 w-10 text-center">Type</span>
                   <input
                     type="text"
                     readOnly
@@ -627,7 +627,7 @@ export function SaleManualModal({
                 </div>
               </div>
 
-              {/* Amount */}
+              {/* Row 6: Amount */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Amount
@@ -637,16 +637,64 @@ export function SaleManualModal({
                   readOnly
                   value={currentItemAmount > 0 ? currentItemAmount.toFixed(2) : ''}
                   placeholder="0.00"
-                  className="w-28 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none"
+                  className="w-24 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none"
                 />
+              </div>
+
+              {/* Row 7: Action Buttons Row (Refresh, Add, Save, Delete, Close) */}
+              <div className="flex items-center gap-1.5 pt-0.5">
+                <button
+                  type="button"
+                  onClick={handleRefresh}
+                  disabled={isSaving}
+                  className="w-[74px] h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  Refresh
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddItem}
+                  disabled={isSaving}
+                  className="w-[74px] h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  Add
+                </button>
+                <button
+                  type="button"
+                  onClick={handleInitiateSave}
+                  disabled={isSaving}
+                  className="w-[74px] h-7 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border-2 border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600" />}
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteSelectedRow}
+                  disabled={isSaving}
+                  className="w-[74px] h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-blue-600 dark:text-blue-400 border border-blue-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  Delete
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isSaving}
+                  className="w-[74px] h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  Close
+                </button>
               </div>
             </div>
 
-            {/* Column 2: Financials (Company, DP Rate, Commission, Purchase Rate) (col-span-3) */}
-            <div className="lg:col-span-3 space-y-1.5 pt-1 sm:pt-6">
-              {/* Company */}
+            {/* Column 2: Financials (Company, DP Rate, Commission, Purchase Rate) */}
+            <div className="w-full lg:w-[220px] shrink-0 space-y-1.5 lg:ml-2">
+              {/* Row 1: Spacer corresponding to Invoice */}
+              <div className="h-6 hidden lg:block" />
+
+              {/* Row 2: Company */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Company
                 </label>
                 <input
@@ -654,13 +702,13 @@ export function SaleManualModal({
                   value={companyName}
                   readOnly
                   placeholder="—"
-                  className="w-36 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none"
+                  className="w-32 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none"
                 />
               </div>
 
-              {/* DP Rate */}
+              {/* Row 3: DP Rate */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   DP Rate
                 </label>
                 <div className="flex items-center gap-1">
@@ -669,15 +717,15 @@ export function SaleManualModal({
                     value={dpRate}
                     readOnly
                     placeholder="0.00"
-                    className="w-28 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none"
+                    className="w-24 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none"
                   />
                   <span className="text-xs font-semibold">Tk</span>
                 </div>
               </div>
 
-              {/* Commission */}
+              {/* Row 4: Commission */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Commission
                 </label>
                 <div className="flex items-center gap-1">
@@ -686,15 +734,15 @@ export function SaleManualModal({
                     value={commission}
                     readOnly
                     placeholder="0"
-                    className="w-16 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 text-center focus:outline-none"
+                    className="w-14 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 text-center focus:outline-none"
                   />
                   <span className="text-xs font-semibold">%</span>
                 </div>
               </div>
 
-              {/* Purchase Rate */}
+              {/* Row 5: Purchase Rate */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Purchase Rate
                 </label>
                 <div className="flex items-center gap-1">
@@ -703,85 +751,82 @@ export function SaleManualModal({
                     value={purchaseRate}
                     readOnly
                     placeholder="0.00"
-                    className="w-28 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none"
+                    className="w-24 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none"
                   />
                   <span className="text-xs font-semibold">Tk</span>
                 </div>
               </div>
             </div>
 
-            {/* Column 3: Customer / Party Info & Date & Options (col-span-4) */}
-            <div className="lg:col-span-4 space-y-1.5">
-              {/* Date, Radios & Memo Preview Checkbox */}
-              <div className="flex flex-col gap-1 pb-1">
-                {/* Date */}
-                <div className="flex justify-end">
-                  <div className="flex items-center gap-1 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 px-2 py-0.5 font-mono text-xs shadow-sm">
-                    <span className="font-semibold">{currentDate}</span>
-                    <CalendarIcon className="w-3.5 h-3.5 text-neutral-500" />
-                  </div>
-                </div>
-
-                {/* Radios & Memo Preview */}
-                <div className="flex items-center justify-between gap-3 pt-1">
-                  <div className="flex items-center gap-4">
-                    <label className="flex items-center gap-1.5 cursor-pointer font-bold text-sm text-neutral-900 dark:text-neutral-100">
-                      <input
-                        type="radio"
-                        name="salePaymentMode"
-                        checked={paymentMode === 'CASH'}
-                        onChange={() => {
-                          setPaymentMode('CASH');
-                          setCustomerId('0');
-                          setCustomerName('Cash Party');
-                          setCustomerAddress('');
-                          setCustomerPhone('');
-                          setCustomerDues('0.00');
-                          setPaidTouched(false);
-                        }}
-                        className="accent-emerald-700 w-4 h-4 cursor-pointer"
-                      />
-                      <span>Cash</span>
-                    </label>
-                    <label className="flex items-center gap-1.5 cursor-pointer font-bold text-sm text-neutral-900 dark:text-neutral-100">
-                      <input
-                        type="radio"
-                        name="salePaymentMode"
-                        checked={paymentMode === 'CUSTOMER'}
-                        onChange={() => {
-                          setPaymentMode('CUSTOMER');
-                          if (customersList.length > 0) {
-                            handleSelectCustomer(customersList[0].id);
-                          } else {
-                            setCustomerId('');
-                            setCustomerName('');
-                            setCustomerAddress('');
-                            setCustomerPhone('');
-                            setCustomerDues('0.00');
-                          }
-                          setPaidTouched(true);
-                          setPaidAmount('0.00');
-                        }}
-                        className="accent-emerald-700 w-4 h-4 cursor-pointer"
-                      />
-                      <span>Customer</span>
-                    </label>
-                  </div>
-
-                  {/* Memo Preview Checkbox in Bold Red */}
-                  <label className="flex items-center gap-1.5 cursor-pointer font-bold text-xs text-red-600 dark:text-red-400">
-                    <input
-                      type="checkbox"
-                      checked={memoPreview}
-                      onChange={(e) => setMemoPreview(e.target.checked)}
-                      className="accent-red-600 w-3.5 h-3.5 cursor-pointer"
-                    />
-                    <span>Memo Preview</span>
-                  </label>
+            {/* Column 3: Customer / Party Info & Date & Options (w-[380px] with guaranteed separation) */}
+            <div className="w-full lg:w-[380px] shrink-0 space-y-1.5 lg:ml-auto">
+              {/* Row 1: Date in top right */}
+              <div className="flex justify-end h-6 items-center">
+                <div className="flex items-center gap-1 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 px-2 py-0.5 font-mono text-xs shadow-sm">
+                  <span className="font-semibold">{currentDate}</span>
+                  <CalendarIcon className="w-3.5 h-3.5 text-neutral-500" />
                 </div>
               </div>
 
-              {/* Customer ID */}
+              {/* Row 2: Radios & Memo Preview Checkbox */}
+              <div className="flex items-center justify-between gap-3 h-6">
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-1.5 cursor-pointer font-bold text-sm text-neutral-900 dark:text-neutral-100">
+                    <input
+                      type="radio"
+                      name="salePaymentMode"
+                      checked={paymentMode === 'CASH'}
+                      onChange={() => {
+                        setPaymentMode('CASH');
+                        setCustomerId('0');
+                        setCustomerName('Cash Party');
+                        setCustomerAddress('');
+                        setCustomerPhone('');
+                        setCustomerDues('0.00');
+                        setPaidTouched(false);
+                      }}
+                      className="accent-emerald-700 w-4 h-4 cursor-pointer"
+                    />
+                    <span>Cash</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer font-bold text-sm text-neutral-900 dark:text-neutral-100">
+                    <input
+                      type="radio"
+                      name="salePaymentMode"
+                      checked={paymentMode === 'CUSTOMER'}
+                      onChange={() => {
+                        setPaymentMode('CUSTOMER');
+                        if (customersList.length > 0) {
+                          handleSelectCustomer(customersList[0].id);
+                        } else {
+                          setCustomerId('');
+                          setCustomerName('');
+                          setCustomerAddress('');
+                          setCustomerPhone('');
+                          setCustomerDues('0.00');
+                        }
+                        setPaidTouched(true);
+                        setPaidAmount('0.00');
+                      }}
+                      className="accent-emerald-700 w-4 h-4 cursor-pointer"
+                    />
+                    <span>Customer</span>
+                  </label>
+                </div>
+
+                {/* Memo Preview Checkbox in Bold Red */}
+                <label className="flex items-center gap-1.5 cursor-pointer font-bold text-xs text-red-600 dark:text-red-400">
+                  <input
+                    type="checkbox"
+                    checked={memoPreview}
+                    onChange={(e) => setMemoPreview(e.target.checked)}
+                    className="accent-red-600 w-3.5 h-3.5 cursor-pointer"
+                  />
+                  <span>Memo Preview</span>
+                </label>
+              </div>
+
+              {/* Row 3: Customer ID */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
                   Customer ID
@@ -810,7 +855,7 @@ export function SaleManualModal({
                 )}
               </div>
 
-              {/* Name */}
+              {/* Row 4: Name */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
                   Name
@@ -825,7 +870,7 @@ export function SaleManualModal({
                 />
               </div>
 
-              {/* Address */}
+              {/* Row 5: Address */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
                   Address
@@ -840,7 +885,7 @@ export function SaleManualModal({
                 />
               </div>
 
-              {/* Phone No */}
+              {/* Row 6: Phone No */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
                   Phone No
@@ -855,7 +900,7 @@ export function SaleManualModal({
                 />
               </div>
 
-              {/* Dues */}
+              {/* Row 7: Dues */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
                   Dues
@@ -868,51 +913,6 @@ export function SaleManualModal({
                 />
               </div>
             </div>
-          </div>
-
-          {/* Action Buttons Row (Refresh, Add, Save, Delete, Close) */}
-          <div className="flex items-center gap-3 pt-1 pb-1">
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={isSaving}
-              className="w-20 sm:w-24 h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50"
-            >
-              Refresh
-            </button>
-            <button
-              type="button"
-              onClick={handleAddItem}
-              disabled={isSaving}
-              className="w-20 sm:w-24 h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50"
-            >
-              Add
-            </button>
-            <button
-              type="button"
-              onClick={handleInitiateSave}
-              disabled={isSaving}
-              className="w-20 sm:w-24 h-7 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border-2 border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
-            >
-              {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600" />}
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={handleDeleteSelectedRow}
-              disabled={isSaving}
-              className="w-20 sm:w-24 h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-blue-600 dark:text-blue-400 border border-blue-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50"
-            >
-              Delete
-            </button>
-            <button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              disabled={isSaving}
-              className="w-20 sm:w-24 h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50"
-            >
-              Close
-            </button>
           </div>
 
           {/* Middle Table Grid (SN | Code | Item Name | Type | Quantity | Rate | Amount | Action | P_Rate | P_Amount | Cm/Profit) */}
