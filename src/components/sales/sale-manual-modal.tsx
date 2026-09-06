@@ -58,10 +58,18 @@ export function SaleManualModal({
   const [customersList, setCustomersList] = useState<Customer[]>([]);
   const [defaultWarehouseId, setDefaultWarehouseId] = useState<string>('');
   const [customerId, setCustomerId] = useState('0');
+  const [debouncedCustomerId, setDebouncedCustomerId] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
+  const [customerWarning, setCustomerWarning] = useState<string | null>(null);
+  const [customerSuccess, setCustomerSuccess] = useState(false);
   const [customerName, setCustomerName] = useState('Cash Party');
   const [customerAddress, setCustomerAddress] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerDues, setCustomerDues] = useState('0.00');
+
+  // Customer ref
+  const customerInputRef = useRef<HTMLInputElement>(null);
 
   // Item Form Fields
   const [itemCode, setItemCode] = useState('');
@@ -207,23 +215,79 @@ export function SaleManualModal({
     };
   }, [debouncedCode, open]);
 
-  // Customer Selection Helper
-  const handleSelectCustomer = (cId: string) => {
-    setCustomerId(cId);
-    const c = customersList.find((cust) => cust.id === cId);
-    if (c) {
-      setCustomerName(c.name);
-      setCustomerAddress(c.address || '');
-      setCustomerPhone(c.phone || '');
-      const due = c.currentDue ?? c.openingDue ?? 0;
-      setCustomerDues(Number(due).toFixed(2));
-    } else {
+  // Debounced Customer ID Search (400ms)
+  useEffect(() => {
+    if (!open || paymentMode !== 'CUSTOMER') return;
+    const handler = setTimeout(() => {
+      setDebouncedCustomerId(customerId.trim());
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [customerId, open, paymentMode]);
+
+  // Query Customer when debouncedCustomerId changes
+  useEffect(() => {
+    if (!open || paymentMode !== 'CUSTOMER') return;
+    const code = debouncedCustomerId.trim();
+    if (!code) {
+      setCustomerWarning(null);
+      setCustomerSuccess(false);
+      setIsSearchingCustomer(false);
+      setSelectedCustomer(null);
       setCustomerName('');
       setCustomerAddress('');
       setCustomerPhone('');
       setCustomerDues('0.00');
+      return;
     }
-  };
+
+    if (
+      selectedCustomer &&
+      (selectedCustomer.id.toLowerCase() === code.toLowerCase() ||
+        selectedCustomer.phone === code ||
+        selectedCustomer.name.toLowerCase() === code.toLowerCase())
+    ) {
+      return;
+    }
+
+    let active = true;
+    setIsSearchingCustomer(true);
+    setCustomerWarning(null);
+    setCustomerSuccess(false);
+
+    api
+      .get<Customer>(`/parties/customers/by-code/${encodeURIComponent(code)}`)
+      .then((res) => {
+        if (!active) return;
+        const c = res.data;
+        if (c) {
+          setSelectedCustomer(c);
+          setCustomerName(c.name);
+          setCustomerAddress(c.address || '');
+          setCustomerPhone(c.phone || '');
+          const due = c.currentDue ?? c.openingDue ?? 0;
+          setCustomerDues(Number(due).toFixed(2));
+          setCustomerSuccess(true);
+          setCustomerWarning(null);
+        }
+      })
+      .catch(() => {
+        if (!active) return;
+        setSelectedCustomer(null);
+        setCustomerName('');
+        setCustomerAddress('');
+        setCustomerPhone('');
+        setCustomerDues('0.00');
+        setCustomerSuccess(false);
+        setCustomerWarning(`Customer "${code}" does not exist in database.`);
+      })
+      .finally(() => {
+        if (active) setIsSearchingCustomer(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [debouncedCustomerId, open, paymentMode]);
 
   // Add Item to Table
   const handleAddItem = () => {
@@ -358,8 +422,8 @@ export function SaleManualModal({
       return;
     }
 
-    if (paymentMode === 'CUSTOMER' && (!customerId || customerId === '0')) {
-      setValidationWarning('Please select a valid customer for credit / customer sale.');
+    if (paymentMode === 'CUSTOMER' && (!selectedCustomer || !customerId || customerId === '0')) {
+      setValidationWarning('Please enter a valid Customer ID and ensure customer details are loaded before saving.');
       return;
     }
 
@@ -373,9 +437,9 @@ export function SaleManualModal({
       const payload = {
         referenceNumber: invoiceNumber.trim() || undefined,
         paymentType: paymentMode === 'CASH' ? ('CASH' as const) : ('CREDIT' as const),
-        customerId: paymentMode === 'CUSTOMER' && customerId !== '0' ? customerId : undefined,
-        customerName: paymentMode === 'CASH' ? (customerName || 'Cash Party') : undefined,
-        customerPhone: customerPhone || undefined,
+        customerId: paymentMode === 'CUSTOMER' && selectedCustomer ? selectedCustomer.id : undefined,
+        customerName: paymentMode === 'CASH' ? (customerName || 'Cash Party') : (selectedCustomer?.name || customerName),
+        customerPhone: (selectedCustomer?.phone || customerPhone) || undefined,
         warehouseId: defaultWarehouseId || undefined,
         discount: discountVal,
         paidAmount: effectivePaid,
@@ -405,12 +469,12 @@ export function SaleManualModal({
           paymentType: paymentMode === 'CASH' ? 'CASH' : 'CREDIT',
           totalPurchaseCost,
           profit: totalProfit,
-          customerName: customerName || 'Cash Party',
-          customerPhone: customerPhone || undefined,
+          customerName: paymentMode === 'CASH' ? 'Cash Party' : (selectedCustomer?.name || customerName),
+          customerPhone: (selectedCustomer?.phone || customerPhone) || undefined,
           customer: {
-            name: customerName,
-            phone: customerPhone,
-            address: customerAddress,
+            name: selectedCustomer?.name || customerName,
+            phone: selectedCustomer?.phone || customerPhone,
+            address: selectedCustomer?.address || customerAddress,
             currentDue: Number(customerDues),
           },
           items: lineItems.map((item) => ({
@@ -779,10 +843,14 @@ export function SaleManualModal({
                       onChange={() => {
                         setPaymentMode('CASH');
                         setCustomerId('0');
+                        setDebouncedCustomerId('0');
+                        setSelectedCustomer(null);
                         setCustomerName('Cash Party');
                         setCustomerAddress('');
                         setCustomerPhone('');
                         setCustomerDues('0.00');
+                        setCustomerWarning(null);
+                        setCustomerSuccess(false);
                         setPaidTouched(false);
                       }}
                       className="accent-emerald-700 w-4 h-4 cursor-pointer"
@@ -796,17 +864,18 @@ export function SaleManualModal({
                       checked={paymentMode === 'CUSTOMER'}
                       onChange={() => {
                         setPaymentMode('CUSTOMER');
-                        if (customersList.length > 0) {
-                          handleSelectCustomer(customersList[0].id);
-                        } else {
-                          setCustomerId('');
-                          setCustomerName('');
-                          setCustomerAddress('');
-                          setCustomerPhone('');
-                          setCustomerDues('0.00');
-                        }
+                        setCustomerId('');
+                        setDebouncedCustomerId('');
+                        setSelectedCustomer(null);
+                        setCustomerName('');
+                        setCustomerAddress('');
+                        setCustomerPhone('');
+                        setCustomerDues('0.00');
+                        setCustomerWarning(null);
+                        setCustomerSuccess(false);
                         setPaidTouched(true);
                         setPaidAmount('0.00');
+                        setTimeout(() => customerInputRef.current?.focus(), 80);
                       }}
                       className="accent-emerald-700 w-4 h-4 cursor-pointer"
                     />
@@ -826,32 +895,51 @@ export function SaleManualModal({
                 </label>
               </div>
 
-              {/* Row 3: Customer ID */}
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
-                  Customer ID
-                </label>
-                {paymentMode === 'CUSTOMER' && customersList.length > 0 ? (
-                  <select
-                    value={customerId}
-                    onChange={(e) => handleSelectCustomer(e.target.value)}
-                    className="flex-1 h-6 px-1.5 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 text-xs focus:outline-none"
-                  >
-                    <option value="">Select Customer</option>
-                    {customersList.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} ({c.phone || 'No phone'})
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type="text"
-                    value={customerId}
-                    onChange={(e) => setCustomerId(e.target.value)}
-                    disabled={paymentMode === 'CASH'}
-                    className="w-24 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none disabled:opacity-75"
-                  />
+              {/* Row 3: Customer ID (Debounced text search, no dropdown) */}
+              <div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                    Customer ID
+                  </label>
+                  <div className="relative flex items-center">
+                    <input
+                      ref={customerInputRef}
+                      type="text"
+                      value={customerId}
+                      onChange={(e) => {
+                        setCustomerId(e.target.value);
+                        if (customerWarning) setCustomerWarning(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          setDebouncedCustomerId(customerId.trim());
+                        }
+                      }}
+                      disabled={paymentMode === 'CASH' || isSaving}
+                      placeholder={paymentMode === 'CASH' ? '0' : 'e.g. 1 or phone'}
+                      className={`w-36 h-6 px-2 pr-6 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-75 ${
+                        paymentMode === 'CUSTOMER' ? 'font-bold' : ''
+                      }`}
+                    />
+                    {isSearchingCustomer && (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600 absolute right-1.5 pointer-events-none" />
+                    )}
+                    {!isSearchingCustomer && customerSuccess && paymentMode === 'CUSTOMER' && (
+                      <Check className="w-3.5 h-3.5 text-emerald-600 absolute right-1.5 pointer-events-none" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Aligned Error Warning for Customer */}
+                {customerWarning && paymentMode === 'CUSTOMER' && (
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <div className="w-24 shrink-0" />
+                    <div className="flex items-center gap-1 text-[11px] text-red-600 dark:text-red-400 font-bold">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{customerWarning}</span>
+                    </div>
+                  </div>
                 )}
               </div>
 
