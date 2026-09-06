@@ -189,8 +189,8 @@ export function PurchaseModal({
         setCommission('');
         setPurchaseRate('');
         setCodeSuccess(false);
-        setCodeWarning(`Product code "${code}" does not exist in database.`);
-        setBannerPrompt(`Product code "${code}" not found`);
+        setCodeWarning(`Product "${code}" does not exist in database.`);
+        setBannerPrompt(`Product "${code}" not found`);
       })
       .finally(() => {
         if (active) setIsSearchingProduct(false);
@@ -492,11 +492,14 @@ export function PurchaseModal({
                   </div>
                 </div>
 
-                {/* Warning when product code does not exist */}
+                {/* Warning when product code does not exist - aligned with inputs */}
                 {codeWarning && (
-                  <div className="flex items-center gap-1 text-[11px] text-red-600 dark:text-red-400 font-bold pl-26 pt-0.5">
-                    <AlertCircle className="w-3 h-3 shrink-0" />
-                    <span>{codeWarning}</span>
+                  <div className="flex items-center gap-2 pt-1">
+                    <div className="w-24 shrink-0" />
+                    <div className="flex items-center gap-1 text-[11px] text-red-600 dark:text-red-400 font-bold">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{codeWarning}</span>
+                    </div>
                   </div>
                 )}
               </div>

@@ -136,7 +136,7 @@ export function SaleRateModal({
         setSaleRate('');
         setSystemId('');
         setCodeSuccess(false);
-        setCodeWarning(`Product code "${code}" does not exist in database.`);
+        setCodeWarning(`Product "${code}" does not exist in database.`);
       })
       .finally(() => {
         if (active) setIsSearching(false);
@@ -361,11 +361,14 @@ export function SaleRateModal({
                   </div>
                 </div>
 
-                {/* Warning message if code not found */}
+                {/* Warning message if code not found - perfectly aligned with inputs */}
                 {codeWarning && (
-                  <div className="flex items-center gap-1 text-[11px] text-red-600 dark:text-red-400 font-bold pl-30 pt-1">
-                    <AlertCircle className="w-3 h-3 shrink-0" />
-                    <span>{codeWarning}</span>
+                  <div className="flex items-center gap-2 pt-1">
+                    <div className="w-28 shrink-0" />
+                    <div className="flex items-center gap-1 text-[11px] text-red-600 dark:text-red-400 font-bold">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{codeWarning}</span>
+                    </div>
                   </div>
                 )}
               </div>
