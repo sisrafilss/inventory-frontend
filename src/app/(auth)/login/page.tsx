@@ -44,6 +44,12 @@ export default function LoginPage() {
     }
   };
 
+  const handleDemoLogin = () => {
+    setEmail('admin@inventory.local');
+    setPassword('SuperAdminInitialPassword123!');
+    setError(null);
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/40 relative">
       {/* Top right theme and language switchers */}
@@ -101,9 +107,17 @@ export default function LoginPage() {
             </div>
           </CardContent>
 
-          <CardFooter className="flex flex-col gap-3 pt-2">
+          <CardFooter className="flex flex-col gap-2.5 pt-2">
             <Button type="submit" className="w-full h-10 font-semibold" disabled={isSubmitting}>
               {isSubmitting ? t('auth.signingIn') : t('auth.signIn')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDemoLogin}
+              className="w-full h-10 border-dashed border-primary/50 text-primary hover:bg-primary/5 font-medium transition-colors"
+            >
+              Demo Login
             </Button>
           </CardFooter>
         </form>
