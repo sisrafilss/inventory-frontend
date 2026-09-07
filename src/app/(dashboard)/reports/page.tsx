@@ -24,6 +24,7 @@ import {
   Receipt,
   CheckCircle2,
 } from 'lucide-react';
+import { BalanceSheetModal } from '@/components/reports/balance-sheet-modal';
 
 export default function ReportsPage() {
   const { user } = useAuth();
@@ -32,6 +33,7 @@ export default function ReportsPage() {
   const [activeReport, setActiveReport] = useState<string>('daily-sales');
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isBalanceSheetModalOpen, setIsBalanceSheetModalOpen] = useState(false);
 
   // Filters
   const [startDate, setStartDate] = useState('');
@@ -114,6 +116,15 @@ export default function ReportsPage() {
           <p className="text-xs text-muted-foreground mt-0.5">
             Real-time balance sheet, daily sales statements, due ledgers, and inventory distribution
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setIsBalanceSheetModalOpen(true)}
+            className="bg-[#15803d] hover:bg-[#166534] text-white font-bold text-xs sm:text-sm shadow-md flex items-center gap-2 px-4 py-2 transition-all"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            Balance Sheet
+          </Button>
         </div>
       </div>
 
@@ -769,6 +780,12 @@ export default function ReportsPage() {
           )}
         </div>
       )}
+
+      {/* Balance Sheet Modal */}
+      <BalanceSheetModal
+        open={isBalanceSheetModalOpen}
+        onOpenChange={setIsBalanceSheetModalOpen}
+      />
     </div>
   );
 }
