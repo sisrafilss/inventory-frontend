@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog } from '@/components/ui/dialog';
 import { InvoiceMemoModal } from '@/components/sales/invoice-memo-modal';
 import { SaleManualModal } from '@/components/sales/sale-manual-modal';
+import { SaleBarcodeModal } from '@/components/sales/sale-barcode-modal';
 import {
   ShoppingBag,
   Barcode,
@@ -100,6 +101,7 @@ export default function CreateSalePage() {
   const [createdSale, setCreatedSale] = useState<Sale | null>(null);
   const [memoOpen, setMemoOpen] = useState(false);
   const [manualModalOpen, setManualModalOpen] = useState(false);
+  const [barcodeModalOpen, setBarcodeModalOpen] = useState(false);
 
   const qtyInputRef = useRef<HTMLInputElement>(null);
   const rateInputRef = useRef<HTMLInputElement>(null);
@@ -390,8 +392,8 @@ export default function CreateSalePage() {
           </Button>
           <Button
             variant="outline"
-            onClick={() => alert('Sale by Bar Code scanner mode is coming soon! Please use Sale by Manual.')}
-            className="gap-2 border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 font-semibold"
+            onClick={() => setBarcodeModalOpen(true)}
+            className="gap-2 border-emerald-600 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 font-semibold"
           >
             <Barcode className="w-4 h-4" /> Sale by Bar Code
           </Button>
@@ -1000,6 +1002,13 @@ export default function CreateSalePage() {
       <SaleManualModal
         open={manualModalOpen}
         onOpenChange={setManualModalOpen}
+        onSaveSuccess={() => router.push('/sales')}
+      />
+
+      {/* Desktop Sale by Bar Code Modal */}
+      <SaleBarcodeModal
+        open={barcodeModalOpen}
+        onOpenChange={setBarcodeModalOpen}
         onSaveSuccess={() => router.push('/sales')}
       />
     </div>
