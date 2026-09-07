@@ -174,19 +174,25 @@ export function BalanceSheetModal({ open, onOpenChange }: BalanceSheetModalProps
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      draggable={false}
-      className="max-w-4xl p-0 overflow-hidden border border-slate-300 dark:border-slate-700 shadow-2xl rounded-lg bg-slate-100 dark:bg-slate-900"
+      draggable={true}
+      closeOnBackdropClick={false}
+      className="p-0 max-w-4xl w-full border-2 border-[#006400] dark:border-emerald-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 overflow-hidden shadow-2xl"
     >
-      {/* Top Banner Header - Exactly styled with green header bar */}
-      <div className="bg-[#15803d] dark:bg-[#166534] text-white py-2.5 px-4 shadow-sm flex items-center justify-between select-none">
-        <div className="w-8" />
-        <h3 className="text-xl font-bold tracking-wide text-center uppercase flex items-center gap-2">
-          <FileSpreadsheet className="w-5 h-5 text-white/90" />
+      {/* Dark Green Banner Header with Drag Handle */}
+      <div
+        data-drag-handle
+        title="Click and drag to move window"
+        className="relative bg-[#006400] dark:bg-emerald-950 py-2 px-4 select-none border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none"
+      >
+        <h2 className="text-xl font-bold text-white tracking-wide pointer-events-none select-none">
           Balance Sheet
-        </h3>
+        </h2>
+
         <button
+          type="button"
           onClick={() => onOpenChange(false)}
-          className="text-white/80 hover:text-white transition-colors p-1 rounded hover:bg-white/10"
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/90 hover:text-white hover:bg-black/20 p-1 rounded transition-colors cursor-pointer"
+          aria-label="Close"
           title="Close"
         >
           <X className="w-5 h-5" />
