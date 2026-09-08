@@ -19,7 +19,17 @@ export default function DashboardLayout({
   useEffect(() => {
     if (!isLoading) {
       if (!user) {
-        router.replace('/login');
+        try {
+          router.replace('/login');
+        } catch {
+          window.location.replace('/login');
+        }
+        const timer = setTimeout(() => {
+          if (!localStorage.getItem('auth_token')) {
+            window.location.replace('/login');
+          }
+        }, 300);
+        return () => clearTimeout(timer);
       } else if (user.mustChangePassword && pathname !== '/change-password') {
         router.replace('/change-password');
       }
@@ -28,10 +38,16 @@ export default function DashboardLayout({
 
   if (isLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-2">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="flex flex-col items-center gap-2 text-center">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
           <p className="text-xs text-muted-foreground font-medium">Verifying authorization...</p>
+          <a
+            href="/login"
+            className="text-xs text-primary underline mt-2 hover:opacity-80"
+          >
+            Click here to return to login
+          </a>
         </div>
       </div>
     );

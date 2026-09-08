@@ -1,7 +1,18 @@
 import { ApiResponse } from "../types";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+const getApiBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  if (
+    typeof window !== "undefined" &&
+    (window.location.hostname.includes("vercel.app") ||
+      window.location.hostname !== "localhost")
+  ) {
+    return "https://inventory-backend-mauve-pi.vercel.app/api";
+  }
+  return "http://localhost:5000/api";
+};
 
 class ApiClient {
   private getToken(): string | null {
@@ -23,7 +34,8 @@ class ApiClient {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
-    const url = `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+    const baseUrl = getApiBaseUrl();
+    const url = `${baseUrl}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
 
     try {
       const response = await fetch(url, {
