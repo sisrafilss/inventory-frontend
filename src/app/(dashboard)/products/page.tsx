@@ -470,12 +470,8 @@ export default function ProductsPage() {
 
         {canManage && (
           <div className="flex items-center gap-2">
-            <Button
-              onClick={() => setSaleRateModalOpen(true)}
-              variant="outline"
-              className="gap-2 border-[#006400] text-[#006400] hover:bg-emerald-50 dark:border-emerald-600 dark:text-emerald-400 dark:hover:bg-emerald-950/40 font-semibold"
-            >
-              <Tag className="w-4 h-4" /> Sale Rate
+            <Button onClick={handleOpenCreate} className="gap-2">
+              <Plus className="w-4 h-4" /> {t('products.addProduct')}
             </Button>
             <Button
               onClick={() => {
@@ -487,8 +483,12 @@ export default function ProductsPage() {
             >
               <ShoppingCart className="w-4 h-4" /> Purchase
             </Button>
-            <Button onClick={handleOpenCreate} className="gap-2">
-              <Plus className="w-4 h-4" /> {t('products.addProduct')}
+            <Button
+              onClick={() => setSaleRateModalOpen(true)}
+              variant="outline"
+              className="gap-2 border-[#006400] text-[#006400] hover:bg-emerald-50 dark:border-emerald-600 dark:text-emerald-400 dark:hover:bg-emerald-950/40 font-semibold"
+            >
+              <Tag className="w-4 h-4" /> Sale Rate
             </Button>
           </div>
         )}

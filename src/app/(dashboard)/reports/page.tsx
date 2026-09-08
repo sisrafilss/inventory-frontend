@@ -25,6 +25,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { BalanceSheetModal } from '@/components/reports/balance-sheet-modal';
+import { DailyReportModal } from '@/components/reports/daily-report-modal';
 
 export default function ReportsPage() {
   const { user } = useAuth();
@@ -34,6 +35,7 @@ export default function ReportsPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isBalanceSheetModalOpen, setIsBalanceSheetModalOpen] = useState(false);
+  const [isDailyReportModalOpen, setIsDailyReportModalOpen] = useState(false);
 
   // Filters
   const [startDate, setStartDate] = useState('');
@@ -118,6 +120,13 @@ export default function ReportsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setIsDailyReportModalOpen(true)}
+            className="bg-[#006400] hover:bg-[#004d00] text-white font-bold text-xs sm:text-sm shadow-md flex items-center gap-2 px-4 py-2 transition-all border border-[#004d00]"
+          >
+            <Receipt className="w-4 h-4" />
+            Daily Report
+          </Button>
           <Button
             onClick={() => setIsBalanceSheetModalOpen(true)}
             className="bg-[#15803d] hover:bg-[#166534] text-white font-bold text-xs sm:text-sm shadow-md flex items-center gap-2 px-4 py-2 transition-all"
@@ -785,6 +794,12 @@ export default function ReportsPage() {
       <BalanceSheetModal
         open={isBalanceSheetModalOpen}
         onOpenChange={setIsBalanceSheetModalOpen}
+      />
+
+      {/* Daily Report Modal (Daily Purchase or Sales) */}
+      <DailyReportModal
+        open={isDailyReportModalOpen}
+        onOpenChange={setIsDailyReportModalOpen}
       />
     </div>
   );

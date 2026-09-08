@@ -14,6 +14,7 @@ import {
 import { Product, Customer, Warehouse, Sale } from '@/lib/types';
 import { api } from '@/lib/api/client';
 import { InvoiceMemoModal, MemoSale } from './invoice-memo-modal';
+import { ProductLookupModal } from '../products/product-lookup-modal';
 
 export interface ManualSaleLineItem {
   id: string;
@@ -104,6 +105,8 @@ export function SaleManualModal({
   const [paidAmount, setPaidAmount] = useState<number | string>('0.00');
   const [paidTouched, setPaidTouched] = useState(false);
   const [discountAmount, setDiscountAmount] = useState<number | string>('0.00');
+  const [discountPercent, setDiscountPercent] = useState<number | string>('0');
+  const [lastDiscountType, setLastDiscountType] = useState<'amount' | 'percent'>('amount');
 
   // Dialogs
   const [showConfirmSave, setShowConfirmSave] = useState(false);
@@ -114,9 +117,35 @@ export function SaleManualModal({
   const [savedSaleForMemo, setSavedSaleForMemo] = useState<MemoSale | null>(null);
   const [showMemoModal, setShowMemoModal] = useState(false);
 
+  // Product Catalog Lookup Modal
+  const [productLookupOpen, setProductLookupOpen] = useState(false);
+
   // Refs
   const codeInputRef = useRef<HTMLInputElement>(null);
   const qtyInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSelectProductFromLookup = (p: Product) => {
+    setItemCode(p.sku);
+    setDebouncedCode(p.sku);
+    setSelectedProduct(p);
+    setItemName(p.name);
+    setCompanyName(p.company?.name || '—');
+    const dp = p.dpRate ? Number(p.dpRate) : (p.costPrice ? Number(p.costPrice) : 0);
+    setDpRate(dp > 0 ? String(dp) : '0');
+    const comm = p.commissionPercent ? Number(p.commissionPercent) : 0;
+    setCommission(comm > 0 ? String(comm) : '0');
+    const pCost = p.costPrice ? Number(p.costPrice) : dp;
+    setPurchaseRate(pCost > 0 ? String(pCost) : '0');
+    setAvailableStock(p.quantity || 0);
+    setItemType(p.unit || 'Pieces');
+    setSaleRate(p.sellingPrice ? String(p.sellingPrice) : '0');
+    setQuantity('1');
+    setCodeSuccess(true);
+    setCodeWarning(null);
+    setActiveFocusedField('quantity');
+    setProductLookupOpen(false);
+    setTimeout(() => qtyInputRef.current?.focus(), 100);
+  };
 
   // Generate Invoice Number and load Customers/Warehouses on open
   useEffect(() => {
@@ -395,6 +424,8 @@ export function SaleManualModal({
     setPaidAmount('0.00');
     setPaidTouched(false);
     setDiscountAmount('0.00');
+    setDiscountPercent('0');
+    setLastDiscountType('amount');
     setInvoiceNumber(`INV-${Date.now().toString().slice(-6)}`);
     setActiveFocusedField('itemCode');
     setTimeout(() => codeInputRef.current?.focus(), 50);
@@ -402,6 +433,51 @@ export function SaleManualModal({
 
   // Totals Calculations
   const totalAmount = lineItems.reduce((acc, item) => acc + item.amount, 0);
+
+  const handleDiscountAmountChange = (val: string) => {
+    setDiscountAmount(val);
+    setLastDiscountType('amount');
+    const num = parseFloat(val);
+    if (!isNaN(num) && totalAmount > 0) {
+      const pct = (num / totalAmount) * 100;
+      setDiscountPercent(pct % 1 === 0 ? pct.toString() : pct.toFixed(2));
+    } else if (val === '' || num === 0) {
+      setDiscountPercent('0');
+    }
+  };
+
+  const handleDiscountPercentChange = (val: string) => {
+    setDiscountPercent(val);
+    setLastDiscountType('percent');
+    const pct = parseFloat(val);
+    if (!isNaN(pct) && totalAmount > 0) {
+      const amt = (totalAmount * pct) / 100;
+      setDiscountAmount(amt.toFixed(2));
+    } else if (val === '' || pct === 0) {
+      setDiscountAmount('0.00');
+    }
+  };
+
+  useEffect(() => {
+    if (lastDiscountType === 'percent') {
+      const pct = parseFloat(String(discountPercent));
+      if (!isNaN(pct) && pct > 0 && totalAmount > 0) {
+        const amt = (totalAmount * pct) / 100;
+        setDiscountAmount(amt.toFixed(2));
+      } else if (totalAmount === 0 || pct === 0) {
+        setDiscountAmount('0.00');
+      }
+    } else if (lastDiscountType === 'amount') {
+      const amt = parseFloat(String(discountAmount));
+      if (!isNaN(amt) && amt > 0 && totalAmount > 0) {
+        const pct = (amt / totalAmount) * 100;
+        setDiscountPercent(pct % 1 === 0 ? pct.toString() : pct.toFixed(2));
+      } else if (totalAmount === 0 || amt === 0) {
+        setDiscountPercent('0');
+      }
+    }
+  }, [totalAmount, lastDiscountType]);
+
   const totalPurchaseCost = lineItems.reduce((acc, item) => acc + item.purchaseAmount, 0);
   const discountVal = Math.max(0, parseFloat(String(discountAmount)) || 0);
   const netAmount = Math.max(0, totalAmount - discountVal);
@@ -442,6 +518,7 @@ export function SaleManualModal({
         customerPhone: (selectedCustomer?.phone || customerPhone) || undefined,
         warehouseId: defaultWarehouseId || undefined,
         discount: discountVal,
+        discountPercent: parseFloat(String(discountPercent)) || undefined,
         paidAmount: effectivePaid,
         items: lineItems.map((item) => ({
           productId: item.productId,
@@ -595,8 +672,9 @@ export function SaleManualModal({
                     </div>
                     <button
                       type="button"
-                      onClick={() => setDebouncedCode(itemCode.trim())}
-                      disabled={isSaving || isSearchingProduct}
+                      onClick={() => setProductLookupOpen(true)}
+                      disabled={isSaving}
+                      title="Open Product Catalog to browse and select products"
                       className="h-6 px-4 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:opacity-50"
                     >
                       View
@@ -1179,9 +1257,26 @@ export function SaleManualModal({
                   type="number"
                   step="0.01"
                   value={discountAmount}
-                  onChange={(e) => setDiscountAmount(e.target.value)}
+                  onChange={(e) => handleDiscountAmountChange(e.target.value)}
                   disabled={isSaving}
                   placeholder="0.00"
+                  className="w-36 h-6 px-2 bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 border border-neutral-400 dark:border-slate-600 text-right font-bold disabled:opacity-50"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3">
+                <label className="text-xs font-bold text-red-600 dark:text-red-500 w-24 text-right">
+                  Discount (%)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  value={discountPercent}
+                  onChange={(e) => handleDiscountPercentChange(e.target.value)}
+                  disabled={isSaving}
+                  placeholder="0"
                   className="w-36 h-6 px-2 bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 border border-neutral-400 dark:border-slate-600 text-right font-bold disabled:opacity-50"
                 />
               </div>
@@ -1301,6 +1396,14 @@ export function SaleManualModal({
           }}
         />
       )}
+
+      {/* Product Catalog Lookup Modal with Infinite Scrolling */}
+      <ProductLookupModal
+        open={productLookupOpen}
+        onOpenChange={setProductLookupOpen}
+        onSelectProduct={handleSelectProductFromLookup}
+        initialSearch={itemCode}
+      />
     </>
   );
 }

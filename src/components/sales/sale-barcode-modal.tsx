@@ -20,6 +20,7 @@ import {
 import { Product, Customer, Warehouse, Sale } from '@/lib/types';
 import { api } from '@/lib/api/client';
 import { InvoiceMemoModal, MemoSale } from './invoice-memo-modal';
+import { ProductLookupModal } from '../products/product-lookup-modal';
 
 export interface BarcodeSaleLineItem {
   id: string;
@@ -83,11 +84,16 @@ export function SaleBarcodeModal({
   const [customerPhone, setCustomerPhone] = useState('');
   const [paymentMode, setPaymentMode] = useState<'CASH' | 'CREDIT'>('CASH');
   const [discount, setDiscount] = useState<number | string>('0');
+  const [discountPercent, setDiscountPercent] = useState<number | string>('0');
+  const [lastDiscountType, setLastDiscountType] = useState<'amount' | 'percent'>('amount');
   const [isSaving, setIsSaving] = useState(false);
 
   // Memo modal for preview
   const [memoModalOpen, setMemoModalOpen] = useState(false);
   const [savedSaleData, setSavedSaleData] = useState<MemoSale | null>(null);
+
+  // Product Catalog Lookup Modal
+  const [productLookupOpen, setProductLookupOpen] = useState(false);
 
   // Refs
   const inputRef = useRef<HTMLInputElement>(null);
@@ -102,6 +108,8 @@ export function SaleBarcodeModal({
     } else {
       setItems([]);
       setDiscount('0');
+      setDiscountPercent('0');
+      setLastDiscountType('amount');
       setBarcodeInput('');
       setScanMessage(null);
     }
@@ -228,8 +236,43 @@ export function SaleBarcodeModal({
     }
   };
 
-  const handleViewClick = () => {
-    processScanCode(barcodeInput);
+  const handleSelectProductFromLookup = (prod: Product) => {
+    setItems((prev) => {
+      const existingIndex = prev.findIndex((i) => i.productId === prod.id);
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        const current = updated[existingIndex];
+        const newQty = current.quantity + 1;
+        updated[existingIndex] = {
+          ...current,
+          quantity: newQty,
+          amount: Number((newQty * current.rate).toFixed(2)),
+        };
+        return updated;
+      } else {
+        const sellingRate = Number(prod.sellingPrice) || 0;
+        const purchaseCost = Number(prod.costPrice) || 0;
+        const newItem: BarcodeSaleLineItem = {
+          id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          productId: prod.id,
+          code: prod.sku || prod.barcode || '',
+          barcode: prod.barcode || undefined,
+          name: prod.name,
+          type: prod.unit || 'Pieces',
+          quantity: 1,
+          rate: sellingRate,
+          amount: sellingRate,
+          purchaseCost,
+          availableStock: prod.quantity ?? 0,
+        };
+        return [...prev, newItem];
+      }
+    });
+
+    playBeep(true);
+    setScanMessage({ text: `✓ Added: ${prod.name}`, isError: false });
+    setProductLookupOpen(false);
+    setTimeout(() => inputRef.current?.focus(), 100);
   };
 
   // Quantity change
@@ -269,6 +312,51 @@ export function SaleBarcodeModal({
 
   // Calculations
   const grossTotal = items.reduce((acc, i) => acc + i.amount, 0);
+
+  const handleDiscountAmountChange = (val: string) => {
+    setDiscount(val);
+    setLastDiscountType('amount');
+    const num = parseFloat(val);
+    if (!isNaN(num) && grossTotal > 0) {
+      const pct = (num / grossTotal) * 100;
+      setDiscountPercent(pct % 1 === 0 ? pct.toString() : pct.toFixed(2));
+    } else if (val === '' || num === 0) {
+      setDiscountPercent('0');
+    }
+  };
+
+  const handleDiscountPercentChange = (val: string) => {
+    setDiscountPercent(val);
+    setLastDiscountType('percent');
+    const pct = parseFloat(val);
+    if (!isNaN(pct) && grossTotal > 0) {
+      const amt = (grossTotal * pct) / 100;
+      setDiscount(amt.toFixed(2));
+    } else if (val === '' || pct === 0) {
+      setDiscount('0');
+    }
+  };
+
+  useEffect(() => {
+    if (lastDiscountType === 'percent') {
+      const pct = parseFloat(String(discountPercent));
+      if (!isNaN(pct) && pct > 0 && grossTotal > 0) {
+        const amt = (grossTotal * pct) / 100;
+        setDiscount(amt.toFixed(2));
+      } else if (grossTotal === 0 || pct === 0) {
+        setDiscount('0');
+      }
+    } else if (lastDiscountType === 'amount') {
+      const amt = parseFloat(String(discount));
+      if (!isNaN(amt) && amt > 0 && grossTotal > 0) {
+        const pct = (amt / grossTotal) * 100;
+        setDiscountPercent(pct % 1 === 0 ? pct.toString() : pct.toFixed(2));
+      } else if (grossTotal === 0 || amt === 0) {
+        setDiscountPercent('0');
+      }
+    }
+  }, [grossTotal, lastDiscountType]);
+
   const discountNum = Math.max(0, parseFloat(String(discount)) || 0);
   const netAmount = Math.max(0, grossTotal - discountNum);
 
@@ -287,6 +375,7 @@ export function SaleBarcodeModal({
         customerName: customerName || 'Cash Retail Customer',
         customerPhone: customerPhone || undefined,
         discount: discountNum,
+        discountPercent: parseFloat(String(discountPercent)) || undefined,
         paidAmount: paymentMode === 'CASH' ? netAmount : 0,
         note: `POS Barcode Sale (${items.length} items)`,
         items: items.map((i) => ({
@@ -307,7 +396,9 @@ export function SaleBarcodeModal({
         const memoFormatted: MemoSale = {
           id: created.id,
           referenceNumber: created.referenceNumber,
-          totalAmount: netAmount,
+          totalAmount: grossTotal,
+          discount: discountNum,
+          netAmount: netAmount,
           paidAmount: paymentMode === 'CASH' ? netAmount : 0,
           dueAmount: paymentMode === 'CREDIT' ? netAmount : 0,
           paymentType: paymentMode,
@@ -421,9 +512,10 @@ export function SaleBarcodeModal({
 
               <button
                 type="button"
-                onClick={handleViewClick}
-                disabled={isSearching || !barcodeInput.trim()}
-                className="h-8 px-4 bg-white dark:bg-slate-800 hover:bg-neutral-100 text-neutral-900 dark:text-neutral-100 border border-neutral-400 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50"
+                onClick={() => setProductLookupOpen(true)}
+                disabled={isSaving}
+                title="Open Product Catalog to browse and select products"
+                className="h-8 px-4 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50"
               >
                 View
               </button>
@@ -650,16 +742,33 @@ export function SaleBarcodeModal({
 
               {/* Discount */}
               <div className="flex items-center justify-end gap-3">
-                <label className="font-bold text-xs text-neutral-800 dark:text-neutral-200 w-24 text-right">
+                <label className="font-bold text-xs text-red-600 dark:text-red-500 w-24 text-right">
                   Discount
                 </label>
                 <input
                   type="number"
                   min="0"
-                  step="1"
+                  step="0.01"
                   value={discount}
-                  onChange={(e) => setDiscount(e.target.value)}
-                  className="w-36 h-7 px-2 text-right font-mono font-bold text-sm bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none focus:border-emerald-600 shadow-inner"
+                  onChange={(e) => handleDiscountAmountChange(e.target.value)}
+                  className="w-36 h-7 px-2 text-right font-mono font-bold text-sm bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 border border-neutral-400 dark:border-slate-600 focus:outline-none focus:border-red-600 shadow-inner"
+                />
+              </div>
+
+              {/* Discount (%) */}
+              <div className="flex items-center justify-end gap-3">
+                <label className="font-bold text-xs text-red-600 dark:text-red-500 w-24 text-right">
+                  Discount (%)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={discountPercent}
+                  onChange={(e) => handleDiscountPercentChange(e.target.value)}
+                  placeholder="0"
+                  className="w-36 h-7 px-2 text-right font-mono font-bold text-sm bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 border border-neutral-400 dark:border-slate-600 focus:outline-none focus:border-red-600 shadow-inner"
                 />
               </div>
 
@@ -690,6 +799,14 @@ export function SaleBarcodeModal({
             onOpenChange(false);
           }
         }}
+      />
+
+      {/* Product Catalog Lookup Modal with Infinite Scrolling */}
+      <ProductLookupModal
+        open={productLookupOpen}
+        onOpenChange={setProductLookupOpen}
+        onSelectProduct={handleSelectProductFromLookup}
+        initialSearch={barcodeInput}
       />
     </>
   );
