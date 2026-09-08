@@ -7,18 +7,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import {
   BadgeDollarSign,
-  Plus,
-  Search,
   DollarSign,
   ArrowDownLeft,
   ArrowUpRight,
-  CreditCard,
-  CheckCircle2,
-  Calendar,
 } from 'lucide-react';
+import { EditCollectionPaidModal } from '@/components/payments/edit-collection-paid-modal';
 
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<PartyPayment[]>([]);
@@ -29,25 +24,9 @@ export default function PaymentsPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  // Collect from Customer Modal
-  const [collectModalOpen, setCollectModalOpen] = useState(false);
-  const [collectForm, setCollectForm] = useState({
-    customerId: '',
-    amount: 0,
-    paymentMethod: 'CASH',
-    referenceNote: '',
-  });
-
-  // Pay to Supplier Modal
-  const [payModalOpen, setPayModalOpen] = useState(false);
-  const [payForm, setPayForm] = useState({
-    supplierId: '',
-    amount: 0,
-    paymentMethod: 'CASH',
-    referenceNote: '',
-  });
-
-  const [isProcessing, setIsProcessing] = useState(false);
+  // Edit Collection OR Paid Modal
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<'SALES' | 'PURCHASE'>('SALES');
 
   const fetchPayments = async () => {
     try {
@@ -91,55 +70,6 @@ export default function PaymentsPage() {
     .filter((p) => p.type === 'SUPPLIER_PAYMENT')
     .reduce((acc, p) => acc + Number(p.amount), 0);
 
-  const handleCollectSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!collectForm.customerId || collectForm.amount <= 0) {
-      alert('Please select a customer and enter an amount greater than 0.');
-      return;
-    }
-    setIsProcessing(true);
-    try {
-      await api.post('/payments/customer-collection', {
-        ...collectForm,
-        amount: Number(collectForm.amount),
-      });
-      alert('Cash collection recorded and customer due reduced successfully!');
-      setCollectModalOpen(false);
-      setCollectForm({ customerId: '', amount: 0, paymentMethod: 'CASH', referenceNote: '' });
-      await Promise.all([fetchPayments(), fetchParties()]);
-    } catch (err: any) {
-      alert(err.message || 'Failed to record collection.');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handlePaySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!payForm.supplierId || payForm.amount <= 0) {
-      alert('Please select a supplier and enter an amount greater than 0.');
-      return;
-    }
-    setIsProcessing(true);
-    try {
-      await api.post('/payments/supplier-payment', {
-        ...payForm,
-        amount: Number(payForm.amount),
-      });
-      alert('Supplier payout recorded and supplier payable reduced successfully!');
-      setPayModalOpen(false);
-      setPayForm({ supplierId: '', amount: 0, paymentMethod: 'CASH', referenceNote: '' });
-      await Promise.all([fetchPayments(), fetchParties()]);
-    } catch (err: any) {
-      alert(err.message || 'Failed to record payment.');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const selectedCustomer = customers.find((c) => c.id === collectForm.customerId);
-  const selectedSupplier = suppliers.find((s) => s.id === payForm.supplierId);
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -154,13 +84,19 @@ export default function PaymentsPage() {
 
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
           <Button
-            onClick={() => setCollectModalOpen(true)}
+            onClick={() => {
+              setModalType('SALES');
+              setModalOpen(true);
+            }}
             className="w-full sm:w-auto gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
           >
             <ArrowDownLeft className="w-4 h-4" /> Collect from Customer
           </Button>
           <Button
-            onClick={() => setPayModalOpen(true)}
+            onClick={() => {
+              setModalType('PURCHASE');
+              setModalOpen(true);
+            }}
             variant="outline"
             className="w-full sm:w-auto gap-2 border-rose-300 text-rose-600 hover:bg-rose-50"
           >
@@ -350,215 +286,16 @@ export default function PaymentsPage() {
         </Card>
       )}
 
-      {/* Customer Collection Dialog */}
-      <Dialog open={collectModalOpen} onOpenChange={setCollectModalOpen}>
-        <form onSubmit={handleCollectSubmit}>
-          <DialogHeader>
-            <DialogTitle className="text-emerald-600 flex items-center gap-2">
-              <ArrowDownLeft className="w-5 h-5" /> Collect Cash from Customer
-            </DialogTitle>
-            <DialogDescription>
-              Record customer cash / online payment. This will atomically decrease customer dues.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3.5 py-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Customer *</label>
-              <select
-                required
-                value={collectForm.customerId}
-                onChange={(e) => {
-                  const id = e.target.value;
-                  const c = customers.find((cust) => cust.id === id);
-                  setCollectForm({
-                    ...collectForm,
-                    customerId: id,
-                    amount: c && Number(c.currentDue) > 0 ? Number(c.currentDue) : collectForm.amount,
-                  });
-                }}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="">— Select Customer —</option>
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.phone}) - Current Due: ৳{Number(c.currentDue).toLocaleString()}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {selectedCustomer && (
-              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded border border-emerald-200 text-xs">
-                <span className="text-muted-foreground">Current Outstanding Due: </span>
-                <span className="font-bold text-emerald-600">
-                  ৳{Number(selectedCustomer.currentDue).toLocaleString()}
-                </span>
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Collected Amount (৳) *</label>
-              <Input
-                type="number"
-                min="1"
-                required
-                value={collectForm.amount}
-                onChange={(e) =>
-                  setCollectForm({ ...collectForm, amount: parseFloat(e.target.value) || 0 })
-                }
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Payment Method</label>
-              <select
-                value={collectForm.paymentMethod}
-                onChange={(e) => setCollectForm({ ...collectForm, paymentMethod: e.target.value })}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="CASH">Cash</option>
-                <option value="BKASH">bKash</option>
-                <option value="NAGAD">Nagad</option>
-                <option value="BANK_TRANSFER">Bank Transfer</option>
-                <option value="CHEQUE">Cheque</option>
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Reference / Memo Note</label>
-              <Input
-                placeholder="Money receipt #, TrxID, or note"
-                value={collectForm.referenceNote}
-                onChange={(e) => setCollectForm({ ...collectForm, referenceNote: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setCollectModalOpen(false)}
-              disabled={isProcessing}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isProcessing}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
-            >
-              {isProcessing ? 'Recording...' : 'Confirm Cash Collection'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </Dialog>
-
-      {/* Supplier Payout Dialog */}
-      <Dialog open={payModalOpen} onOpenChange={setPayModalOpen}>
-        <form onSubmit={handlePaySubmit}>
-          <DialogHeader>
-            <DialogTitle className="text-rose-600 flex items-center gap-2">
-              <ArrowUpRight className="w-5 h-5" /> Pay Due to Supplier
-            </DialogTitle>
-            <DialogDescription>
-              Record cash / bank payment to supplier. This will reduce your accounts payable debt.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3.5 py-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Supplier *</label>
-              <select
-                required
-                value={payForm.supplierId}
-                onChange={(e) => {
-                  const id = e.target.value;
-                  const s = suppliers.find((sup) => sup.id === id);
-                  setPayForm({
-                    ...payForm,
-                    supplierId: id,
-                    amount: s && Number(s.currentDue) > 0 ? Number(s.currentDue) : payForm.amount,
-                  });
-                }}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="">— Select Supplier —</option>
-                {suppliers.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} {s.companyName ? `(${s.companyName})` : ''} - Owed: ৳{Number(s.currentDue).toLocaleString()}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {selectedSupplier && (
-              <div className="p-3 bg-rose-50 dark:bg-rose-950/30 rounded border border-rose-200 text-xs">
-                <span className="text-muted-foreground">Current Accounts Payable (We Owe): </span>
-                <span className="font-bold text-rose-600">
-                  ৳{Number(selectedSupplier.currentDue).toLocaleString()}
-                </span>
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Payment Amount (৳) *</label>
-              <Input
-                type="number"
-                min="1"
-                required
-                value={payForm.amount}
-                onChange={(e) =>
-                  setPayForm({ ...payForm, amount: parseFloat(e.target.value) || 0 })
-                }
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Payment Method</label>
-              <select
-                value={payForm.paymentMethod}
-                onChange={(e) => setPayForm({ ...payForm, paymentMethod: e.target.value })}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="CASH">Cash</option>
-                <option value="BKASH">bKash</option>
-                <option value="NAGAD">Nagad</option>
-                <option value="BANK_TRANSFER">Bank Transfer</option>
-                <option value="CHEQUE">Cheque</option>
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Reference / Voucher Note</label>
-              <Input
-                placeholder="Cheque #, Bank deposit slip, or note"
-                value={payForm.referenceNote}
-                onChange={(e) => setPayForm({ ...payForm, referenceNote: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setPayModalOpen(false)}
-              disabled={isProcessing}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isProcessing}
-              className="bg-rose-600 hover:bg-rose-700 text-white"
-            >
-              {isProcessing ? 'Recording...' : 'Confirm Supplier Payout'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </Dialog>
+      {/* Edit Collection OR Paid Modal */}
+      <EditCollectionPaidModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        initialType={modalType}
+        onSuccess={() => {
+          fetchPayments();
+          fetchParties();
+        }}
+      />
     </div>
   );
 }

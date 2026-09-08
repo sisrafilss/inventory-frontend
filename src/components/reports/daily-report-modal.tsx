@@ -87,11 +87,10 @@ export function DailyReportModal({ open, onOpenChange }: DailyReportModalProps) 
   const [loading, setLoading] = useState(false);
   const [isPreview, setIsPreview] = useState(false);
 
-  // Load companies & initial report on open
+  // Load companies on open
   useEffect(() => {
     if (open) {
       loadCompanies();
-      fetchReport(reportType, fromDate, toDate, companyId);
     } else {
       setIsPreview(false);
     }
@@ -129,6 +128,42 @@ export function DailyReportModal({ open, onOpenChange }: DailyReportModalProps) 
       setLoading(false);
     }
   };
+
+  // Automatically fetch report whenever modal opens or any filter property changes
+  useEffect(() => {
+    if (!open) return;
+    if (!fromDate || !toDate || fromDate.length < 10 || toDate.length < 10) return;
+
+    let isCancelled = false;
+    setLoading(true);
+
+    api
+      .get<DailyReportResponse>('/reports/daily-purchase-sales', {
+        type: reportType,
+        startDate: fromDate,
+        endDate: toDate,
+        companyId: companyId || undefined,
+      })
+      .then((res) => {
+        if (!isCancelled && res.data) {
+          setData(res.data);
+        }
+      })
+      .catch((err) => {
+        if (!isCancelled) {
+          console.error('Failed to load daily purchase/sales report:', err);
+        }
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [open, reportType, fromDate, toDate, companyId]);
 
   const handleSearch = () => {
     fetchReport(reportType, fromDate, toDate, companyId);

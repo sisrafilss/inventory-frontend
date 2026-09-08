@@ -183,13 +183,21 @@ export interface PartyPayment {
   receiptNumber: string;
   type: "CUSTOMER_COLLECTION" | "SUPPLIER_PAYMENT";
   customerId?: string | null;
-  customer?: { id: string; name: string; phone: string } | null;
+  customer?: {
+    id: string;
+    name: string;
+    phone: string;
+    address?: string | null;
+    currentDue?: number;
+  } | null;
   supplierId?: string | null;
   supplier?: {
     id: string;
     name: string;
     companyName?: string | null;
     phone: string;
+    address?: string | null;
+    currentDue?: number;
   } | null;
   amount: number;
   paymentMethod: string;
