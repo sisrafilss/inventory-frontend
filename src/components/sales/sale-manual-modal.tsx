@@ -1343,21 +1343,10 @@ export function SaleManualModal({
                 {/* Dropdown list */}
                 {isCustomerDropdownOpen && (
                   <div className="absolute left-20 right-0 top-full mt-1 max-h-60 overflow-y-auto bg-white dark:bg-slate-800 border border-neutral-300 dark:border-slate-600 shadow-xl z-50 py-1">
-                    <div className="px-2.5 py-1 border-b border-neutral-200 dark:border-slate-700 bg-neutral-50 dark:bg-slate-800/90 flex items-center justify-between text-[11px]">
+                    <div className="px-2.5 py-1 border-b border-neutral-200 dark:border-slate-700 bg-neutral-50 dark:bg-slate-800/90 text-[11px]">
                       <span className="font-bold text-neutral-600 dark:text-neutral-300">
                         {filteredCustomers.length} Customers
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsCustomerDropdownOpen(false);
-                          setAddCustomerModalOpen(true);
-                        }}
-                        className="font-bold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
-                      >
-                        <UserPlus className="w-3 h-3" />
-                        <span>+ Add Customer</span>
-                      </button>
                     </div>
 
                     {filteredCustomers.length === 0 ? (
@@ -1408,24 +1397,6 @@ export function SaleManualModal({
                         );
                       })
                     )}
-                  </div>
-                )}
-
-                {/* Aligned Error Warning for Customer with Quick Add button */}
-                {customerWarning && paymentMode === 'CUSTOMER' && (
-                  <div className="flex flex-col gap-0.5 pt-0.5 pl-20 text-[11px]">
-                    <div className="flex items-center gap-1 text-red-600 dark:text-red-400 font-bold">
-                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">{customerWarning}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setAddCustomerModalOpen(true)}
-                      className="self-start text-[11px] text-emerald-700 dark:text-emerald-400 underline hover:text-emerald-800 font-bold cursor-pointer flex items-center gap-0.5"
-                    >
-                      <UserPlus className="w-3 h-3" />
-                      <span>+ Add as New Customer</span>
-                    </button>
                   </div>
                 )}
               </div>
