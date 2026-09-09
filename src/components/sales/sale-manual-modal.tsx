@@ -112,15 +112,24 @@ export function SaleManualModal({
   // Helper to get warehouse-specific stock
   const getStockForWarehouse = (p: Product | null, wId: string): number => {
     if (!p) return 0;
-    if (!wId) return p.quantity || 0;
+    if (!wId) return 0; // When no warehouse is selected, stock is 0
     if (p.warehouseStocks && p.warehouseStocks.length > 0) {
       const match = p.warehouseStocks.find(
         (ws) => ws.warehouseId === wId || ws.warehouse?.id === wId
       );
       if (match !== undefined) return match.quantity;
     }
-    return p.quantity || 0;
+    return 0; // When product is not in this warehouse, stock is 0
   };
+
+  // Sync available stock whenever warehouse or selected product changes
+  useEffect(() => {
+    if (selectedProduct) {
+      setAvailableStock(getStockForWarehouse(selectedProduct, selectedWarehouseId));
+    } else {
+      setAvailableStock(0);
+    }
+  }, [selectedWarehouseId, selectedProduct]);
 
   // Loading & Focus States
   const [isSearchingProduct, setIsSearchingProduct] = useState(false);
@@ -1798,6 +1807,7 @@ export function SaleManualModal({
         onOpenChange={setProductLookupOpen}
         onSelectProduct={handleSelectProductFromLookup}
         initialSearch={itemCode}
+        warehouseId={selectedWarehouseId}
       />
 
       {/* Customer Lookup Modal */}

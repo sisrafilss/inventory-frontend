@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/context/auth-context';
 import { api } from '@/lib/api/client';
-import { Product, Category, Company } from '@/lib/types';
+import { Product, Category, Company, Warehouse } from '@/lib/types';
 import { useLanguage } from '@/lib/context/language-context';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Package, Plus, Search, Edit2, AlertCircle, ChevronLeft, ChevronRight, Building2, HelpCircle, X, Loader2, Check, ShoppingCart, Tag } from 'lucide-react';
+import { Package, Plus, Search, Edit2, AlertCircle, ChevronLeft, ChevronRight, Building2, HelpCircle, X, Loader2, Check, ShoppingCart, Tag, Warehouse as WarehouseIcon } from 'lucide-react';
 import { PurchaseModal } from '@/components/purchases/purchase-modal';
 import { SaleRateModal } from '@/components/products/sale-rate-modal';
 
@@ -21,6 +21,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,11 +59,12 @@ export default function ProductsPage() {
     sku: '',
     categoryId: '',
     companyId: '',
+    warehouseId: '',
     unit: 'Pieces',
     dpRate: 0,
     costPrice: 0,
     sellingPrice: 0,
-    quantity: 0,
+    quantity: '' as number | string,
     reorderLevel: 10,
     description: 'None',
     isActive: true,
@@ -71,12 +73,17 @@ export default function ProductsPage() {
 
   const fetchMetadata = async () => {
     try {
-      const [catRes, compRes] = await Promise.all([
+      const [catRes, compRes, whRes] = await Promise.all([
         api.get<Category[]>('/categories'),
         api.get<Company[]>('/companies'),
+        api.get<Warehouse[]>('/warehouses'),
       ]);
       setCategories(catRes.data);
       setCompanies(compRes.data);
+      if (whRes.data && whRes.data.length > 0) {
+        const activeWhs = whRes.data.filter((w) => w.isActive !== false);
+        setWarehouses(activeWhs.length > 0 ? activeWhs : whRes.data);
+      }
     } catch {
       // ignore
     }
@@ -281,16 +288,18 @@ export default function ProductsPage() {
     setCodeExistsWarning(null);
     setIsCheckingCode(false);
     setCodeIsAvailable(false);
+    const defWh = warehouses.find((w) => w.isDefault)?.id || warehouses[0]?.id || '';
     setForm({
       name: '',
       sku: '',
       categoryId: '',
       companyId: companies[0]?.id || '',
+      warehouseId: defWh,
       unit: 'Pieces',
       dpRate: 0,
       costPrice: 0,
       sellingPrice: 0,
-      quantity: 0,
+      quantity: '',
       reorderLevel: 10,
       description: 'None',
       isActive: true,
@@ -309,6 +318,7 @@ export default function ProductsPage() {
       sku: p.sku,
       categoryId: p.categoryId || '',
       companyId: p.companyId || '',
+      warehouseId: '',
       unit: p.unit || 'Pieces',
       dpRate: p.dpRate ? Number(p.dpRate) : 0,
       costPrice: p.costPrice ?? 0,
@@ -332,6 +342,7 @@ export default function ProductsPage() {
       sku: p.sku,
       categoryId: p.categoryId || '',
       companyId: p.companyId || '',
+      warehouseId: '',
       unit: p.unit || 'Pieces',
       dpRate: p.dpRate ? Number(p.dpRate) : 0,
       costPrice: p.costPrice ?? 0,
@@ -348,16 +359,18 @@ export default function ProductsPage() {
     setCodeExistsWarning(null);
     setIsCheckingCode(false);
     setCodeIsAvailable(false);
+    const defWh = warehouses.find((w) => w.isDefault)?.id || warehouses[0]?.id || '';
     setForm({
       name: '',
       sku: '',
       categoryId: '',
       companyId: companies[0]?.id || '',
+      warehouseId: defWh,
       unit: 'Pieces',
       dpRate: 0,
       costPrice: 0,
       sellingPrice: 0,
-      quantity: 0,
+      quantity: '',
       reorderLevel: 10,
       description: 'None',
       isActive: true,
@@ -409,11 +422,12 @@ export default function ProductsPage() {
           ...form,
           categoryId: form.categoryId || undefined,
           companyId: form.companyId || undefined,
-          dpRate: Number(form.dpRate),
-          costPrice: Number(form.costPrice),
-          sellingPrice: Number(form.sellingPrice),
-          quantity: Number(form.quantity),
-          reorderLevel: Number(form.reorderLevel),
+          warehouseId: form.warehouseId || undefined,
+          dpRate: Number(form.dpRate) || 0,
+          costPrice: Number(form.costPrice) || 0,
+          sellingPrice: Number(form.sellingPrice) || 0,
+          quantity: Number(form.quantity) || 0,
+          reorderLevel: Number(form.reorderLevel) || 10,
         });
         savedProduct = res.data;
       }
@@ -612,6 +626,21 @@ export default function ProductsPage() {
                           {p.quantity}
                         </span>
                         <span className="text-[10px] text-muted-foreground ml-1">{p.unit}</span>
+                        {p.warehouseStocks && p.warehouseStocks.length > 0 && (
+                          <div className="flex flex-wrap gap-1 justify-center mt-1">
+                            {p.warehouseStocks
+                              .filter((ws) => ws.quantity > 0)
+                              .map((ws) => (
+                                <span
+                                  key={ws.id}
+                                  className="text-[9px] px-1 py-0.5 rounded bg-muted/80 text-foreground border border-border shrink-0"
+                                  title={`${ws.warehouse?.name || 'Warehouse'}: ${ws.quantity} ${p.unit}`}
+                                >
+                                  {ws.warehouse?.name?.split(' ')[0] || 'WH'}: <strong>{ws.quantity}</strong>
+                                </span>
+                              ))}
+                          </div>
+                        )}
                       </td>
                       <td className="p-3">
                         <Badge
@@ -837,6 +866,43 @@ export default function ProductsPage() {
                   ))}
                 </select>
               </div>
+
+              {/* Warehouse (Target for opening stock) */}
+              <div className="flex items-center gap-3">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                  Warehouse
+                </label>
+                <select
+                  value={form.warehouseId}
+                  onChange={(e) => setForm({ ...form, warehouseId: e.target.value })}
+                  disabled={!!editingProduct}
+                  className="w-40 sm:w-48 h-6 px-1.5 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-60"
+                >
+                  <option value="">-- Select Warehouse --</option>
+                  {warehouses.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.name} {w.isDefault ? '(Default)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Opening Stock (Quantity) - When creating */}
+              {!editingProduct && (
+                <div className="flex items-center gap-3">
+                  <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                    Opening Stock
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.quantity}
+                    onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                    placeholder="0"
+                    className="w-40 sm:w-48 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                  />
+                </div>
+              )}
 
               {/* Type */}
               <div className="flex items-center gap-3">

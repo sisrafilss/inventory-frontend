@@ -21,6 +21,7 @@ export interface ProductLookupModalProps {
   onSelectProduct: (product: Product) => void;
   title?: string;
   initialSearch?: string;
+  warehouseId?: string;
 }
 
 export function ProductLookupModal({
@@ -29,6 +30,7 @@ export function ProductLookupModal({
   onSelectProduct,
   title = 'Select Product',
   initialSearch = '',
+  warehouseId,
 }: ProductLookupModalProps) {
   // Search & Filter States
   const [search, setSearch] = useState(initialSearch);
@@ -352,11 +354,17 @@ export function ProductLookupModal({
           </thead>
           <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
             {products.map((p) => {
-              const isOutOfStock = (p.quantity || 0) <= 0;
+              const currentStock = warehouseId
+                ? p.warehouseStocks?.find(
+                    (ws) => ws.warehouseId === warehouseId || ws.warehouse?.id === warehouseId
+                  )?.quantity || 0
+                : p.quantity || 0;
+
+              const isOutOfStock = currentStock <= 0;
               const isLowStock =
                 !isOutOfStock &&
                 p.reorderLevel !== undefined &&
-                (p.quantity || 0) <= p.reorderLevel;
+                currentStock <= p.reorderLevel;
 
               return (
                 <tr
@@ -406,7 +414,7 @@ export function ProductLookupModal({
                           : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
                       }`}
                     >
-                      {p.quantity || 0} {p.unit || ''}
+                      {currentStock} {p.unit || ''}
                     </span>
                   </td>
 

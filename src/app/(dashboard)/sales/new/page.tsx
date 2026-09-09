@@ -137,7 +137,7 @@ export default function CreateSalePage() {
   }, [warehouseId]);
 
   const updateStockForProduct = (prod: Product, whId: string) => {
-    let stock = prod.quantity;
+    let stock = 0;
     if (whId && prod.warehouseStocks) {
       const ws = prod.warehouseStocks.find((s) => s.warehouseId === whId);
       if (ws !== undefined) stock = ws.quantity;

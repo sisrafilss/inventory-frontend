@@ -125,7 +125,7 @@ export function ProductCombobox({
   // If a product is currently selected and the picker is not opened in edit mode
   if (selectedProduct && !isOpen) {
     // Check warehouse specific stock if available
-    let displayQty = selectedProduct.quantity;
+    let displayQty = warehouseId ? 0 : selectedProduct.quantity;
     if (warehouseId && selectedProduct.warehouseStocks) {
       const whStock = selectedProduct.warehouseStocks.find(
         (ws) => ws.warehouseId === warehouseId,
@@ -231,7 +231,7 @@ export function ProductCombobox({
           ) : (
             <ul className="py-1 divide-y divide-border/40">
               {results.map((product, idx) => {
-                let displayQty = product.quantity;
+                let displayQty = warehouseId ? 0 : product.quantity;
                 if (warehouseId && product.warehouseStocks) {
                   const whStock = product.warehouseStocks.find(
                     (ws) => ws.warehouseId === warehouseId,
