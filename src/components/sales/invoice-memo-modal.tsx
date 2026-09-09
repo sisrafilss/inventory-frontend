@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { Sale } from '../../lib/types';
 import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Printer, X } from 'lucide-react';
+import { Printer, FileText, RotateCcw, X } from 'lucide-react';
 
 export interface MemoSaleItem {
   id?: string;
@@ -55,14 +55,46 @@ interface InvoiceMemoModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Generate filesystem-safe default PDF name from invoice ID and generation date-time
+function generateDefaultFileName(sale: MemoSale | Sale | null): string {
+  if (!sale) return 'Invoice_Memo';
+  const memoSale = sale as MemoSale;
+  const rawId =
+    memoSale.referenceNumber ||
+    (memoSale.id ? (memoSale.id.length > 12 ? memoSale.id.slice(0, 8) : memoSale.id) : 'INV');
+  const cleanId = rawId.replace(/[<>:"/\\|?*\s]/g, '-').replace(/-+/g, '-').trim();
+
+  const d = memoSale.createdAt ? new Date(memoSale.createdAt) : new Date();
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+
+  let hours = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const seconds = String(d.getSeconds()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  const hourStr = String(hours).padStart(2, '0');
+
+  return `${cleanId}_${day}-${month}-${year}_${hourStr}-${minutes}-${seconds}${ampm}`;
+}
+
+function sanitizeFileName(name: string): string {
+  return name.replace(/[<>:"/\\|?*]/g, '-');
+}
+
 export function InvoiceMemoModal({ sale, open, onOpenChange }: InvoiceMemoModalProps) {
   const printRef = useRef<HTMLDivElement>(null);
+  const [fileName, setFileName] = useState<string>(() => generateDefaultFileName(sale));
+
+  // Update default file name when a new sale is loaded or modal opens
+  useEffect(() => {
+    if (open && sale) {
+      setFileName(generateDefaultFileName(sale));
+    }
+  }, [open, sale]);
 
   if (!sale) return null;
-
-  const handlePrint = () => {
-    window.print();
-  };
 
   const memoSale = sale as MemoSale;
   const totalAmount = Number(memoSale.totalAmount || 0);
@@ -70,10 +102,35 @@ export function InvoiceMemoModal({ sale, open, onOpenChange }: InvoiceMemoModalP
   const dueAmount = Number(memoSale.dueAmount ?? Math.max(0, totalAmount - paidAmount));
   const prevDue = Number(memoSale.customer?.currentDue || 0);
 
+  const handleResetFileName = () => {
+    setFileName(generateDefaultFileName(sale));
+  };
+
+  const handlePrint = () => {
+    if (typeof document !== 'undefined') {
+      const originalTitle = document.title;
+      const targetName = (fileName.trim() || generateDefaultFileName(sale)).replace(/\.pdf$/i, '');
+
+      // Temporarily set document.title so browser's "Save as PDF" pre-fills this filename
+      document.title = targetName;
+
+      window.print();
+
+      const restore = () => {
+        document.title = originalTitle;
+        window.removeEventListener('afterprint', restore);
+      };
+      window.addEventListener('afterprint', restore);
+      setTimeout(restore, 3000);
+    } else {
+      window.print();
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange} zIndex="z-[70]">
       <div className="max-w-2xl w-full mx-auto">
-        <DialogHeader className="no-print">
+        <DialogHeader className="no-print print:hidden">
           <DialogTitle className="flex items-center justify-between">
             <span>Sales Invoice / Cash Memo</span>
             <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2">
@@ -81,6 +138,37 @@ export function InvoiceMemoModal({ sale, open, onOpenChange }: InvoiceMemoModalP
             </Button>
           </DialogTitle>
         </DialogHeader>
+
+        {/* PDF / File Name Config Toolbar (Editable before print/save) */}
+        <div className="no-print print:hidden mt-2 p-2.5 bg-neutral-100 dark:bg-slate-800/90 border border-neutral-300 dark:border-slate-700 rounded-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs shadow-xs">
+          <div className="flex items-center gap-2 flex-1 w-full">
+            <label className="font-bold text-neutral-800 dark:text-neutral-200 shrink-0 flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>PDF / File Name:</span>
+            </label>
+            <div className="flex items-center gap-1 flex-1 min-w-0">
+              <input
+                type="text"
+                value={fileName}
+                onChange={(e) => setFileName(sanitizeFileName(e.target.value))}
+                placeholder="Enter file name..."
+                className="flex-1 h-7 px-2 bg-white dark:bg-slate-900 border border-neutral-300 dark:border-slate-600 rounded text-xs font-mono text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-emerald-500 truncate"
+                title="This name will be automatically used when saving as PDF"
+              />
+              <span className="text-neutral-500 dark:text-neutral-400 font-mono font-semibold text-[11px] shrink-0">
+                .pdf
+              </span>
+              <button
+                type="button"
+                onClick={handleResetFileName}
+                title="Reset to default generated file name (Invoice ID + Date-Time)"
+                className="p-1 text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-slate-700 rounded cursor-pointer transition-colors shrink-0"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
 
         {/* Printable Memo Container */}
         <div
@@ -241,12 +329,12 @@ export function InvoiceMemoModal({ sale, open, onOpenChange }: InvoiceMemoModalP
           </div>
         </div>
 
-        <DialogFooter className="no-print">
+        <DialogFooter className="no-print print:hidden">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-          <Button onClick={handlePrint} className="gap-2">
-            <Printer className="w-4 h-4" /> Print Memo
+          <Button onClick={handlePrint} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
+            <Printer className="w-4 h-4" /> Print Memo / Save PDF
           </Button>
         </DialogFooter>
       </div>
