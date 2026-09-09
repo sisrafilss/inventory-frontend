@@ -65,13 +65,13 @@ export function SaleManualModal({
   const warehouseDropdownRef = useRef<HTMLDivElement>(null);
   // Customer State
   const [customersList, setCustomersList] = useState<Customer[]>([]);
-  const [customerId, setCustomerId] = useState('0');
+  const [customerId, setCustomerId] = useState('');
   const [debouncedCustomerId, setDebouncedCustomerId] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
   const [customerWarning, setCustomerWarning] = useState<string | null>(null);
   const [customerSuccess, setCustomerSuccess] = useState(false);
-  const [customerName, setCustomerName] = useState('Cash Party');
+  const [customerName, setCustomerName] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerDues, setCustomerDues] = useState('0.00');
@@ -300,26 +300,21 @@ export function SaleManualModal({
 
   // Debounced Customer ID Search (400ms)
   useEffect(() => {
-    if (!open || paymentMode !== 'CUSTOMER') return;
+    if (!open) return;
     const handler = setTimeout(() => {
       setDebouncedCustomerId(customerId.trim());
     }, 400);
     return () => clearTimeout(handler);
-  }, [customerId, open, paymentMode]);
+  }, [customerId, open]);
 
-  // Query Customer when debouncedCustomerId changes
+  // Query Customer when debouncedCustomerId changes (searches by Name, Phone, or ID)
   useEffect(() => {
-    if (!open || paymentMode !== 'CUSTOMER') return;
+    if (!open) return;
     const code = debouncedCustomerId.trim();
-    if (!code) {
+    if (!code || code === '0') {
       setCustomerWarning(null);
       setCustomerSuccess(false);
       setIsSearchingCustomer(false);
-      setSelectedCustomer(null);
-      setCustomerName('');
-      setCustomerAddress('');
-      setCustomerPhone('');
-      setCustomerDues('0.00');
       return;
     }
 
@@ -356,12 +351,10 @@ export function SaleManualModal({
       .catch(() => {
         if (!active) return;
         setSelectedCustomer(null);
-        setCustomerName('');
-        setCustomerAddress('');
-        setCustomerPhone('');
-        setCustomerDues('0.00');
         setCustomerSuccess(false);
-        setCustomerWarning(`Customer "${code}" does not exist in database.`);
+        if (paymentMode === 'CUSTOMER') {
+          setCustomerWarning(`Customer "${code}" not found in database.`);
+        }
       })
       .finally(() => {
         if (active) setIsSearchingCustomer(false);
@@ -370,7 +363,7 @@ export function SaleManualModal({
     return () => {
       active = false;
     };
-  }, [debouncedCustomerId, open, paymentMode]);
+  }, [debouncedCustomerId, open, paymentMode, selectedCustomer]);
 
   // Add Item to Table
   const handleAddItem = () => {
@@ -591,8 +584,8 @@ export function SaleManualModal({
       return;
     }
 
-    if (paymentMode === 'CUSTOMER' && (!selectedCustomer || !customerId || customerId === '0')) {
-      setValidationWarning('Please enter a valid Customer ID and ensure customer details are loaded before saving.');
+    if (paymentMode === 'CUSTOMER' && !selectedCustomer && !customerName.trim()) {
+      setValidationWarning('Please enter a Customer Name or select a customer for credit sale.');
       return;
     }
 
@@ -604,12 +597,16 @@ export function SaleManualModal({
     setIsSaving(true);
     try {
       const targetWarehouseId = selectedWarehouseId || undefined;
+      const effectiveCustName =
+        customerName.trim() || (paymentMode === 'CASH' ? 'Cash Party' : 'Customer');
+
       const payload = {
         referenceNumber: invoiceNumber.trim() || undefined,
         paymentType: paymentMode === 'CASH' ? ('CASH' as const) : ('CREDIT' as const),
-        customerId: paymentMode === 'CUSTOMER' && selectedCustomer ? selectedCustomer.id : undefined,
-        customerName: paymentMode === 'CASH' ? (customerName || 'Cash Party') : (selectedCustomer?.name || customerName),
-        customerPhone: (selectedCustomer?.phone || customerPhone) || undefined,
+        customerId: selectedCustomer ? selectedCustomer.id : undefined,
+        customerName: effectiveCustName,
+        customerPhone: (selectedCustomer?.phone || customerPhone.trim()) || undefined,
+        customerAddress: (selectedCustomer?.address || customerAddress.trim()) || undefined,
         warehouseId: targetWarehouseId,
         discount: discountVal,
         discountPercent: parseFloat(String(discountPercent)) || undefined,
@@ -626,6 +623,13 @@ export function SaleManualModal({
       const res = await api.post<Sale>('/sales', payload);
       const created = res.data;
 
+      // Refresh customers list so any newly created customer is in the list immediately
+      api.get<Customer[]>('/parties/customers')
+        .then((cRes) => {
+          if (cRes.data) setCustomersList(cRes.data);
+        })
+        .catch(() => {});
+
       setShowConfirmSave(false);
 
       // Prepare memo data
@@ -641,13 +645,13 @@ export function SaleManualModal({
           paymentType: paymentMode === 'CASH' ? 'CASH' : 'CREDIT',
           totalPurchaseCost,
           profit: totalProfit,
-          customerName: paymentMode === 'CASH' ? 'Cash Party' : (selectedCustomer?.name || customerName),
-          customerPhone: (selectedCustomer?.phone || customerPhone) || undefined,
+          customerName: created.customerName || effectiveCustName,
+          customerPhone: created.customerPhone || (selectedCustomer?.phone || customerPhone.trim()) || undefined,
           customer: {
-            name: selectedCustomer?.name || customerName,
-            phone: selectedCustomer?.phone || customerPhone,
-            address: selectedCustomer?.address || customerAddress,
-            currentDue: Number(customerDues),
+            name: created.customer?.name || effectiveCustName,
+            phone: created.customer?.phone || selectedCustomer?.phone || customerPhone.trim(),
+            address: created.customer?.address || selectedCustomer?.address || customerAddress.trim(),
+            currentDue: Number(created.customer?.currentDue ?? (currentDues || 0)),
           },
           items: lineItems.map((item) => ({
             quantity: item.quantity,
@@ -1128,15 +1132,6 @@ export function SaleManualModal({
                       checked={paymentMode === 'CASH'}
                       onChange={() => {
                         setPaymentMode('CASH');
-                        setCustomerId('0');
-                        setDebouncedCustomerId('0');
-                        setSelectedCustomer(null);
-                        setCustomerName('Cash Party');
-                        setCustomerAddress('');
-                        setCustomerPhone('');
-                        setCustomerDues('0.00');
-                        setCustomerWarning(null);
-                        setCustomerSuccess(false);
                         setPaidTouched(false);
                       }}
                       className="accent-emerald-700 w-4 h-4 cursor-pointer"
@@ -1150,15 +1145,6 @@ export function SaleManualModal({
                       checked={paymentMode === 'CUSTOMER'}
                       onChange={() => {
                         setPaymentMode('CUSTOMER');
-                        setCustomerId('');
-                        setDebouncedCustomerId('');
-                        setSelectedCustomer(null);
-                        setCustomerName('');
-                        setCustomerAddress('');
-                        setCustomerPhone('');
-                        setCustomerDues('0.00');
-                        setCustomerWarning(null);
-                        setCustomerSuccess(false);
                         setPaidTouched(true);
                         setPaidAmount('0.00');
                         setTimeout(() => customerInputRef.current?.focus(), 80);
@@ -1202,16 +1188,14 @@ export function SaleManualModal({
                           setDebouncedCustomerId(customerId.trim());
                         }
                       }}
-                      disabled={paymentMode === 'CASH' || isSaving}
-                      placeholder={paymentMode === 'CASH' ? '0' : 'e.g. 1 or phone'}
-                      className={`w-36 h-6 px-2 pr-6 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-75 ${
-                        paymentMode === 'CUSTOMER' ? 'font-bold' : ''
-                      }`}
+                      disabled={isSaving}
+                      placeholder="Name, Phone, or ID"
+                      className="w-36 h-6 px-2 pr-6 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-75"
                     />
                     {isSearchingCustomer && (
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600 absolute right-1.5 pointer-events-none" />
                     )}
-                    {!isSearchingCustomer && customerSuccess && paymentMode === 'CUSTOMER' && (
+                    {!isSearchingCustomer && customerSuccess && (
                       <Check className="w-3.5 h-3.5 text-emerald-600 absolute right-1.5 pointer-events-none" />
                     )}
                   </div>
@@ -1237,9 +1221,12 @@ export function SaleManualModal({
                 <input
                   type="text"
                   value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  disabled={paymentMode === 'CASH'}
-                  placeholder="Customer Name"
+                  onChange={(e) => {
+                    setCustomerName(e.target.value);
+                    if (customerWarning) setCustomerWarning(null);
+                  }}
+                  disabled={isSaving}
+                  placeholder={paymentMode === 'CASH' ? 'Cash Party / Customer Name' : 'Customer Name'}
                   className="flex-1 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none disabled:opacity-75"
                 />
               </div>
@@ -1253,7 +1240,7 @@ export function SaleManualModal({
                   type="text"
                   value={customerAddress}
                   onChange={(e) => setCustomerAddress(e.target.value)}
-                  disabled={paymentMode === 'CASH'}
+                  disabled={isSaving}
                   placeholder="Address"
                   className="flex-1 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none disabled:opacity-75"
                 />
@@ -1268,7 +1255,7 @@ export function SaleManualModal({
                   type="text"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  disabled={paymentMode === 'CASH'}
+                  disabled={isSaving}
                   placeholder="017..."
                   className="flex-1 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none disabled:opacity-75"
                 />
