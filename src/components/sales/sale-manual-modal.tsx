@@ -16,6 +16,7 @@ import { Product, Customer, Warehouse, Sale } from '@/lib/types';
 import { api } from '@/lib/api/client';
 import { InvoiceMemoModal, MemoSale } from './invoice-memo-modal';
 import { ProductLookupModal } from '../products/product-lookup-modal';
+import { CustomerLookupModal } from '../customers/customer-lookup-modal';
 
 export interface ManualSaleLineItem {
   id: string;
@@ -75,6 +76,12 @@ export function SaleManualModal({
   const [customerAddress, setCustomerAddress] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerDues, setCustomerDues] = useState('0.00');
+
+  // Customer Dropdown & Lookup State
+  const [customerSearchText, setCustomerSearchText] = useState<string>('');
+  const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState<boolean>(false);
+  const customerDropdownRef = useRef<HTMLDivElement>(null);
+  const [customerLookupOpen, setCustomerLookupOpen] = useState<boolean>(false);
 
   // Customer ref
   const customerInputRef = useRef<HTMLInputElement>(null);
@@ -175,6 +182,17 @@ export function SaleManualModal({
   useEffect(() => {
     if (open) {
       setInvoiceNumber(`INV-${Date.now().toString().slice(-6)}`);
+      setCustomerId('');
+      setDebouncedCustomerId('');
+      setSelectedCustomer(null);
+      setCustomerSearchText('');
+      setIsCustomerDropdownOpen(false);
+      setCustomerName('');
+      setCustomerAddress('');
+      setCustomerPhone('');
+      setCustomerDues('0.00');
+      setCustomerWarning(null);
+      setCustomerSuccess(false);
 
       api.get<Customer[]>('/parties/customers')
         .then((res) => {
@@ -219,6 +237,31 @@ export function SaleManualModal({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [warehousesList, selectedWarehouseId]);
+
+  // Close customer dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        customerDropdownRef.current &&
+        !customerDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsCustomerDropdownOpen(false);
+        if (selectedCustomer) {
+          const displayId =
+            selectedCustomer.id.length > 12
+              ? selectedCustomer.id.slice(0, 8)
+              : selectedCustomer.id;
+          setCustomerSearchText(displayId);
+        } else if (!customerId) {
+          setCustomerSearchText('');
+        }
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [selectedCustomer, customerId]);
 
   // Debounced Item Code Search (400ms)
   useEffect(() => {
@@ -484,6 +527,17 @@ export function SaleManualModal({
     setInvoiceNumber(`INV-${Date.now().toString().slice(-6)}`);
     setSelectedWarehouseId('');
     setWarehouseSearchText('');
+    setCustomerId('');
+    setDebouncedCustomerId('');
+    setSelectedCustomer(null);
+    setCustomerSearchText('');
+    setIsCustomerDropdownOpen(false);
+    setCustomerName('');
+    setCustomerAddress('');
+    setCustomerPhone('');
+    setCustomerDues('0.00');
+    setCustomerWarning(null);
+    setCustomerSuccess(false);
     setActiveFocusedField('itemCode');
     setTimeout(() => codeInputRef.current?.focus(), 50);
   };
@@ -511,6 +565,47 @@ export function SaleManualModal({
           (w.code && w.code.toLowerCase().includes(warehouseSearchText.toLowerCase()))
       )
     : warehousesList;
+
+  // Customer selection handler
+  const handleSelectCustomer = (c: Customer) => {
+    setSelectedCustomer(c);
+    const displayId = c.id.length > 12 ? c.id.slice(0, 8) : c.id;
+    setCustomerId(displayId);
+    setCustomerSearchText(displayId);
+    setCustomerName(c.name);
+    setCustomerAddress(c.address || '');
+    setCustomerPhone(c.phone || '');
+    const due = c.currentDue ?? c.openingDue ?? 0;
+    setCustomerDues(Number(due).toFixed(2));
+    setCustomerSuccess(true);
+    setCustomerWarning(null);
+    setIsCustomerDropdownOpen(false);
+  };
+
+  const handleSelectCustomerFromLookup = (c: Customer) => {
+    handleSelectCustomer(c);
+    setCustomerLookupOpen(false);
+  };
+
+  // Filtered customers based on search text (matching ID, Name, Phone, Address)
+  const isSearchingCustomerText =
+    customerSearchText.trim().length > 0 &&
+    customerSearchText.trim().toLowerCase() !==
+      (selectedCustomer
+        ? (selectedCustomer.id.length > 12 ? selectedCustomer.id.slice(0, 8) : selectedCustomer.id).toLowerCase()
+        : '');
+
+  const filteredCustomers = isSearchingCustomerText
+    ? customersList.filter((c) => {
+        const query = customerSearchText.toLowerCase();
+        return (
+          c.name.toLowerCase().includes(query) ||
+          c.phone.toLowerCase().includes(query) ||
+          c.id.toLowerCase().includes(query) ||
+          (c.address && c.address.toLowerCase().includes(query))
+        );
+      })
+    : customersList;
 
   // Totals Calculations
   const totalAmount = lineItems.reduce((acc, item) => acc + item.amount, 0);
@@ -1167,39 +1262,115 @@ export function SaleManualModal({
                 </label>
               </div>
 
-              {/* Row 3: Customer ID (Debounced text search, no dropdown) */}
-              <div>
+              {/* Row 3: Customer ID Combobox & View Button */}
+              <div className="relative" ref={customerDropdownRef}>
                 <div className="flex items-center gap-2">
                   <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
                     Customer ID
                   </label>
-                  <div className="relative flex items-center">
-                    <input
-                      ref={customerInputRef}
-                      type="text"
-                      value={customerId}
-                      onChange={(e) => {
-                        setCustomerId(e.target.value);
-                        if (customerWarning) setCustomerWarning(null);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          setDebouncedCustomerId(customerId.trim());
-                        }
-                      }}
+                  <div className="flex items-center gap-1.5 flex-1 relative">
+                    <div className="relative flex-1 flex items-center">
+                      <input
+                        ref={customerInputRef}
+                        type="text"
+                        value={customerSearchText}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCustomerSearchText(val);
+                          setCustomerId(val);
+                          setIsCustomerDropdownOpen(true);
+                          if (customerWarning) setCustomerWarning(null);
+                          if (!val.trim()) {
+                            setSelectedCustomer(null);
+                            setCustomerName('');
+                            setCustomerAddress('');
+                            setCustomerPhone('');
+                            setCustomerDues('0.00');
+                            setCustomerSuccess(false);
+                          }
+                        }}
+                        onFocus={() => setIsCustomerDropdownOpen(true)}
+                        onClick={() => setIsCustomerDropdownOpen(true)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            setIsCustomerDropdownOpen(false);
+                            setDebouncedCustomerId(customerSearchText.trim());
+                          }
+                        }}
+                        disabled={isSaving}
+                        placeholder="Search ID, Name, Phone..."
+                        className="w-full h-6 px-2 pr-12 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-75"
+                      />
+                      <div className="absolute right-1 flex items-center gap-0.5 text-neutral-500">
+                        {isSearchingCustomer && (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600 pointer-events-none" />
+                        )}
+                        {!isSearchingCustomer && customerSuccess && (
+                          <Check className="w-3.5 h-3.5 text-emerald-600 pointer-events-none" />
+                        )}
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          onClick={() => setIsCustomerDropdownOpen((prev) => !prev)}
+                          className="hover:text-neutral-700 dark:hover:text-neutral-300 p-0.5 cursor-pointer"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCustomerLookupOpen(true)}
                       disabled={isSaving}
-                      placeholder="Name, Phone, or ID"
-                      className="w-36 h-6 px-2 pr-6 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-75"
-                    />
-                    {isSearchingCustomer && (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600 absolute right-1.5 pointer-events-none" />
-                    )}
-                    {!isSearchingCustomer && customerSuccess && (
-                      <Check className="w-3.5 h-3.5 text-emerald-600 absolute right-1.5 pointer-events-none" />
-                    )}
+                      title="Open Customer Directory to browse and select customers"
+                      className="h-6 px-3 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
+                    >
+                      View
+                    </button>
                   </div>
                 </div>
+
+                {/* Dropdown list */}
+                {isCustomerDropdownOpen && (
+                  <div className="absolute left-24 right-0 top-full mt-1 max-h-60 overflow-y-auto bg-white dark:bg-slate-800 border border-neutral-300 dark:border-slate-600 shadow-xl z-50 py-1">
+                    {filteredCustomers.length === 0 ? (
+                      <div className="px-3 py-2 text-xs text-neutral-500 text-center">
+                        No customer found
+                      </div>
+                    ) : (
+                      filteredCustomers.map((c) => {
+                        const isSelected = selectedCustomer?.id === c.id;
+                        const due = Number(c.currentDue ?? c.openingDue ?? 0);
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => handleSelectCustomer(c)}
+                            className={`w-full text-left px-3 py-1.5 text-xs hover:bg-emerald-50 dark:hover:bg-slate-700 cursor-pointer transition-colors border-b border-neutral-100 dark:border-slate-700/50 last:border-b-0 ${
+                              isSelected
+                                ? 'bg-emerald-100/70 dark:bg-emerald-950 font-bold text-emerald-900 dark:text-emerald-200'
+                                : 'text-neutral-800 dark:text-neutral-200'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="truncate font-semibold">{c.name}</span>
+                              {due > 0 && (
+                                <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 rounded">
+                                  Due: ৳{due.toFixed(0)}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px] text-neutral-500 font-mono mt-0.5">
+                              <span>ID: #{c.id.slice(0, 8)}</span>
+                              {c.phone && <span>• {c.phone}</span>}
+                            </div>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
 
                 {/* Aligned Error Warning for Customer */}
                 {customerWarning && paymentMode === 'CUSTOMER' && (
@@ -1600,6 +1771,14 @@ export function SaleManualModal({
         onOpenChange={setProductLookupOpen}
         onSelectProduct={handleSelectProductFromLookup}
         initialSearch={itemCode}
+      />
+
+      {/* Customer Lookup Modal */}
+      <CustomerLookupModal
+        open={customerLookupOpen}
+        onOpenChange={setCustomerLookupOpen}
+        onSelectCustomer={handleSelectCustomerFromLookup}
+        initialSearch={customerSearchText}
       />
     </>
   );
