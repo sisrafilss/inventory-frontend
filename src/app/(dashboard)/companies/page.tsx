@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api/client';
@@ -8,8 +8,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Building2, Plus, Search, Edit2, Trash2, Package } from 'lucide-react';
+import { CompanyModal } from '@/components/companies/company-modal';
 
 export default function CompaniesPage() {
   const { user } = useAuth();
@@ -18,11 +18,9 @@ export default function CompaniesPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
-  // Create / Edit Modal
+  // Create / Edit Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
-  const [form, setForm] = useState({ name: '', description: '', isActive: true });
-  const [isSaving, setIsSaving] = useState(false);
 
   const fetchCompanies = async () => {
     try {
@@ -43,37 +41,12 @@ export default function CompaniesPage() {
 
   const handleOpenCreate = () => {
     setEditingCompany(null);
-    setForm({ name: '', description: '', isActive: true });
     setModalOpen(true);
   };
 
   const handleOpenEdit = (comp: Company) => {
     setEditingCompany(comp);
-    setForm({
-      name: comp.name,
-      description: comp.description || '',
-      isActive: comp.isActive,
-    });
     setModalOpen(true);
-  };
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.name.trim()) return;
-    setIsSaving(true);
-    try {
-      if (editingCompany) {
-        await api.patch(`/companies/${editingCompany.id}`, form);
-      } else {
-        await api.post('/companies', form);
-      }
-      setModalOpen(false);
-      await fetchCompanies();
-    } catch (err: any) {
-      alert(err.message || 'Failed to save company.');
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   const handleDelete = async (comp: Company) => {
@@ -117,7 +90,7 @@ export default function CompaniesPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search companies by name..."
+              placeholder="Search companies by name or code..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -145,7 +118,14 @@ export default function CompaniesPage() {
               <CardContent className="p-5 flex flex-col justify-between h-full space-y-4">
                 <div>
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-lg text-foreground">{comp.name}</h3>
+                    <div>
+                      <h3 className="font-semibold text-lg text-foreground">{comp.name}</h3>
+                      {comp.code && (
+                        <span className="inline-block mt-0.5 px-1.5 py-0.5 text-[11px] font-mono font-bold bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 rounded border border-neutral-300 dark:border-neutral-700">
+                          Code: {comp.code}
+                        </span>
+                      )}
+                    </div>
                     <Badge variant={comp.isActive ? 'default' : 'secondary'}>
                       {comp.isActive ? 'Active' : 'Inactive'}
                     </Badge>
@@ -190,69 +170,18 @@ export default function CompaniesPage() {
         </div>
       )}
 
-      {/* Add / Edit Dialog */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <form onSubmit={handleSave}>
-          <DialogHeader>
-            <DialogTitle>
-              {editingCompany ? 'Edit Company' : 'Add New Company'}
-            </DialogTitle>
-            <DialogDescription>
-              {editingCompany
-                ? 'Update company details and status'
-                : 'Create a new manufacturer or brand for product categorization'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Company / Brand Name *</label>
-              <Input
-                required
-                placeholder="e.g. RFL, Kiam, Walton"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Description (Optional)</label>
-              <Input
-                placeholder="Brief brand description or notes..."
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-              />
-            </div>
-
-            <div className="flex items-center gap-2 pt-2">
-              <input
-                type="checkbox"
-                id="compActive"
-                checked={form.isActive}
-                onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
-              />
-              <label htmlFor="compActive" className="text-xs font-medium text-foreground cursor-pointer">
-                Active Brand
-              </label>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setModalOpen(false)}
-              disabled={isSaving}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? 'Saving...' : editingCompany ? 'Update Company' : 'Create Company'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </Dialog>
+      {/* Re-designed Desktop Company Modal */}
+      <CompanyModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        company={editingCompany}
+        onSuccess={() => {
+          fetchCompanies();
+        }}
+        onDelete={() => {
+          fetchCompanies();
+        }}
+      />
     </div>
   );
 }
