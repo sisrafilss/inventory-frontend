@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   AlertCircle,
   MapPin,
+  Check,
 } from 'lucide-react';
 import { Warehouse } from '@/lib/types';
 import { api } from '@/lib/api/client';
@@ -37,11 +38,29 @@ export function WarehouseModal({
   const [isDefault, setIsDefault] = useState(false);
   const [isActive, setIsActive] = useState(true);
 
+  // Auto-code suggestion & validation state
+  const [suggestedCode, setSuggestedCode] = useState('');
+  const [isCheckingCode, setIsCheckingCode] = useState(false);
+  const [codeWarning, setCodeWarning] = useState<string | null>(null);
+  const [codeAvailable, setCodeAvailable] = useState(false);
+
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ text: string; isError: boolean } | null>(null);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch next suggested warehouse code
+  const fetchSuggestedCode = async () => {
+    try {
+      const res = await api.get<{ code: string }>('/warehouses/next-code');
+      if (res.data?.code) {
+        setSuggestedCode(res.data.code);
+      }
+    } catch {
+      setSuggestedCode('WA-101');
+    }
+  };
 
   useEffect(() => {
     if (open) {
@@ -51,17 +70,76 @@ export function WarehouseModal({
         setAddress(warehouse.address || '');
         setIsDefault(Boolean(warehouse.isDefault));
         setIsActive(warehouse.isActive !== false);
+        setSuggestedCode('');
       } else {
         resetForm();
+        fetchSuggestedCode();
       }
       setStatusMessage(null);
+      setCodeWarning(null);
+      setCodeAvailable(false);
       setTimeout(() => nameInputRef.current?.focus(), 80);
     } else {
       setStatusMessage(null);
+      setCodeWarning(null);
+      setCodeAvailable(false);
       setIsSaving(false);
       setIsDeleting(false);
     }
   }, [open, warehouse]);
+
+  // Real-time debounced check when a warehouse code is entered
+  useEffect(() => {
+    const trimmed = code.trim().toUpperCase();
+    if (!trimmed) {
+      setCodeWarning(null);
+      setCodeAvailable(false);
+      setIsCheckingCode(false);
+      return;
+    }
+
+    // If editing and code hasn't changed, skip check
+    if (warehouse && warehouse.code?.trim().toUpperCase() === trimmed) {
+      setCodeWarning(null);
+      setCodeAvailable(false);
+      setIsCheckingCode(false);
+      return;
+    }
+
+    let active = true;
+    setIsCheckingCode(true);
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.get<{
+          exists: boolean;
+          warehouse: { id: string; name: string; code: string } | null;
+        }>(
+          `/warehouses/check-code/${encodeURIComponent(trimmed)}`,
+          warehouse?.id ? { excludeId: warehouse.id } : undefined
+        );
+        if (!active) return;
+        if (res.data?.exists) {
+          setCodeWarning(
+            `Code "${trimmed}" already exists (used by "${res.data.warehouse?.name}").`
+          );
+          setCodeAvailable(false);
+        } else {
+          setCodeWarning(null);
+          setCodeAvailable(true);
+        }
+      } catch {
+        // Ignore network check failure
+      } finally {
+        if (active) setIsCheckingCode(false);
+      }
+    }, 250);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [code, warehouse]);
 
   const resetForm = () => {
     setName('');
@@ -70,10 +148,17 @@ export function WarehouseModal({
     setIsDefault(false);
     setIsActive(true);
     setStatusMessage(null);
+    setCodeWarning(null);
+    setCodeAvailable(false);
+    fetchSuggestedCode();
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (codeWarning) {
+      setStatusMessage({ text: codeWarning, isError: true });
+      return;
+    }
     if (!name.trim()) {
       setStatusMessage({ text: 'Please enter a valid warehouse name.', isError: true });
       nameInputRef.current?.focus();
@@ -254,17 +339,43 @@ export function WarehouseModal({
             </div>
 
             <div>
-              <label className="block font-bold text-neutral-800 dark:text-neutral-200 mb-1">
-                Godown Code <span className="text-[10px] font-normal text-neutral-500">(Optional)</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block font-bold text-neutral-800 dark:text-neutral-200">
+                  Godown Code <span className="text-[10px] font-normal text-neutral-500">(Optional)</span>
+                </label>
+                {isCheckingCode ? (
+                  <span className="text-[10px] text-neutral-500 flex items-center gap-1 font-medium">
+                    <Loader2 className="w-3 h-3 animate-spin text-emerald-600" /> Checking...
+                  </span>
+                ) : codeAvailable ? (
+                  <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-0.5">
+                    <Check className="w-3 h-3" /> Available
+                  </span>
+                ) : null}
+              </div>
               <input
                 type="text"
-                placeholder="e.g. WH-01, MAIN, GD-02"
+                placeholder={suggestedCode ? `Auto: ${suggestedCode}` : 'e.g. WA-101'}
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
                 disabled={isSaving || isDeleting}
-                className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs font-mono font-bold focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100 uppercase"
+                className={`w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border rounded-xs text-xs font-mono font-bold focus:outline-none focus:ring-1 uppercase ${
+                  codeWarning
+                    ? 'border-rose-500 focus:ring-rose-500 text-rose-700 dark:text-rose-400'
+                    : codeAvailable
+                    ? 'border-emerald-500 focus:ring-emerald-500 text-emerald-800 dark:text-emerald-300'
+                    : 'border-neutral-400 dark:border-slate-600 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100'
+                }`}
               />
+              {codeWarning ? (
+                <span className="text-[10px] font-semibold text-rose-600 dark:text-rose-400 block mt-0.5">
+                  {codeWarning}
+                </span>
+              ) : !code ? (
+                <span className="text-[10px] text-neutral-500 dark:text-neutral-400 block mt-0.5 italic">
+                  Auto-assigned as <strong>{suggestedCode || 'WA-101'}</strong> if left blank
+                </span>
+              ) : null}
             </div>
           </div>
 
