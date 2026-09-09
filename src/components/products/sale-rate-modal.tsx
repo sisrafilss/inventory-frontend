@@ -420,7 +420,7 @@ export function SaleRateModal({
                     }
                   }}
                   disabled={isSaving}
-                  placeholder="Enter sale rate..."
+                  placeholder="0.00"
                   className="w-36 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-50"
                 />
               </div>

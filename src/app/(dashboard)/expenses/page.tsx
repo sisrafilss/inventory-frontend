@@ -304,7 +304,7 @@ export default function ExpensesPage() {
                   min="0.01"
                   required
                   placeholder="0.00"
-                  value={form.amount}
+                  value={form.amount === 0 ? '' : form.amount}
                   onChange={(e) => setForm({ ...form, amount: parseFloat(e.target.value) || 0 })}
                 />
               </div>

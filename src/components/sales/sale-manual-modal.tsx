@@ -133,10 +133,10 @@ export function SaleManualModal({
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
 
   // Totals & Discounts
-  const [paidAmount, setPaidAmount] = useState<number | string>('0.00');
+  const [paidAmount, setPaidAmount] = useState<number | string>('');
   const [paidTouched, setPaidTouched] = useState(false);
-  const [discountAmount, setDiscountAmount] = useState<number | string>('0.00');
-  const [discountPercent, setDiscountPercent] = useState<number | string>('0');
+  const [discountAmount, setDiscountAmount] = useState<number | string>('');
+  const [discountPercent, setDiscountPercent] = useState<number | string>('');
   const [lastDiscountType, setLastDiscountType] = useState<'amount' | 'percent'>('amount');
 
   // Dialogs
@@ -197,6 +197,10 @@ export function SaleManualModal({
       setCustomerWarning(null);
       setCustomerSuccess(false);
       setIsSearchingCustomer(false);
+      setPaidAmount('');
+      setPaidTouched(false);
+      setDiscountAmount('');
+      setDiscountPercent('');
 
       api.get<Customer[]>('/parties/customers')
         .then((res) => {
@@ -635,7 +639,7 @@ export function SaleManualModal({
       const pct = (num / totalAmount) * 100;
       setDiscountPercent(pct % 1 === 0 ? pct.toString() : pct.toFixed(2));
     } else if (val === '' || num === 0) {
-      setDiscountPercent('0');
+      setDiscountPercent('');
     }
   };
 
@@ -647,7 +651,7 @@ export function SaleManualModal({
       const amt = (totalAmount * pct) / 100;
       setDiscountAmount(amt.toFixed(2));
     } else if (val === '' || pct === 0) {
-      setDiscountAmount('0.00');
+      setDiscountAmount('');
     }
   };
 
@@ -657,16 +661,16 @@ export function SaleManualModal({
       if (!isNaN(pct) && pct > 0 && totalAmount > 0) {
         const amt = (totalAmount * pct) / 100;
         setDiscountAmount(amt.toFixed(2));
-      } else if (totalAmount === 0 || pct === 0) {
-        setDiscountAmount('0.00');
+      } else if (totalAmount === 0 || !discountPercent || pct === 0) {
+        setDiscountAmount('');
       }
     } else if (lastDiscountType === 'amount') {
       const amt = parseFloat(String(discountAmount));
       if (!isNaN(amt) && amt > 0 && totalAmount > 0) {
         const pct = (amt / totalAmount) * 100;
         setDiscountPercent(pct % 1 === 0 ? pct.toString() : pct.toFixed(2));
-      } else if (totalAmount === 0 || amt === 0) {
-        setDiscountPercent('0');
+      } else if (totalAmount === 0 || !discountAmount || amt === 0) {
+        setDiscountPercent('');
       }
     }
   }, [totalAmount, lastDiscountType]);
@@ -1600,7 +1604,7 @@ export function SaleManualModal({
                 <input
                   type="number"
                   step="0.01"
-                  value={paidTouched ? paidAmount : effectivePaid}
+                  value={paidTouched ? paidAmount : (paymentMode === 'CASH' && effectivePaid > 0 ? effectivePaid : (paidAmount || ''))}
                   onChange={(e) => {
                     setPaidTouched(true);
                     setPaidAmount(e.target.value);

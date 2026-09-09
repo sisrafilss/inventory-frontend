@@ -81,7 +81,7 @@ export default function CreateSalePage() {
   const [entryCommission, setEntryCommission] = useState<number>(0);
   const [entryPurchaseRate, setEntryPurchaseRate] = useState<number>(0);
   const [entryQuantity, setEntryQuantity] = useState<string>('1');
-  const [entrySaleRate, setEntrySaleRate] = useState<string>('0');
+  const [entrySaleRate, setEntrySaleRate] = useState<string>('');
   const [availableStock, setAvailableStock] = useState<number>(0);
   const [isSearchingProduct, setIsSearchingProduct] = useState(false);
 
@@ -89,8 +89,8 @@ export default function CreateSalePage() {
   const [items, setItems] = useState<SaleLineItem[]>([]);
 
   // Totals
-  const [discount, setDiscount] = useState<string>('0');
-  const [paid, setPaid] = useState<string>('0');
+  const [discount, setDiscount] = useState<string>('');
+  const [paid, setPaid] = useState<string>('');
   const [paidTouched, setPaidTouched] = useState(false);
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -167,7 +167,7 @@ export default function CreateSalePage() {
       setEntryDpRate(dp);
       setEntryCommission(comm);
       setEntryPurchaseRate(Number(pRate.toFixed(2)));
-      setEntrySaleRate(String(prod.sellingPrice || 0));
+      setEntrySaleRate('');
 
       updateStockForProduct(prod, warehouseId);
 
@@ -253,7 +253,7 @@ export default function CreateSalePage() {
     setEntryDpRate(0);
     setEntryCommission(0);
     setEntryPurchaseRate(0);
-    setEntrySaleRate('0');
+    setEntrySaleRate('');
     setAvailableStock(0);
     setErrorMsg(null);
   };
@@ -272,9 +272,9 @@ export default function CreateSalePage() {
     setEntryName('');
     setEntryCompany('');
     setEntryQuantity('1');
-    setEntrySaleRate('0');
-    setDiscount('0');
-    setPaid('0');
+    setEntrySaleRate('');
+    setDiscount('');
+    setPaid('');
     setPaidTouched(false);
     setNote('');
     setErrorMsg(null);
@@ -695,6 +695,7 @@ export default function CreateSalePage() {
                 type="number"
                 step="0.01"
                 min="0"
+                placeholder="0.00"
                 value={entrySaleRate}
                 onChange={(e) => setEntrySaleRate(e.target.value)}
                 onKeyDown={(e) => {
@@ -873,6 +874,7 @@ export default function CreateSalePage() {
                   type="number"
                   min="0"
                   step="0.01"
+                  placeholder="0.00"
                   value={discount}
                   onChange={(e) => setDiscount(e.target.value)}
                   className="h-9 text-xs font-semibold text-right"
@@ -898,7 +900,8 @@ export default function CreateSalePage() {
                   type="number"
                   min="0"
                   step="0.01"
-                  value={effectivePaid}
+                  placeholder="0.00"
+                  value={paidTouched ? paid : (saleMode === 'CASH' && effectivePaid > 0 ? effectivePaid : (paid || ''))}
                   onChange={(e) => {
                     setPaid(e.target.value);
                     setPaidTouched(true);

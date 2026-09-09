@@ -88,9 +88,9 @@ export function PurchaseModal({
   const [lineItems, setLineItems] = useState<PurchaseLineItem[]>([]);
 
   // Summary calculations
-  const [paidAmount, setPaidAmount] = useState<number | string>('0.00');
+  const [paidAmount, setPaidAmount] = useState<number | string>('');
   const [paidTouched, setPaidTouched] = useState(false);
-  const [discountAmount, setDiscountAmount] = useState<number | string>('0.00');
+  const [discountAmount, setDiscountAmount] = useState<number | string>('');
 
   // Dialogs
   const [showConfirmSave, setShowConfirmSave] = useState(false);
@@ -296,9 +296,9 @@ export function PurchaseModal({
     setCodeWarning(null);
     setCodeSuccess(false);
     setLineItems([]);
-    setPaidAmount('0.00');
+    setPaidAmount('');
     setPaidTouched(false);
-    setDiscountAmount('0.00');
+    setDiscountAmount('');
     setInvoiceNumber('');
     setBannerPrompt('Type Product Code');
     setActiveFocusedField('itemCode');
@@ -867,7 +867,7 @@ export function PurchaseModal({
                 <input
                   type="number"
                   step="0.01"
-                  value={paidTouched ? paidAmount : effectivePaid}
+                  value={paidTouched ? paidAmount : (paymentMode === 'CASH' && effectivePaid > 0 ? effectivePaid : (paidAmount || ''))}
                   onChange={(e) => {
                     setPaidTouched(true);
                     setPaidAmount(e.target.value);

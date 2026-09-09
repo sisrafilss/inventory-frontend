@@ -83,8 +83,8 @@ export function SaleBarcodeModal({
   const [customerName, setCustomerName] = useState('Cash Retail Customer');
   const [customerPhone, setCustomerPhone] = useState('');
   const [paymentMode, setPaymentMode] = useState<'CASH' | 'CREDIT'>('CASH');
-  const [discount, setDiscount] = useState<number | string>('0');
-  const [discountPercent, setDiscountPercent] = useState<number | string>('0');
+  const [discount, setDiscount] = useState<number | string>('');
+  const [discountPercent, setDiscountPercent] = useState<number | string>('');
   const [lastDiscountType, setLastDiscountType] = useState<'amount' | 'percent'>('amount');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -107,8 +107,8 @@ export function SaleBarcodeModal({
       loadCustomers();
     } else {
       setItems([]);
-      setDiscount('0');
-      setDiscountPercent('0');
+      setDiscount('');
+      setDiscountPercent('');
       setLastDiscountType('amount');
       setBarcodeInput('');
       setScanMessage(null);
@@ -321,7 +321,7 @@ export function SaleBarcodeModal({
       const pct = (num / grossTotal) * 100;
       setDiscountPercent(pct % 1 === 0 ? pct.toString() : pct.toFixed(2));
     } else if (val === '' || num === 0) {
-      setDiscountPercent('0');
+      setDiscountPercent('');
     }
   };
 
@@ -333,7 +333,7 @@ export function SaleBarcodeModal({
       const amt = (grossTotal * pct) / 100;
       setDiscount(amt.toFixed(2));
     } else if (val === '' || pct === 0) {
-      setDiscount('0');
+      setDiscount('');
     }
   };
 
@@ -343,16 +343,16 @@ export function SaleBarcodeModal({
       if (!isNaN(pct) && pct > 0 && grossTotal > 0) {
         const amt = (grossTotal * pct) / 100;
         setDiscount(amt.toFixed(2));
-      } else if (grossTotal === 0 || pct === 0) {
-        setDiscount('0');
+      } else if (grossTotal === 0 || !discountPercent || pct === 0) {
+        setDiscount('');
       }
     } else if (lastDiscountType === 'amount') {
       const amt = parseFloat(String(discount));
       if (!isNaN(amt) && amt > 0 && grossTotal > 0) {
         const pct = (amt / grossTotal) * 100;
         setDiscountPercent(pct % 1 === 0 ? pct.toString() : pct.toFixed(2));
-      } else if (grossTotal === 0 || amt === 0) {
-        setDiscountPercent('0');
+      } else if (grossTotal === 0 || !discount || amt === 0) {
+        setDiscountPercent('');
       }
     }
   }, [grossTotal, lastDiscountType]);
@@ -751,6 +751,7 @@ export function SaleBarcodeModal({
                   step="0.01"
                   value={discount}
                   onChange={(e) => handleDiscountAmountChange(e.target.value)}
+                  placeholder="0.00"
                   className="w-36 h-7 px-2 text-right font-mono font-bold text-sm bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 border border-neutral-400 dark:border-slate-600 focus:outline-none focus:border-red-600 shadow-inner"
                 />
               </div>

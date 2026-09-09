@@ -563,7 +563,7 @@ export default function PartiesPage() {
                   type="number"
                   min="0"
                   placeholder="0.00"
-                  value={supplierForm.openingDue}
+                  value={supplierForm.openingDue === 0 ? '' : supplierForm.openingDue}
                   onChange={(e) =>
                     setSupplierForm({
                       ...supplierForm,
@@ -640,7 +640,7 @@ export default function PartiesPage() {
                   type="number"
                   min="0"
                   placeholder="0.00"
-                  value={customerForm.openingDue}
+                  value={customerForm.openingDue === 0 ? '' : customerForm.openingDue}
                   onChange={(e) =>
                     setCustomerForm({
                       ...customerForm,
@@ -691,7 +691,8 @@ export default function PartiesPage() {
                 type="number"
                 min="1"
                 required
-                value={paymentAmount}
+                placeholder="0.00"
+                value={paymentAmount === 0 ? '' : paymentAmount}
                 onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
               />
             </div>
