@@ -11,12 +11,14 @@ import {
   AlertCircle,
   HelpCircle,
   ChevronDown,
+  UserPlus,
 } from 'lucide-react';
 import { Product, Customer, Warehouse, Sale } from '@/lib/types';
 import { api } from '@/lib/api/client';
 import { InvoiceMemoModal, MemoSale } from './invoice-memo-modal';
 import { ProductLookupModal } from '../products/product-lookup-modal';
 import { CustomerLookupModal } from '../customers/customer-lookup-modal';
+import { AddCustomerModal } from '../customers/add-customer-modal';
 
 export interface ManualSaleLineItem {
   id: string;
@@ -82,6 +84,7 @@ export function SaleManualModal({
   const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState<boolean>(false);
   const customerDropdownRef = useRef<HTMLDivElement>(null);
   const [customerLookupOpen, setCustomerLookupOpen] = useState<boolean>(false);
+  const [addCustomerModalOpen, setAddCustomerModalOpen] = useState<boolean>(false);
 
   // Customer ref
   const customerInputRef = useRef<HTMLInputElement>(null);
@@ -585,6 +588,12 @@ export function SaleManualModal({
   const handleSelectCustomerFromLookup = (c: Customer) => {
     handleSelectCustomer(c);
     setCustomerLookupOpen(false);
+  };
+
+  const handleCustomerCreated = (c: Customer) => {
+    setCustomersList((prev) => [c, ...prev]);
+    handleSelectCustomer(c);
+    setAddCustomerModalOpen(false);
   };
 
   // Filtered customers based on search text (matching ID, Name, Phone, Address)
@@ -1334,9 +1343,39 @@ export function SaleManualModal({
                 {/* Dropdown list */}
                 {isCustomerDropdownOpen && (
                   <div className="absolute left-24 right-0 top-full mt-1 max-h-60 overflow-y-auto bg-white dark:bg-slate-800 border border-neutral-300 dark:border-slate-600 shadow-xl z-50 py-1">
+                    <div className="px-2.5 py-1 border-b border-neutral-200 dark:border-slate-700 bg-neutral-50 dark:bg-slate-800/90 flex items-center justify-between text-[11px]">
+                      <span className="font-bold text-neutral-600 dark:text-neutral-300">
+                        {filteredCustomers.length} Customers
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCustomerDropdownOpen(false);
+                          setAddCustomerModalOpen(true);
+                        }}
+                        className="font-bold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <UserPlus className="w-3 h-3" />
+                        <span>+ Add Customer</span>
+                      </button>
+                    </div>
+
                     {filteredCustomers.length === 0 ? (
-                      <div className="px-3 py-2 text-xs text-neutral-500 text-center">
-                        No customer found
+                      <div className="p-3 text-center space-y-2">
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          No customer found {customerSearchText ? `for "${customerSearchText}"` : ''}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCustomerDropdownOpen(false);
+                            setAddCustomerModalOpen(true);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded shadow cursor-pointer transition-colors"
+                        >
+                          <UserPlus className="w-3.5 h-3.5" />
+                          <span>Add New Customer</span>
+                        </button>
                       </div>
                     ) : (
                       filteredCustomers.map((c) => {
@@ -1372,67 +1411,74 @@ export function SaleManualModal({
                   </div>
                 )}
 
-                {/* Aligned Error Warning for Customer */}
+                {/* Aligned Error Warning for Customer with Quick Add button */}
                 {customerWarning && paymentMode === 'CUSTOMER' && (
                   <div className="flex items-center gap-2 pt-0.5">
                     <div className="w-24 shrink-0" />
-                    <div className="flex items-center gap-1 text-[11px] text-red-600 dark:text-red-400 font-bold">
-                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                      <span>{customerWarning}</span>
+                    <div className="flex items-center gap-2 text-[11px] text-red-600 dark:text-red-400 font-bold">
+                      <div className="flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{customerWarning}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAddCustomerModalOpen(true)}
+                        className="text-xs text-emerald-700 dark:text-emerald-400 underline hover:text-emerald-800 font-bold cursor-pointer flex items-center gap-0.5"
+                      >
+                        <UserPlus className="w-3 h-3" />
+                        <span>+ Add Customer</span>
+                      </button>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Row 4: Name */}
+              {/* Row 4: Name (Read-only) */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
                   Name
                 </label>
                 <input
                   type="text"
-                  value={customerName}
-                  onChange={(e) => {
-                    setCustomerName(e.target.value);
-                    if (customerWarning) setCustomerWarning(null);
-                  }}
-                  disabled={isSaving}
-                  placeholder={paymentMode === 'CASH' ? 'Cash Party / Customer Name' : 'Customer Name'}
-                  className="flex-1 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none disabled:opacity-75"
+                  readOnly
+                  tabIndex={-1}
+                  value={customerName || (paymentMode === 'CASH' && !selectedCustomer ? 'Cash Party' : '')}
+                  placeholder={paymentMode === 'CASH' ? 'Cash Party' : 'Customer Name (auto)'}
+                  className="flex-1 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 font-medium select-none focus:outline-none cursor-not-allowed"
                 />
               </div>
 
-              {/* Row 5: Address */}
+              {/* Row 5: Address (Read-only) */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
                   Address
                 </label>
                 <input
                   type="text"
+                  readOnly
+                  tabIndex={-1}
                   value={customerAddress}
-                  onChange={(e) => setCustomerAddress(e.target.value)}
-                  disabled={isSaving}
-                  placeholder="Address"
-                  className="flex-1 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none disabled:opacity-75"
+                  placeholder="Address (auto)"
+                  className="flex-1 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 font-medium select-none focus:outline-none cursor-not-allowed"
                 />
               </div>
 
-              {/* Row 6: Phone No */}
+              {/* Row 6: Phone No (Read-only) */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
                   Phone No
                 </label>
                 <input
                   type="text"
+                  readOnly
+                  tabIndex={-1}
                   value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  disabled={isSaving}
-                  placeholder="017..."
-                  className="flex-1 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none disabled:opacity-75"
+                  placeholder="Phone (auto)"
+                  className="flex-1 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 font-medium select-none focus:outline-none cursor-not-allowed"
                 />
               </div>
 
-              {/* Row 7: Dues */}
+              {/* Row 7: Dues (Read-only) */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
                   Dues
@@ -1441,7 +1487,8 @@ export function SaleManualModal({
                   type="text"
                   value={customerDues}
                   readOnly
-                  className="w-28 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none"
+                  tabIndex={-1}
+                  className="w-28 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none select-none cursor-not-allowed"
                 />
               </div>
             </div>
@@ -1778,6 +1825,14 @@ export function SaleManualModal({
         open={customerLookupOpen}
         onOpenChange={setCustomerLookupOpen}
         onSelectCustomer={handleSelectCustomerFromLookup}
+        initialSearch={customerSearchText}
+      />
+
+      {/* Add Customer Modal */}
+      <AddCustomerModal
+        open={addCustomerModalOpen}
+        onOpenChange={setAddCustomerModalOpen}
+        onCustomerCreated={handleCustomerCreated}
         initialSearch={customerSearchText}
       />
     </>

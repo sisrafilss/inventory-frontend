@@ -11,9 +11,11 @@ import {
   ArrowRight,
   Phone,
   MapPin,
+  UserPlus,
 } from 'lucide-react';
 import { Customer } from '@/lib/types';
 import { api } from '@/lib/api/client';
+import { AddCustomerModal } from './add-customer-modal';
 
 export interface CustomerLookupModalProps {
   open: boolean;
@@ -40,6 +42,9 @@ export function CustomerLookupModal({
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Add Customer Modal State
+  const [addCustomerOpen, setAddCustomerOpen] = useState(false);
+
   // Refs
   const searchInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -59,6 +64,7 @@ export function CustomerLookupModal({
       setDueFilter('ALL');
       setStatusFilter('ALL');
       setCustomers([]);
+      setAddCustomerOpen(false);
     }
   }, [open, initialSearch]);
 
@@ -118,8 +124,15 @@ export function CustomerLookupModal({
     onOpenChange(false);
   };
 
+  const handleCustomerCreated = (c: Customer) => {
+    setCustomers((prev) => [c, ...prev]);
+    onSelectCustomer(c);
+    onOpenChange(false);
+  };
+
   return (
-    <Dialog
+    <>
+      <Dialog
       open={open}
       onOpenChange={onOpenChange}
       draggable={true}
@@ -141,13 +154,23 @@ export function CustomerLookupModal({
           </span>
         </div>
 
-        <button
-          type="button"
-          onClick={() => onOpenChange(false)}
-          className="w-6 h-6 flex items-center justify-center bg-black/20 hover:bg-red-600 rounded text-white transition-colors cursor-pointer"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setAddCustomerOpen(true)}
+            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 rounded text-xs font-bold text-white flex items-center gap-1 shadow-sm cursor-pointer transition-colors"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>+ Add Customer</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="w-6 h-6 flex items-center justify-center bg-black/20 hover:bg-red-600 rounded text-white transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -341,7 +364,15 @@ export function CustomerLookupModal({
                 <td colSpan={7} className="py-12 text-center text-neutral-500 dark:text-neutral-400">
                   <Users className="w-10 h-10 mx-auto text-neutral-400 dark:text-neutral-600 mb-2 opacity-60" />
                   <p className="font-semibold text-sm">No customers found</p>
-                  <p className="text-xs text-neutral-400">Try changing your search keywords or filters.</p>
+                  <p className="text-xs text-neutral-400 mb-3">Try changing your search keywords or add as a new customer.</p>
+                  <button
+                    type="button"
+                    onClick={() => setAddCustomerOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold shadow transition-colors cursor-pointer"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>+ Add New Customer</span>
+                  </button>
                 </td>
               </tr>
             )}
@@ -373,5 +404,15 @@ export function CustomerLookupModal({
         </button>
       </div>
     </Dialog>
+
+    {/* Add Customer Modal */}
+    <AddCustomerModal
+      open={addCustomerOpen}
+      onOpenChange={setAddCustomerOpen}
+      onCustomerCreated={handleCustomerCreated}
+      initialSearch={search}
+    />
+  </>
   );
 }
+
