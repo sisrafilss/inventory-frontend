@@ -791,7 +791,7 @@ export function SaleManualModal({
         onOpenChange={(isOpen) => !isSaving && onOpenChange(isOpen)}
         draggable={true}
         closeOnBackdropClick={false}
-        className="p-0 max-w-6xl w-full border-2 border-[#800000] dark:border-rose-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 overflow-hidden shadow-2xl"
+        className="p-0 max-w-[1140px] w-full border-2 border-[#800000] dark:border-rose-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 overflow-hidden shadow-2xl"
       >
         {/* Dark Green Banner Header with Drag Handle */}
         <div
@@ -821,10 +821,10 @@ export function SaleManualModal({
 
         {/* Modal Main Body */}
         <div className="p-3 sm:p-4 space-y-3 select-none text-xs text-neutral-900 dark:text-neutral-100">
-          {/* Top Form Area (3 Columns: Item Details on Left, Financials in Center, Customer & Options on Right with generous gap) */}
-          <div className="flex flex-col lg:flex-row items-start justify-between gap-y-3 gap-x-4 lg:gap-x-6">
-            {/* Column 1: Item Details Inputs & Action Buttons (w-[420px]) */}
-            <div className="w-full lg:w-[420px] shrink-0 space-y-1.5">
+          {/* Top Form Area (3 Columns: Item Details on Left, Financials in Center, Customer & Options on Right) */}
+          <div className="flex flex-col lg:flex-row items-start justify-between gap-y-3 gap-x-3 lg:gap-x-4">
+            {/* Column 1: Item Details Inputs & Action Buttons (w-[360px]) */}
+            <div className="w-full lg:w-[360px] shrink-0 space-y-1.5">
               {/* Row 1: Invoice Number */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
@@ -908,7 +908,7 @@ export function SaleManualModal({
                   value={itemName}
                   readOnly
                   placeholder="Product name"
-                  className="w-[320px] h-6 px-2 bg-white/90 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-medium focus:outline-none"
+                  className="flex-1 max-w-[270px] h-6 px-2 bg-white/90 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-medium focus:outline-none"
                 />
               </div>
 
@@ -1006,12 +1006,12 @@ export function SaleManualModal({
               </div>
 
               {/* Row 7: Action Buttons Row (Refresh, Add, Save, Delete, Close) */}
-              <div className="flex items-center gap-1.5 pt-0.5">
+              <div className="flex items-center gap-1 pt-0.5">
                 <button
                   type="button"
                   onClick={handleRefresh}
                   disabled={isSaving}
-                  className="w-[74px] h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
+                  className="w-[66px] h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   Refresh
                 </button>
@@ -1019,7 +1019,7 @@ export function SaleManualModal({
                   type="button"
                   onClick={handleAddItem}
                   disabled={isSaving}
-                  className="w-[74px] h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
+                  className="w-[66px] h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   Add
                 </button>
@@ -1027,7 +1027,7 @@ export function SaleManualModal({
                   type="button"
                   onClick={handleInitiateSave}
                   disabled={isSaving}
-                  className="w-[74px] h-7 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border-2 border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-1 cursor-pointer"
+                  className="w-[66px] h-7 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border-2 border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-1 cursor-pointer"
                 >
                   {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600" />}
                   Save
@@ -1036,7 +1036,7 @@ export function SaleManualModal({
                   type="button"
                   onClick={handleDeleteSelectedRow}
                   disabled={isSaving}
-                  className="w-[74px] h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-blue-600 dark:text-blue-400 border border-blue-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
+                  className="w-[66px] h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-blue-600 dark:text-blue-400 border border-blue-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   Delete
                 </button>
@@ -1044,7 +1044,7 @@ export function SaleManualModal({
                   type="button"
                   onClick={() => onOpenChange(false)}
                   disabled={isSaving}
-                  className="w-[74px] h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
+                  className="w-[66px] h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   Close
                 </button>
@@ -1052,13 +1052,13 @@ export function SaleManualModal({
             </div>
 
             {/* Column 2: Financials & Warehouse (Warehouse, Company, Sale Rate (MRP), DP Rate, Commission, Purchase Rate) */}
-            <div className="w-full lg:w-[270px] shrink-0 space-y-1.5 lg:ml-2">
+            <div className="w-full lg:w-[235px] shrink-0 space-y-1.5">
               {/* Row 1: Warehouse Combobox */}
               <div className="flex items-center gap-2 relative" ref={warehouseDropdownRef}>
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-[86px] text-right shrink-0">
                   Warehouse
                 </label>
-                <div className="relative flex-1">
+                <div className="relative flex-1 min-w-0">
                   <div className="relative flex items-center">
                     <input
                       type="text"
@@ -1106,8 +1106,8 @@ export function SaleManualModal({
                               onClick={() => handleSelectWarehouse(w)}
                               className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-emerald-50 dark:hover:bg-slate-700 cursor-pointer transition-colors ${
                                 isSelected
-                                  ? 'bg-emerald-100/70 dark:bg-emerald-950 font-bold text-emerald-900 dark:text-emerald-200'
-                                  : 'text-neutral-800 dark:text-neutral-200'
+                                    ? 'bg-emerald-100/70 dark:bg-emerald-950 font-bold text-emerald-900 dark:text-emerald-200'
+                                    : 'text-neutral-800 dark:text-neutral-200'
                               }`}
                             >
                               <div className="flex items-center gap-1.5 truncate">
@@ -1135,7 +1135,7 @@ export function SaleManualModal({
 
               {/* Row 2: Company */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-[86px] text-right shrink-0">
                   Company
                 </label>
                 <input
@@ -1149,7 +1149,7 @@ export function SaleManualModal({
 
               {/* Row 3: Sale Rate (MRP) */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-[86px] text-right shrink-0">
                   Sale Rate (MRP)
                 </label>
                 <div className="flex items-center gap-1">
@@ -1166,7 +1166,7 @@ export function SaleManualModal({
 
               {/* Row 4: DP Rate */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-[86px] text-right shrink-0">
                   DP Rate
                 </label>
                 <div className="flex items-center gap-1">
@@ -1183,7 +1183,7 @@ export function SaleManualModal({
 
               {/* Row 5: Commission */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-[86px] text-right shrink-0">
                   Commission
                 </label>
                 <div className="flex items-center gap-1">
@@ -1200,7 +1200,7 @@ export function SaleManualModal({
 
               {/* Row 6: Purchase Rate */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-[86px] text-right shrink-0">
                   Purchase Rate
                 </label>
                 <div className="flex items-center gap-1">
@@ -1216,8 +1216,8 @@ export function SaleManualModal({
               </div>
             </div>
 
-            {/* Column 3: Customer / Party Info & Date & Options (w-[380px] with guaranteed separation) */}
-            <div className="w-full lg:w-[380px] shrink-0 space-y-1.5 lg:ml-auto">
+            {/* Column 3: Customer / Party Info & Date & Options (w-[325px] fitted cleanly) */}
+            <div className="w-full lg:w-[325px] shrink-0 space-y-1.5 lg:ml-auto">
               {/* Row 1: Date in top right */}
               <div className="flex justify-end h-6 items-center">
                 <div className="flex items-center gap-1 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 px-2 py-0.5 font-mono text-xs shadow-sm">
@@ -1227,9 +1227,9 @@ export function SaleManualModal({
               </div>
 
               {/* Row 2: Radios & Memo Preview Checkbox */}
-              <div className="flex items-center justify-between gap-3 h-6">
-                <div className="flex items-center gap-4">
-                  <label className="flex items-center gap-1.5 cursor-pointer font-bold text-sm text-neutral-900 dark:text-neutral-100">
+              <div className="flex items-center justify-between gap-2 h-6">
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 cursor-pointer font-bold text-xs sm:text-sm text-neutral-900 dark:text-neutral-100">
                     <input
                       type="radio"
                       name="salePaymentMode"
@@ -1242,7 +1242,7 @@ export function SaleManualModal({
                     />
                     <span>Cash</span>
                   </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer font-bold text-sm text-neutral-900 dark:text-neutral-100">
+                  <label className="flex items-center gap-1.5 cursor-pointer font-bold text-xs sm:text-sm text-neutral-900 dark:text-neutral-100">
                     <input
                       type="radio"
                       name="salePaymentMode"
@@ -1274,11 +1274,11 @@ export function SaleManualModal({
               {/* Row 3: Customer ID Combobox & View Button */}
               <div className="relative" ref={customerDropdownRef}>
                 <div className="flex items-center gap-2">
-                  <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                  <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                     Customer ID
                   </label>
-                  <div className="flex items-center gap-1.5 flex-1 relative">
-                    <div className="relative flex-1 flex items-center">
+                  <div className="flex items-center gap-1.5 flex-1 min-w-0 relative">
+                    <div className="relative flex-1 min-w-0 flex items-center">
                       <input
                         ref={customerInputRef}
                         type="text"
@@ -1309,7 +1309,7 @@ export function SaleManualModal({
                         }}
                         disabled={isSaving}
                         placeholder="Search ID, Name, Phone..."
-                        className="w-full h-6 px-2 pr-12 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-75"
+                        className="w-full h-6 px-2 pr-12 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-75 truncate"
                       />
                       <div className="absolute right-1 flex items-center gap-0.5 text-neutral-500">
                         {isSearchingCustomer && (
@@ -1333,7 +1333,7 @@ export function SaleManualModal({
                       onClick={() => setCustomerLookupOpen(true)}
                       disabled={isSaving}
                       title="Open Customer Directory to browse and select customers"
-                      className="h-6 px-3 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
+                      className="h-6 px-2.5 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
                     >
                       View
                     </button>
@@ -1342,7 +1342,7 @@ export function SaleManualModal({
 
                 {/* Dropdown list */}
                 {isCustomerDropdownOpen && (
-                  <div className="absolute left-24 right-0 top-full mt-1 max-h-60 overflow-y-auto bg-white dark:bg-slate-800 border border-neutral-300 dark:border-slate-600 shadow-xl z-50 py-1">
+                  <div className="absolute left-20 right-0 top-full mt-1 max-h-60 overflow-y-auto bg-white dark:bg-slate-800 border border-neutral-300 dark:border-slate-600 shadow-xl z-50 py-1">
                     <div className="px-2.5 py-1 border-b border-neutral-200 dark:border-slate-700 bg-neutral-50 dark:bg-slate-800/90 flex items-center justify-between text-[11px]">
                       <span className="font-bold text-neutral-600 dark:text-neutral-300">
                         {filteredCustomers.length} Customers
@@ -1413,29 +1413,26 @@ export function SaleManualModal({
 
                 {/* Aligned Error Warning for Customer with Quick Add button */}
                 {customerWarning && paymentMode === 'CUSTOMER' && (
-                  <div className="flex items-center gap-2 pt-0.5">
-                    <div className="w-24 shrink-0" />
-                    <div className="flex items-center gap-2 text-[11px] text-red-600 dark:text-red-400 font-bold">
-                      <div className="flex items-center gap-1">
-                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                        <span>{customerWarning}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setAddCustomerModalOpen(true)}
-                        className="text-xs text-emerald-700 dark:text-emerald-400 underline hover:text-emerald-800 font-bold cursor-pointer flex items-center gap-0.5"
-                      >
-                        <UserPlus className="w-3 h-3" />
-                        <span>+ Add Customer</span>
-                      </button>
+                  <div className="flex flex-col gap-0.5 pt-0.5 pl-20 text-[11px]">
+                    <div className="flex items-center gap-1 text-red-600 dark:text-red-400 font-bold">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{customerWarning}</span>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setAddCustomerModalOpen(true)}
+                      className="self-start text-[11px] text-emerald-700 dark:text-emerald-400 underline hover:text-emerald-800 font-bold cursor-pointer flex items-center gap-0.5"
+                    >
+                      <UserPlus className="w-3 h-3" />
+                      <span>+ Add as New Customer</span>
+                    </button>
                   </div>
                 )}
               </div>
 
               {/* Row 4: Name (Read-only) */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Name
                 </label>
                 <input
@@ -1444,13 +1441,13 @@ export function SaleManualModal({
                   tabIndex={-1}
                   value={customerName || (paymentMode === 'CASH' && !selectedCustomer ? 'Cash Party' : '')}
                   placeholder={paymentMode === 'CASH' ? 'Cash Party' : 'Customer Name (auto)'}
-                  className="flex-1 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 font-medium select-none focus:outline-none cursor-not-allowed"
+                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 font-medium select-none focus:outline-none cursor-not-allowed truncate"
                 />
               </div>
 
               {/* Row 5: Address (Read-only) */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Address
                 </label>
                 <input
@@ -1459,13 +1456,13 @@ export function SaleManualModal({
                   tabIndex={-1}
                   value={customerAddress}
                   placeholder="Address (auto)"
-                  className="flex-1 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 font-medium select-none focus:outline-none cursor-not-allowed"
+                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 font-medium select-none focus:outline-none cursor-not-allowed truncate"
                 />
               </div>
 
               {/* Row 6: Phone No (Read-only) */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Phone No
                 </label>
                 <input
@@ -1474,13 +1471,13 @@ export function SaleManualModal({
                   tabIndex={-1}
                   value={customerPhone}
                   placeholder="Phone (auto)"
-                  className="flex-1 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 font-medium select-none focus:outline-none cursor-not-allowed"
+                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 font-medium select-none focus:outline-none cursor-not-allowed truncate"
                 />
               </div>
 
               {/* Row 7: Dues (Read-only) */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Dues
                 </label>
                 <input
