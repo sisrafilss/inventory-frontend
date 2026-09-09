@@ -82,6 +82,7 @@ export interface WarehouseStock {
 export interface Warehouse {
   id: string;
   name: string;
+  code?: string | null;
   address?: string | null;
   isDefault: boolean;
   isActive: boolean;

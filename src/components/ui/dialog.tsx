@@ -11,6 +11,7 @@ interface DialogProps {
   className?: string;
   draggable?: boolean;
   closeOnBackdropClick?: boolean;
+  zIndex?: string;
 }
 
 export function Dialog({
@@ -20,6 +21,7 @@ export function Dialog({
   className,
   draggable = false,
   closeOnBackdropClick = true,
+  zIndex = 'z-50',
 }: DialogProps) {
   const [position, setPosition] = React.useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = React.useState(false);
@@ -111,7 +113,7 @@ export function Dialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 overflow-hidden pointer-events-none">
+    <div className={cn('fixed inset-0 flex items-center justify-center p-2 sm:p-4 overflow-hidden pointer-events-none', zIndex)}>
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity animate-in fade-in pointer-events-auto"

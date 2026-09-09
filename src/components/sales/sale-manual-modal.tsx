@@ -10,6 +10,7 @@ import {
   Check,
   AlertCircle,
   HelpCircle,
+  ChevronDown,
 } from 'lucide-react';
 import { Product, Customer, Warehouse, Sale } from '@/lib/types';
 import { api } from '@/lib/api/client';
@@ -55,9 +56,15 @@ export function SaleManualModal({
   const [paymentMode, setPaymentMode] = useState<'CASH' | 'CUSTOMER'>('CASH');
   const [memoPreview, setMemoPreview] = useState<boolean>(true);
 
+  // Warehouse State
+  const [warehousesList, setWarehousesList] = useState<Warehouse[]>([]);
+  const [defaultWarehouseId, setDefaultWarehouseId] = useState<string>('');
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('');
+  const [warehouseSearchText, setWarehouseSearchText] = useState<string>('');
+  const [isWarehouseDropdownOpen, setIsWarehouseDropdownOpen] = useState<boolean>(false);
+  const warehouseDropdownRef = useRef<HTMLDivElement>(null);
   // Customer State
   const [customersList, setCustomersList] = useState<Customer[]>([]);
-  const [defaultWarehouseId, setDefaultWarehouseId] = useState<string>('');
   const [customerId, setCustomerId] = useState('0');
   const [debouncedCustomerId, setDebouncedCustomerId] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -91,6 +98,19 @@ export function SaleManualModal({
   const itemQtyNum = parseFloat(String(quantity)) || 0;
   const itemRateNum = parseFloat(String(saleRate)) || 0;
   const currentItemAmount = Number((itemQtyNum * itemRateNum).toFixed(2));
+
+  // Helper to get warehouse-specific stock
+  const getStockForWarehouse = (p: Product | null, wId: string): number => {
+    if (!p) return 0;
+    if (!wId) return p.quantity || 0;
+    if (p.warehouseStocks && p.warehouseStocks.length > 0) {
+      const match = p.warehouseStocks.find(
+        (ws) => ws.warehouseId === wId || ws.warehouse?.id === wId
+      );
+      if (match !== undefined) return match.quantity;
+    }
+    return p.quantity || 0;
+  };
 
   // Loading & Focus States
   const [isSearchingProduct, setIsSearchingProduct] = useState(false);
@@ -140,7 +160,7 @@ export function SaleManualModal({
     setCommission(comm > 0 ? String(comm) : '0');
     const pCost = p.costPrice ? Number(p.costPrice) : dp;
     setPurchaseRate(pCost > 0 ? String(pCost) : '0');
-    setAvailableStock(p.quantity || 0);
+    setAvailableStock(getStockForWarehouse(p, selectedWarehouseId || defaultWarehouseId));
     setItemType(p.unit || 'Pieces');
     setSaleRate(''); // Never preloaded: admin/manager manually enters Sale Rate
     setQuantity('1');
@@ -165,13 +185,42 @@ export function SaleManualModal({
       api.get<Warehouse[]>('/warehouses')
         .then((res) => {
           if (res.data && res.data.length > 0) {
-            const def = res.data.find((w) => w.isDefault && w.isActive) || res.data[0];
-            if (def) setDefaultWarehouseId(def.id);
+            const activeList = res.data.filter((w) => w.isActive !== false);
+            const list = activeList.length > 0 ? activeList : res.data;
+            setWarehousesList(list);
+            const def = list.find((w) => w.isDefault) || list[0];
+            if (def) {
+              setDefaultWarehouseId(def.id);
+              setSelectedWarehouseId(def.id);
+              setWarehouseSearchText(def.name);
+            }
           }
         })
         .catch(() => {});
     }
   }, [open]);
+
+  // Close warehouse dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        warehouseDropdownRef.current &&
+        !warehouseDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsWarehouseDropdownOpen(false);
+        const currentW = warehousesList.find((w) => w.id === selectedWarehouseId);
+        if (currentW) {
+          setWarehouseSearchText(currentW.name);
+        } else if (!selectedWarehouseId) {
+          setWarehouseSearchText('');
+        }
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [warehousesList, selectedWarehouseId]);
 
   // Debounced Item Code Search (400ms)
   useEffect(() => {
@@ -217,7 +266,7 @@ export function SaleManualModal({
           setCommission(comm > 0 ? String(comm) : '0');
           const pCost = p.costPrice ? Number(p.costPrice) : dp;
           setPurchaseRate(pCost > 0 ? String(pCost) : '0');
-          setAvailableStock(p.quantity || 0);
+          setAvailableStock(getStockForWarehouse(p, selectedWarehouseId || defaultWarehouseId));
           setItemType(p.unit || 'Pieces');
           setSaleRate(''); // Never preloaded: admin/manager manually enters Sale Rate
           setQuantity('1');
@@ -437,9 +486,38 @@ export function SaleManualModal({
     setDiscountPercent('0');
     setLastDiscountType('amount');
     setInvoiceNumber(`INV-${Date.now().toString().slice(-6)}`);
+    if (defaultWarehouseId) {
+      setSelectedWarehouseId(defaultWarehouseId);
+      const def = warehousesList.find((w) => w.id === defaultWarehouseId);
+      if (def) setWarehouseSearchText(def.name);
+    }
     setActiveFocusedField('itemCode');
     setTimeout(() => codeInputRef.current?.focus(), 50);
   };
+
+  // Warehouse selection handler
+  const handleSelectWarehouse = (w: Warehouse) => {
+    setSelectedWarehouseId(w.id);
+    setWarehouseSearchText(w.name);
+    setIsWarehouseDropdownOpen(false);
+    if (selectedProduct) {
+      setAvailableStock(getStockForWarehouse(selectedProduct, w.id));
+    }
+  };
+
+  // Filtered warehouses based on search text (matching name or code)
+  const isSearchingWarehouse =
+    warehouseSearchText.trim().length > 0 &&
+    warehouseSearchText.trim().toLowerCase() !==
+      (warehousesList.find((w) => w.id === selectedWarehouseId)?.name || '').trim().toLowerCase();
+
+  const filteredWarehouses = isSearchingWarehouse
+    ? warehousesList.filter(
+        (w) =>
+          w.name.toLowerCase().includes(warehouseSearchText.toLowerCase()) ||
+          (w.code && w.code.toLowerCase().includes(warehouseSearchText.toLowerCase()))
+      )
+    : warehousesList;
 
   // Totals Calculations
   const totalAmount = lineItems.reduce((acc, item) => acc + item.amount, 0);
@@ -520,18 +598,20 @@ export function SaleManualModal({
   const handleExecuteSave = async () => {
     setIsSaving(true);
     try {
+      const targetWarehouseId = selectedWarehouseId || defaultWarehouseId || undefined;
       const payload = {
         referenceNumber: invoiceNumber.trim() || undefined,
         paymentType: paymentMode === 'CASH' ? ('CASH' as const) : ('CREDIT' as const),
         customerId: paymentMode === 'CUSTOMER' && selectedCustomer ? selectedCustomer.id : undefined,
         customerName: paymentMode === 'CASH' ? (customerName || 'Cash Party') : (selectedCustomer?.name || customerName),
         customerPhone: (selectedCustomer?.phone || customerPhone) || undefined,
-        warehouseId: defaultWarehouseId || undefined,
+        warehouseId: targetWarehouseId,
         discount: discountVal,
         discountPercent: parseFloat(String(discountPercent)) || undefined,
         paidAmount: effectivePaid,
         items: lineItems.map((item) => ({
           productId: item.productId,
+          warehouseId: targetWarehouseId,
           quantity: item.quantity,
           unitPrice: item.rate,
           purchaseCost: item.purchaseRate,
@@ -577,13 +657,13 @@ export function SaleManualModal({
         };
         setSavedSaleForMemo(memoData);
         setShowMemoModal(true);
+        handleRefresh();
       } else {
         alert('Sale saved successfully!');
+        handleRefresh();
         onOpenChange(false);
+        if (onSaveSuccess) onSaveSuccess();
       }
-
-      handleRefresh();
-      if (onSaveSuccess) onSaveSuccess();
     } catch (err: any) {
       alert(err?.response?.data?.message || err.message || 'Failed to save sale.');
     } finally {
@@ -857,10 +937,87 @@ export function SaleManualModal({
               </div>
             </div>
 
-            {/* Column 2: Financials (Company, Sale Rate (MRP), DP Rate, Commission, Purchase Rate) */}
-            <div className="w-full lg:w-[245px] shrink-0 space-y-1.5 lg:ml-2">
-              {/* Row 1: Spacer corresponding to Invoice */}
-              <div className="h-6 hidden lg:block" />
+            {/* Column 2: Financials & Warehouse (Warehouse, Company, Sale Rate (MRP), DP Rate, Commission, Purchase Rate) */}
+            <div className="w-full lg:w-[270px] shrink-0 space-y-1.5 lg:ml-2">
+              {/* Row 1: Warehouse Combobox */}
+              <div className="flex items-center gap-2 relative" ref={warehouseDropdownRef}>
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                  Warehouse
+                </label>
+                <div className="relative flex-1">
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      value={warehouseSearchText}
+                      onChange={(e) => {
+                        setWarehouseSearchText(e.target.value);
+                        setIsWarehouseDropdownOpen(true);
+                        if (!e.target.value.trim()) {
+                          setSelectedWarehouseId('');
+                          if (selectedProduct) {
+                            setAvailableStock(getStockForWarehouse(selectedProduct, ''));
+                          }
+                        }
+                      }}
+                      onFocus={() => setIsWarehouseDropdownOpen(true)}
+                      onClick={() => setIsWarehouseDropdownOpen(true)}
+                      placeholder="Select Warehouse..."
+                      disabled={isSaving}
+                      className="w-full h-6 px-2 pr-6 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-medium text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-50"
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setIsWarehouseDropdownOpen((prev) => !prev)}
+                      className="absolute right-1 text-neutral-500 hover:text-neutral-700 p-0.5 cursor-pointer"
+                    >
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Dropdown list */}
+                  {isWarehouseDropdownOpen && (
+                    <div className="absolute left-0 top-full mt-1 w-60 max-h-48 overflow-y-auto bg-white dark:bg-slate-800 border border-neutral-300 dark:border-slate-600 shadow-xl z-50 py-1">
+                      {filteredWarehouses.length === 0 ? (
+                        <div className="px-3 py-1.5 text-xs text-neutral-500 text-center">
+                          No warehouse found
+                        </div>
+                      ) : (
+                        filteredWarehouses.map((w) => {
+                          const isSelected = w.id === selectedWarehouseId;
+                          return (
+                            <button
+                              key={w.id}
+                              type="button"
+                              onClick={() => handleSelectWarehouse(w)}
+                              className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-emerald-50 dark:hover:bg-slate-700 cursor-pointer transition-colors ${
+                                isSelected
+                                  ? 'bg-emerald-100/70 dark:bg-emerald-950 font-bold text-emerald-900 dark:text-emerald-200'
+                                  : 'text-neutral-800 dark:text-neutral-200'
+                              }`}
+                            >
+                              <div className="flex items-center gap-1.5 truncate">
+                                <span className="truncate">{w.name}</span>
+                                {w.code && (
+                                  <span className="text-[10px] text-neutral-500 font-mono">
+                                    ({w.code})
+                                  </span>
+                                )}
+                                {w.isDefault && (
+                                  <span className="text-[9px] px-1 bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 rounded border border-amber-300 shrink-0">
+                                    Default
+                                  </span>
+                                )}
+                              </div>
+                              {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 ml-1" />}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {/* Row 2: Company */}
               <div className="flex items-center gap-2">
@@ -1437,6 +1594,8 @@ export function SaleManualModal({
             setShowMemoModal(isOpen);
             if (!isOpen) {
               setSavedSaleForMemo(null);
+              onOpenChange(false);
+              if (onSaveSuccess) onSaveSuccess();
             }
           }}
         />

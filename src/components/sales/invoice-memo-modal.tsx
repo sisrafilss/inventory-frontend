@@ -71,7 +71,7 @@ export function InvoiceMemoModal({ sale, open, onOpenChange }: InvoiceMemoModalP
   const prevDue = Number(memoSale.customer?.currentDue || 0);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} zIndex="z-[70]">
       <div className="max-w-2xl w-full mx-auto">
         <DialogHeader className="no-print">
           <DialogTitle className="flex items-center justify-between">
