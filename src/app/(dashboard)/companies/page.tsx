@@ -318,11 +318,11 @@ export default function CompaniesPage() {
   const inactiveCount = companies.filter((c) => !c.isActive).length;
 
   return (
-    <div className="w-full space-y-3">
+    <div className="w-full h-full flex-1 min-h-0 flex flex-col">
       {/* Desktop Main Window Frame */}
-      <div className="border border-[#004d00] dark:border-emerald-900 rounded-xs bg-[#c6d8ea] dark:bg-slate-900 shadow-sm overflow-hidden select-none">
+      <div className="w-full flex-1 min-h-0 flex flex-col border border-[#004d00] dark:border-emerald-900 rounded-xs bg-[#c6d8ea] dark:bg-slate-900 shadow-sm overflow-hidden select-none">
         {/* Dark Green Banner Header */}
-        <div className="relative bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 select-none border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-between">
+        <div className="relative bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 select-none border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-lg">🏢</span>
             <h1 className="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2 pointer-events-none">
@@ -354,8 +354,8 @@ export default function CompaniesPage() {
           </div>
         </div>
 
-        {/* Master Form Section (Top Area) */}
-        <div className="p-3 sm:p-4 space-y-3 text-xs text-neutral-900 dark:text-neutral-100">
+        {/* Master Form & Table Section */}
+        <div className="flex-1 min-h-0 flex flex-col p-2.5 sm:p-3 space-y-2 text-xs text-neutral-900 dark:text-neutral-100">
           {/* Status / Error Banner */}
           {statusBanner && (
             <div
@@ -386,7 +386,7 @@ export default function CompaniesPage() {
           {/* Form & Actions Split Layout */}
           <form
             onSubmit={handleSave}
-            className="flex flex-col md:flex-row justify-between gap-4 items-start bg-[#dbe7f3] dark:bg-slate-800/60 p-3.5 rounded-xs border border-[#b2c8dc] dark:border-slate-700 shadow-inner"
+            className="flex flex-col md:flex-row justify-between gap-3 items-start bg-[#dbe7f3] dark:bg-slate-800/60 p-2.5 sm:p-3 rounded-xs border border-[#b2c8dc] dark:border-slate-700 shadow-inner shrink-0"
           >
             {/* Left Form Fields */}
             <div className="space-y-2 flex-1 w-full max-w-2xl">
@@ -590,7 +590,7 @@ export default function CompaniesPage() {
           </form>
 
           {/* Search & Filter Toolbar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-1 border-t border-[#a8c2dc] dark:border-slate-800">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-1 border-t border-[#a8c2dc] dark:border-slate-800 shrink-0">
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className="font-bold text-neutral-800 dark:text-neutral-200 text-xs shrink-0">
                 Filter:
@@ -648,8 +648,8 @@ export default function CompaniesPage() {
           </div>
 
           {/* Desktop Spreadsheet Data Grid */}
-          <div className="border border-neutral-400 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shadow-inner">
-            <div className="max-h-[380px] overflow-y-auto overflow-x-auto min-h-[200px] flex flex-col">
+          <div className="flex-1 min-h-[160px] flex flex-col border border-neutral-400 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shadow-inner">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto flex flex-col">
               <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
                 <thead className="sticky top-0 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border-b border-neutral-400 dark:border-slate-700 font-bold select-none text-xs z-10">
                   <tr>
@@ -804,7 +804,7 @@ export default function CompaniesPage() {
           </div>
 
           {/* Bottom Status / Summary Bar */}
-          <div className="bg-[#b0c8de] dark:bg-slate-800/90 px-3 py-1 border border-[#9fbcd6] dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono font-semibold text-neutral-800 dark:text-neutral-200 gap-1">
+          <div className="bg-[#b0c8de] dark:bg-slate-800/90 px-3 py-1 border border-[#9fbcd6] dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono font-semibold text-neutral-800 dark:text-neutral-200 gap-1 shrink-0">
             <div className="flex items-center gap-3">
               <span>
                 Total Records: <strong>{companies.length}</strong>

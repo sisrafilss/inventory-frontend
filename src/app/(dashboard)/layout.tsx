@@ -76,8 +76,8 @@ export default function DashboardLayout({
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Header onOpenMobileMenu={() => setMobileMenuOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-2 sm:p-4 bg-[#e8f0f8] dark:bg-slate-950">
-          <div className="w-full space-y-4">{children}</div>
+        <main className="flex-1 flex flex-col min-h-0 overflow-y-auto p-1.5 sm:p-2 bg-[#e8f0f8] dark:bg-slate-950">
+          <div className="w-full flex-1 flex flex-col min-h-0">{children}</div>
         </main>
       </div>
     </div>
