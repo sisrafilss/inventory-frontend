@@ -157,14 +157,6 @@ export function CustomerLookupModal({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setAddCustomerOpen(true)}
-            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 rounded text-xs font-bold text-white flex items-center gap-1 shadow-sm cursor-pointer transition-colors"
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            <span>+ Add Customer</span>
-          </button>
-          <button
-            type="button"
             onClick={() => onOpenChange(false)}
             className="w-6 h-6 flex items-center justify-center bg-black/20 hover:bg-red-600 rounded text-white transition-colors cursor-pointer"
           >
