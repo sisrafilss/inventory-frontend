@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Package, Plus, Search, Edit2, AlertCircle, ChevronLeft, ChevronRight, Building2, HelpCircle, X, Loader2, Check, ShoppingCart, Tag, Warehouse as WarehouseIcon } from 'lucide-react';
+import { Package, Plus, Search, Edit2, AlertCircle, ChevronLeft, ChevronRight, Building2, HelpCircle, X, Loader2, Check, ShoppingCart, Tag, Warehouse as WarehouseIcon, Lock } from 'lucide-react';
 import { PurchaseModal } from '@/components/purchases/purchase-modal';
 import { SaleRateModal } from '@/components/products/sale-rate-modal';
 
@@ -288,13 +288,15 @@ export default function ProductsPage() {
     setCodeExistsWarning(null);
     setIsCheckingCode(false);
     setCodeIsAvailable(false);
+    const isManager = user?.role === 'MANAGER';
     const defWh = warehouses.find((w) => w.isDefault)?.id || warehouses[0]?.id || '';
+    const initialWh = (isManager && user?.warehouseId) ? user.warehouseId : defWh;
     setForm({
       name: '',
       sku: '',
       categoryId: '',
       companyId: companies[0]?.id || '',
-      warehouseId: defWh,
+      warehouseId: initialWh,
       unit: 'Pieces',
       dpRate: 0,
       costPrice: 0,
@@ -869,14 +871,24 @@ export default function ProductsPage() {
 
               {/* Warehouse (Target for opening stock) */}
               <div className="flex items-center gap-3">
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0 flex items-center justify-end gap-1">
+                  {user?.role === 'MANAGER' && <Lock className="w-3 h-3 text-amber-600 dark:text-amber-400" />}
                   Warehouse
                 </label>
                 <select
                   value={form.warehouseId}
-                  onChange={(e) => setForm({ ...form, warehouseId: e.target.value })}
-                  disabled={!!editingProduct}
-                  className="w-40 sm:w-48 h-6 px-1.5 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-60"
+                  onChange={(e) => {
+                    if (user?.role !== 'MANAGER') {
+                      setForm({ ...form, warehouseId: e.target.value });
+                    }
+                  }}
+                  disabled={!!editingProduct || user?.role === 'MANAGER'}
+                  title={user?.role === 'MANAGER' ? "Assigned warehouse (locked for Manager role)" : undefined}
+                  className={`w-40 sm:w-48 h-6 px-1.5 border focus:outline-none ${
+                    user?.role === 'MANAGER'
+                      ? 'bg-neutral-100 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-slate-700 cursor-not-allowed select-none'
+                      : 'bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border-neutral-400 dark:border-slate-600 focus:ring-1 focus:ring-emerald-600 disabled:opacity-60'
+                  }`}
                 >
                   <option value="">-- Select Warehouse --</option>
                   {warehouses.map((w) => (

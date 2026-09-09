@@ -40,6 +40,12 @@ export interface User {
   address?: string | null;
   role: Role;
   status: UserStatus;
+  warehouseId?: string | null;
+  warehouse?: {
+    id: string;
+    name: string;
+    code?: string | null;
+  } | null;
   mustChangePassword?: boolean;
   lastLoginAt?: string | null;
   createdAt?: string;

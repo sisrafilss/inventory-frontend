@@ -12,7 +12,9 @@ import {
   HelpCircle,
   ChevronDown,
   UserPlus,
+  Lock,
 } from 'lucide-react';
+import { useAuth } from '@/lib/context/auth-context';
 import { Product, Customer, Warehouse, Sale } from '@/lib/types';
 import { api } from '@/lib/api/client';
 import { InvoiceMemoModal, MemoSale } from './invoice-memo-modal';
@@ -55,6 +57,8 @@ export function SaleManualModal({
   });
 
   // Top Metadata
+  const { user: currentUser } = useAuth();
+  const isManager = currentUser?.role === 'MANAGER';
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [paymentMode, setPaymentMode] = useState<'CASH' | 'CUSTOMER'>('CASH');
   const [memoPreview, setMemoPreview] = useState<boolean>(true);
@@ -227,11 +231,31 @@ export function SaleManualModal({
             if (def) {
               setDefaultWarehouseId(def.id);
             }
+            if (isManager) {
+              const mgrWhId = currentUser?.warehouseId || '';
+              setSelectedWarehouseId(mgrWhId);
+              const foundWh = list.find((w) => w.id === mgrWhId);
+              setWarehouseSearchText(
+                foundWh?.name || currentUser?.warehouse?.name || (mgrWhId ? 'Assigned Warehouse' : 'No Warehouse Assigned')
+              );
+            }
           }
         })
         .catch(() => {});
     }
-  }, [open]);
+  }, [open, isManager, currentUser?.warehouseId, currentUser?.warehouse?.name]);
+
+  // Keep manager warehouse locked and in sync
+  useEffect(() => {
+    if (isManager && open) {
+      const mgrWhId = currentUser?.warehouseId || '';
+      setSelectedWarehouseId(mgrWhId);
+      const foundWh = warehousesList.find((w) => w.id === mgrWhId);
+      setWarehouseSearchText(
+        foundWh?.name || currentUser?.warehouse?.name || (mgrWhId ? 'Assigned Warehouse' : 'No Warehouse Assigned')
+      );
+    }
+  }, [isManager, currentUser?.warehouseId, currentUser?.warehouse?.name, open, warehousesList]);
 
   // Close warehouse dropdown on outside click
   useEffect(() => {
@@ -241,11 +265,13 @@ export function SaleManualModal({
         !warehouseDropdownRef.current.contains(event.target as Node)
       ) {
         setIsWarehouseDropdownOpen(false);
-        const currentW = warehousesList.find((w) => w.id === selectedWarehouseId);
-        if (currentW) {
-          setWarehouseSearchText(currentW.name);
-        } else if (!selectedWarehouseId) {
-          setWarehouseSearchText('');
+        if (!isManager) {
+          const currentW = warehousesList.find((w) => w.id === selectedWarehouseId);
+          if (currentW) {
+            setWarehouseSearchText(currentW.name);
+          } else if (!selectedWarehouseId) {
+            setWarehouseSearchText('');
+          }
         }
       }
     };
@@ -1085,6 +1111,7 @@ export function SaleManualModal({
                       type="text"
                       value={warehouseSearchText}
                       onChange={(e) => {
+                        if (isManager) return;
                         setWarehouseSearchText(e.target.value);
                         setIsWarehouseDropdownOpen(true);
                         if (!e.target.value.trim()) {
@@ -1094,24 +1121,43 @@ export function SaleManualModal({
                           }
                         }
                       }}
-                      onFocus={() => setIsWarehouseDropdownOpen(true)}
-                      onClick={() => setIsWarehouseDropdownOpen(true)}
-                      placeholder="Select Warehouse..."
+                      onFocus={() => {
+                        if (!isManager) setIsWarehouseDropdownOpen(true);
+                      }}
+                      onClick={() => {
+                        if (!isManager) setIsWarehouseDropdownOpen(true);
+                      }}
+                      placeholder={isManager ? "No warehouse assigned" : "Select Warehouse..."}
                       disabled={isSaving}
-                      className="w-full h-6 px-2 pr-6 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-medium text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-50"
+                      readOnly={isManager}
+                      title={isManager ? "Assigned warehouse (locked for Manager role)" : undefined}
+                      className={`w-full h-6 px-2 pr-6 font-medium text-xs focus:outline-none disabled:opacity-50 ${
+                        isManager
+                          ? 'bg-neutral-100 dark:bg-slate-800/90 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 cursor-not-allowed select-none'
+                          : 'bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:ring-1 focus:ring-emerald-600'
+                      }`}
                     />
-                    <button
-                      type="button"
-                      tabIndex={-1}
-                      onClick={() => setIsWarehouseDropdownOpen((prev) => !prev)}
-                      className="absolute right-1 text-neutral-500 hover:text-neutral-700 p-0.5 cursor-pointer"
-                    >
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    </button>
+                    {isManager ? (
+                      <div
+                        className="absolute right-1 text-neutral-400 p-0.5"
+                        title="Warehouse is fixed by Administrator"
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        tabIndex={-1}
+                        onClick={() => setIsWarehouseDropdownOpen((prev) => !prev)}
+                        className="absolute right-1 text-neutral-500 hover:text-neutral-700 p-0.5 cursor-pointer"
+                      >
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
 
                   {/* Dropdown list */}
-                  {isWarehouseDropdownOpen && (
+                  {!isManager && isWarehouseDropdownOpen && (
                     <div className="absolute left-0 top-full mt-1 w-60 max-h-48 overflow-y-auto bg-white dark:bg-slate-800 border border-neutral-300 dark:border-slate-600 shadow-xl z-50 py-1">
                       {filteredWarehouses.length === 0 ? (
                         <div className="px-3 py-1.5 text-xs text-neutral-500 text-center">

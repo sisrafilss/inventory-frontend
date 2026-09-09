@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { api } from '@/lib/api/client';
 import { Product, Customer, Warehouse, Sale } from '@/lib/types';
 import { useLanguage } from '@/lib/context/language-context';
+import { useAuth } from '@/lib/context/auth-context';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +35,7 @@ import {
   Printer,
   TrendingUp,
   DollarSign,
+  Lock,
 } from 'lucide-react';
 
 interface SaleLineItem {
@@ -52,6 +54,8 @@ interface SaleLineItem {
 export default function CreateSalePage() {
   const router = useRouter();
   const { t, formatMoney } = useLanguage();
+  const { user: currentUser } = useAuth();
+  const isManager = currentUser?.role === 'MANAGER';
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -117,8 +121,12 @@ export default function CreateSalePage() {
         setCustomers(custRes.data);
         setWarehouses(whRes.data);
 
-        const defWh = whRes.data.find((w) => w.isDefault && w.isActive) || whRes.data[0];
-        if (defWh) setWarehouseId(defWh.id);
+        if (isManager && currentUser?.warehouseId) {
+          setWarehouseId(currentUser.warehouseId);
+        } else {
+          const defWh = whRes.data.find((w) => w.isDefault && w.isActive) || whRes.data[0];
+          if (defWh) setWarehouseId(defWh.id);
+        }
       } catch (err) {
         console.error('Failed to load customers/warehouses:', err);
         setErrorMsg('Failed to load initial sales data.');
@@ -127,7 +135,14 @@ export default function CreateSalePage() {
       }
     };
     loadInitialData();
-  }, []);
+  }, [isManager, currentUser?.warehouseId]);
+
+  // Keep manager's assigned warehouse locked in sync
+  useEffect(() => {
+    if (isManager && currentUser?.warehouseId) {
+      setWarehouseId(currentUser.warehouseId);
+    }
+  }, [isManager, currentUser?.warehouseId]);
 
   // Update stock when warehouse changes
   useEffect(() => {
@@ -475,13 +490,28 @@ export default function CreateSalePage() {
 
             {/* Warehouse */}
             <div className="md:col-span-2 space-y-1">
-              <label className="text-xs font-bold text-foreground flex items-center gap-1">
-                <Building2 className="w-3.5 h-3.5 text-muted-foreground" /> Godown / Store
+              <label className="text-xs font-bold text-foreground flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <Building2 className="w-3.5 h-3.5 text-muted-foreground" /> Godown / Store
+                </span>
+                {isManager && (
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-0.5">
+                    <Lock className="w-3 h-3" /> Fixed
+                  </span>
+                )}
               </label>
               <select
                 value={warehouseId}
-                onChange={(e) => setWarehouseId(e.target.value)}
-                className="w-full h-9 px-2 rounded-md border border-input bg-background text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                onChange={(e) => {
+                  if (!isManager) setWarehouseId(e.target.value);
+                }}
+                disabled={isManager}
+                title={isManager ? "Assigned warehouse (locked for Manager role)" : undefined}
+                className={`w-full h-9 px-2 rounded-md border text-xs text-foreground focus:outline-none ${
+                  isManager
+                    ? 'bg-muted/60 border-border cursor-not-allowed text-muted-foreground select-none'
+                    : 'border-input bg-background focus:ring-2 focus:ring-ring'
+                }`}
               >
                 {warehouses.map((w) => (
                   <option key={w.id} value={w.id}>

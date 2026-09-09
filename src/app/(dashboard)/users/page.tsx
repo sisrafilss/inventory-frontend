@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/context/auth-context';
 import { useLanguage } from '@/lib/context/language-context';
 import { api } from '@/lib/api/client';
-import { User, Role, UserStatus } from '@/lib/types';
+import { User, Role, UserStatus, Warehouse } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import {
   KeyRound,
   PowerOff,
   Power,
+  Pencil,
 } from 'lucide-react';
 
 export default function UsersPage() {
@@ -32,6 +33,7 @@ export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
 
   // Create Modal
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -41,13 +43,34 @@ export default function UsersPage() {
     phone: '',
     role: Role.MANAGER as Role,
     password: '',
+    warehouseId: '',
   });
   const [isCreating, setIsCreating] = useState(false);
+
+  // Edit Modal
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    phone: '',
+    address: '',
+    role: Role.MANAGER as Role,
+    warehouseId: '',
+  });
+  const [isEditing, setIsEditing] = useState(false);
 
   // Reset Password Modal
   const [selectedUserForReset, setSelectedUserForReset] = useState<User | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [isResetting, setIsResetting] = useState(false);
+
+  const fetchWarehouses = async () => {
+    try {
+      const res = await api.get<Warehouse[]>('/warehouses');
+      setWarehouses(res.data || []);
+    } catch (err) {
+      console.error('Failed to load warehouses:', err);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -67,6 +90,10 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
+    fetchWarehouses();
+  }, []);
+
+  useEffect(() => {
     fetchUsers();
   }, [roleFilter, statusFilter]);
 
@@ -77,9 +104,16 @@ export default function UsersPage() {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (createForm.role === Role.MANAGER && !createForm.warehouseId) {
+      alert('Please assign a warehouse for the Manager.');
+      return;
+    }
     setIsCreating(true);
     try {
-      await api.post('/users', createForm);
+      await api.post('/users', {
+        ...createForm,
+        warehouseId: createForm.warehouseId || undefined,
+      });
       setIsCreateOpen(false);
       setCreateForm({
         name: '',
@@ -87,12 +121,49 @@ export default function UsersPage() {
         phone: '',
         role: Role.MANAGER,
         password: '',
+        warehouseId: '',
       });
       await fetchUsers();
     } catch (err: any) {
       alert(err.message || 'Failed to create user.');
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const openEditModal = (u: User) => {
+    setEditingUser(u);
+    setEditForm({
+      name: u.name,
+      phone: u.phone || '',
+      address: u.address || '',
+      role: u.role,
+      warehouseId: u.warehouseId || '',
+    });
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    if (editForm.role === Role.MANAGER && !editForm.warehouseId) {
+      alert('Please assign a warehouse for the Manager.');
+      return;
+    }
+    setIsEditing(true);
+    try {
+      await api.patch(`/users/${editingUser.id}`, {
+        name: editForm.name,
+        phone: editForm.phone,
+        address: editForm.address,
+        role: editForm.role,
+        warehouseId: editForm.warehouseId || null,
+      });
+      setEditingUser(null);
+      await fetchUsers();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update user.');
+    } finally {
+      setIsEditing(false);
     }
   };
 
@@ -200,6 +271,7 @@ export default function UsersPage() {
                   <tr className="text-left font-semibold">
                     <th className="p-3">{t('users.userDetails')}</th>
                     <th className="p-3">{t('users.role')}</th>
+                    <th className="p-3">Assigned Warehouse</th>
                     <th className="p-3">{t('common.status')}</th>
                     <th className="p-3">{t('users.mustChangePwd')}</th>
                     <th className="p-3">{t('users.created')}</th>
@@ -231,6 +303,15 @@ export default function UsersPage() {
                         </Badge>
                       </td>
                       <td className="p-3">
+                        {u.warehouse ? (
+                          <span className="font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 text-[11px] inline-flex items-center gap-1">
+                            {u.warehouse.name}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground italic text-[11px]">—</span>
+                        )}
+                      </td>
+                      <td className="p-3">
                         <Badge
                           variant={
                             u.status === 'ACTIVE'
@@ -255,6 +336,14 @@ export default function UsersPage() {
                         {u.createdAt ? formatDate(u.createdAt) : t('common.na')}
                       </td>
                       <td className="p-3 text-right space-x-1.5 whitespace-nowrap">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          onClick={() => openEditModal(u)}
+                        >
+                          <Pencil className="w-3.5 h-3.5 mr-1 text-primary" /> Edit
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
@@ -341,6 +430,29 @@ export default function UsersPage() {
           </div>
 
           <div className="space-y-1">
+            <label className="text-xs font-semibold">
+              Assigned Warehouse {createForm.role === 'MANAGER' ? '*' : '(Optional)'}
+            </label>
+            <Select
+              value={createForm.warehouseId}
+              onChange={(e) => setCreateForm({ ...createForm, warehouseId: e.target.value })}
+              required={createForm.role === 'MANAGER'}
+            >
+              <option value="">{createForm.role === 'MANAGER' ? '-- Select Warehouse for Manager * --' : '-- No Warehouse Assigned --'}</option>
+              {warehouses.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name} {w.code ? `(${w.code})` : ''} {w.isDefault ? '[Default]' : ''}
+                </option>
+              ))}
+            </Select>
+            {createForm.role === 'MANAGER' && (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                Managers can only sell and manage stock in their assigned warehouse.
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-1">
             <label className="text-xs font-semibold">{t('users.initialPassword')} *</label>
             <Input
               type="password"
@@ -363,6 +475,94 @@ export default function UsersPage() {
             </Button>
             <Button type="submit" size="sm" disabled={isCreating}>
               {isCreating ? t('common.submitting') : t('users.createAccount')}
+            </Button>
+          </DialogFooter>
+        </form>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+        <DialogHeader>
+          <DialogTitle>Edit User</DialogTitle>
+          <DialogDescription>
+            Update user details and assigned warehouse for <strong>{editingUser?.name}</strong>.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleUpdateUser} className="space-y-3.5">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold">{t('auth.fullName')} *</label>
+            <Input
+              value={editForm.name}
+              onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold">{t('auth.phone')}</label>
+            <Input
+              value={editForm.phone}
+              onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold">Address</label>
+            <Input
+              value={editForm.address}
+              onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+            />
+          </div>
+
+          {editingUser?.role !== 'SUPER_ADMIN' && (
+            <div className="space-y-1">
+              <label className="text-xs font-semibold">{t('users.assignRole')} *</label>
+              <Select
+                value={editForm.role}
+                onChange={(e) => setEditForm({ ...editForm, role: e.target.value as Role })}
+              >
+                {isSuperAdmin && <option value="ADMIN">{t('roles.ADMIN')}</option>}
+                <option value="MANAGER">{t('roles.MANAGER')}</option>
+              </Select>
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold">
+              Assigned Warehouse {editForm.role === 'MANAGER' ? '*' : '(Optional)'}
+            </label>
+            <Select
+              value={editForm.warehouseId}
+              onChange={(e) => setEditForm({ ...editForm, warehouseId: e.target.value })}
+              required={editForm.role === 'MANAGER'}
+            >
+              <option value="">{editForm.role === 'MANAGER' ? '-- Select Warehouse for Manager * --' : '-- No Warehouse Assigned --'}</option>
+              {warehouses.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name} {w.code ? `(${w.code})` : ''} {w.isDefault ? '[Default]' : ''}
+                </option>
+              ))}
+            </Select>
+            {editForm.role === 'MANAGER' && (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                Managers can only sell and manage stock in their assigned warehouse.
+              </p>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setEditingUser(null)}
+              disabled={isEditing}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button type="submit" size="sm" disabled={isEditing}>
+              {isEditing ? t('common.submitting') : t('common.save')}
             </Button>
           </DialogFooter>
         </form>
