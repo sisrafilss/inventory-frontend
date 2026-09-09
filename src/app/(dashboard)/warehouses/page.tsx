@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '@/lib/api/client';
 import { useAuth } from '@/lib/context/auth-context';
 import { Warehouse, Product } from '@/lib/types';
@@ -15,10 +15,11 @@ import {
   Edit2,
   Trash2,
   RotateCcw,
-  Save,
   ArrowRightLeft,
   MapPin,
+  Plus,
 } from 'lucide-react';
+import { WarehouseModal } from '@/components/warehouses/warehouse-modal';
 
 export default function WarehousesPage() {
   const { user } = useAuth();
@@ -41,20 +42,14 @@ export default function WarehousesPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
 
-  // Currently Selected Warehouse for Editing (null = new entry mode)
+  // Selected Warehouse in Table
   const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
 
-  // Form Fields
-  const [systemId, setSystemId] = useState('');
-  const [name, setName] = useState('');
-  const [code, setCode] = useState('');
-  const [address, setAddress] = useState('');
-  const [isDefault, setIsDefault] = useState(false);
-  const [isActive, setIsActive] = useState(true);
+  // Warehouse Modal State (Add / Edit)
+  const [isWarehouseModalOpen, setIsWarehouseModalOpen] = useState(false);
+  const [modalWarehouse, setModalWarehouse] = useState<Warehouse | null>(null);
 
-  // Action status
-  const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  // Status Banner for notification
   const [statusBanner, setStatusBanner] = useState<{ text: string; isError: boolean } | null>(null);
 
   // Stock Transfer Modal
@@ -68,10 +63,6 @@ export default function WarehousesPage() {
   });
   const [isTransferring, setIsTransferring] = useState(false);
 
-  // Refs
-  const nameInputRef = useRef<HTMLInputElement>(null);
-  const codeInputRef = useRef<HTMLInputElement>(null);
-
   // Fetch Warehouses List
   const fetchWarehouses = async () => {
     try {
@@ -79,6 +70,11 @@ export default function WarehousesPage() {
       setError(null);
       const res = await api.get<Warehouse[]>('/warehouses', { search });
       setWarehouses(res.data);
+      // Keep selected warehouse in sync if it still exists
+      if (selectedWarehouse) {
+        const found = res.data.find((w) => w.id === selectedWarehouse.id);
+        setSelectedWarehouse(found || null);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load warehouses.');
     } finally {
@@ -118,113 +114,41 @@ export default function WarehousesPage() {
     });
   }, [warehouses, statusFilter, search]);
 
-  // Handle Selecting a Warehouse from the Table
-  const handleSelectWarehouse = (wh: Warehouse) => {
+  // Open Warehouse Modal for Creation
+  const handleOpenCreateModal = () => {
+    setModalWarehouse(null);
+    setIsWarehouseModalOpen(true);
+  };
+
+  // Open Warehouse Modal for Editing
+  const handleOpenEditModal = (wh: Warehouse) => {
     setSelectedWarehouse(wh);
-    setSystemId(wh.id);
-    setName(wh.name);
-    setCode(wh.code || '');
-    setAddress(wh.address || '');
-    setIsDefault(Boolean(wh.isDefault));
-    setIsActive(Boolean(wh.isActive));
-    setStatusBanner(null);
+    setModalWarehouse(wh);
+    setIsWarehouseModalOpen(true);
   };
 
-  // Reset / Clear Form
-  const handleResetForm = () => {
-    setSelectedWarehouse(null);
-    setSystemId('');
-    setName('');
-    setCode('');
-    setAddress('');
-    setIsDefault(false);
-    setIsActive(true);
-    setStatusBanner(null);
-    nameInputRef.current?.focus();
-  };
-
-  // Save / Update Warehouse
-  const handleSave = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!name.trim()) {
-      setStatusBanner({ text: 'Please enter a valid warehouse name.', isError: true });
-      nameInputRef.current?.focus();
-      return;
-    }
-
-    setIsSaving(true);
-    setStatusBanner(null);
-
-    const payload = {
-      name: name.trim(),
-      code: code.trim() || undefined,
-      address: address.trim() || undefined,
-      isDefault,
-      isActive,
-    };
-
-    try {
-      if (selectedWarehouse) {
-        // Update
-        const res = await api.patch<{ data: Warehouse; message?: string }>(
-          `/warehouses/${selectedWarehouse.id}`,
-          payload
-        );
-        const updated = (res as any).data || res;
-        setStatusBanner({
-          text: `Warehouse "${name}" updated successfully!`,
-          isError: false,
-        });
-        await fetchWarehouses();
-        if (updated && updated.id) {
-          setSelectedWarehouse(updated);
-        }
-      } else {
-        // Create
-        const res = await api.post<{ data: Warehouse; message?: string }>('/warehouses', payload);
-        const created = (res as any).data || res;
-        setStatusBanner({
-          text: `Warehouse "${name}" registered successfully!`,
-          isError: false,
-        });
-        await fetchWarehouses();
-        handleResetForm();
-      }
-    } catch (err: any) {
-      setStatusBanner({
-        text: err.message || 'Failed to save warehouse.',
-        isError: true,
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Delete Warehouse
-  const handleDelete = async () => {
-    if (!selectedWarehouse) return;
+  // Delete Warehouse directly
+  const handleDeleteWarehouse = async (wh: Warehouse) => {
     const confirmDelete = window.confirm(
-      `Are you sure you want to delete warehouse "${selectedWarehouse.name}"?\n\nIf this location contains active inventory or past transaction records, delete will be blocked to maintain data integrity.`
+      `Are you sure you want to delete warehouse "${wh.name}"?\n\nIf this location contains active inventory or past transaction records, delete will be blocked to maintain data integrity.`
     );
     if (!confirmDelete) return;
 
-    setIsDeleting(true);
-    setStatusBanner(null);
     try {
-      await api.delete(`/warehouses/${selectedWarehouse.id}`);
+      await api.delete(`/warehouses/${wh.id}`);
       setStatusBanner({
-        text: `Warehouse "${selectedWarehouse.name}" was successfully deleted.`,
+        text: `Warehouse "${wh.name}" was successfully deleted.`,
         isError: false,
       });
-      handleResetForm();
+      if (selectedWarehouse?.id === wh.id) {
+        setSelectedWarehouse(null);
+      }
       await fetchWarehouses();
     } catch (err: any) {
       setStatusBanner({
         text: err.message || 'Failed to delete warehouse.',
         isError: true,
       });
-    } finally {
-      setIsDeleting(false);
     }
   };
 
@@ -295,24 +219,39 @@ export default function WarehousesPage() {
               </span>
             </h1>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-1.5 bg-[#004d00]/60 border border-emerald-600/40 px-2 py-0.5 rounded-xs text-[11px] font-mono text-emerald-100 shadow-inner">
+
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="hidden md:flex items-center gap-1.5 bg-[#004d00]/60 border border-emerald-600/40 px-2 py-0.5 rounded-xs text-[11px] font-mono text-emerald-100 shadow-inner">
               <CalendarIcon className="w-3.5 h-3.5 text-emerald-300" />
               <span>Date {currentDate}</span>
             </div>
+
+            {/* Add Warehouse Modal Trigger Button */}
+            <button
+              type="button"
+              onClick={handleOpenCreateModal}
+              className="px-3 py-1 text-xs font-bold bg-white text-[#006400] hover:bg-emerald-50 border border-white shadow-xs flex items-center gap-1.5 rounded-xs transition-colors cursor-pointer"
+              title="Add a new warehouse / godown"
+            >
+              <Plus className="w-3.5 h-3.5 text-[#006400] stroke-[3]" />
+              <span>Add Warehouse</span>
+            </button>
+
+            {/* Transfer Stock Button */}
             <button
               type="button"
               onClick={() => handleOpenTransfer()}
               disabled={warehouses.length < 2 || products.length === 0}
-              className="px-2.5 py-1 text-[11px] font-bold bg-white text-[#006400] hover:bg-emerald-50 border border-white shadow-xs flex items-center gap-1.5 rounded-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-2.5 py-1 text-xs font-bold bg-[#004d00] hover:bg-emerald-900 text-white border border-emerald-600/60 shadow-xs flex items-center gap-1.5 rounded-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              title="Transfer inventory stock between warehouses"
             >
-              <ArrowRightLeft className="w-3.5 h-3.5 text-[#006400]" />
+              <ArrowRightLeft className="w-3.5 h-3.5 text-emerald-300" />
               <span>Transfer Stock</span>
             </button>
           </div>
         </div>
 
-        {/* Master Form & Table Section */}
+        {/* Master Content Section: Expanded Table Area */}
         <div className="flex-1 min-h-0 flex flex-col p-2.5 sm:p-3 space-y-2 text-xs text-neutral-900 dark:text-neutral-100">
           {/* Status / Error Banner */}
           {statusBanner && (
@@ -334,183 +273,16 @@ export default function WarehousesPage() {
               <button
                 type="button"
                 onClick={() => setStatusBanner(null)}
-                className="text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 ml-2"
+                className="text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 ml-2 font-bold cursor-pointer"
               >
                 ✕
               </button>
             </div>
           )}
 
-          {/* Form & Actions Split Layout */}
-          <form
-            onSubmit={handleSave}
-            className="flex flex-col md:flex-row justify-between gap-3 items-start bg-[#dbe7f3] dark:bg-slate-800/60 p-2.5 sm:p-3 rounded-xs border border-[#b2c8dc] dark:border-slate-700 shadow-inner shrink-0"
-          >
-            {/* Left Form Fields */}
-            <div className="space-y-2 flex-1 w-full max-w-2xl">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* System ID */}
-                <div className="flex items-center gap-2">
-                  <label className="w-24 text-right font-bold text-neutral-800 dark:text-neutral-200 shrink-0">
-                    System ID
-                  </label>
-                  <input
-                    type="text"
-                    value={systemId ? systemId.slice(0, 8).toUpperCase() : (selectedWarehouse ? 'SAVED' : 'AUTO')}
-                    disabled
-                    className="w-32 px-2 py-1 bg-[#e4ecf5] dark:bg-slate-900/60 border border-[#a8c2dc] dark:border-slate-700 rounded-xs font-mono font-bold text-neutral-600 dark:text-neutral-400 text-xs cursor-not-allowed select-all"
-                  />
-                </div>
-
-                {/* Godown Code */}
-                <div className="flex items-center gap-2">
-                  <label className="w-24 text-right font-bold text-neutral-800 dark:text-neutral-200 shrink-0">
-                    Godown Code
-                  </label>
-                  <div className="relative flex-1 max-w-[180px]">
-                    <input
-                      ref={codeInputRef}
-                      type="text"
-                      placeholder="e.g. WH-01"
-                      value={code}
-                      onChange={(e) => setCode(e.target.value.toUpperCase())}
-                      className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs uppercase font-mono font-bold focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100"
-                    />
-                  </div>
-                  <span className="text-[10px] text-neutral-500 italic shrink-0">(Optional)</span>
-                </div>
-              </div>
-
-              {/* Warehouse / Godown Name */}
-              <div className="flex items-center gap-2">
-                <label className="w-24 text-right font-bold text-neutral-800 dark:text-neutral-200 shrink-0">
-                  Godown Name <span className="text-red-500">*</span>
-                </label>
-                <div className="flex-1">
-                  <input
-                    ref={nameInputRef}
-                    required
-                    type="text"
-                    placeholder="Enter warehouse / godown name (e.g. Main Godown, Dhaka Hub, Factory Depot)"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-2.5 py-1 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100"
-                  />
-                </div>
-              </div>
-
-              {/* Location / Physical Address */}
-              <div className="flex items-center gap-2">
-                <label className="w-24 text-right font-bold text-neutral-800 dark:text-neutral-200 shrink-0">
-                  Location
-                </label>
-                <div className="flex-1">
-                  <input
-                    type="text"
-                    placeholder="Physical address / premises location (e.g. Plot 14, Sector 7, Tongi, Gazipur)..."
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    className="w-full px-2.5 py-1 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100"
-                  />
-                </div>
-              </div>
-
-              {/* Default & Active Status Radios/Checkboxes */}
-              <div className="flex flex-wrap items-center gap-4 sm:gap-6 pl-0 sm:pl-26 pt-1">
-                <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={isDefault}
-                    onChange={(e) => setIsDefault(e.target.checked)}
-                    className="w-3.5 h-3.5 text-[#006400] border-neutral-400 rounded-xs focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                  />
-                  <span className="font-semibold text-neutral-900 dark:text-neutral-100 text-xs flex items-center gap-1">
-                    Default Godown (Primary for Sales & Restocking)
-                    {isDefault && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 inline" />}
-                  </span>
-                </label>
-
-                <div className="flex items-center gap-3 border-l border-neutral-300 dark:border-slate-700 pl-3">
-                  <span className="font-bold text-neutral-700 dark:text-neutral-300 text-xs">Status:</span>
-                  <label className="flex items-center gap-1 cursor-pointer select-none">
-                    <input
-                      type="radio"
-                      name="status"
-                      checked={isActive}
-                      onChange={() => setIsActive(true)}
-                      className="w-3.5 h-3.5 text-[#006400] border-neutral-400 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                    />
-                    <span className="font-semibold text-emerald-800 dark:text-emerald-400 text-xs">Active Godown</span>
-                  </label>
-                  <label className="flex items-center gap-1 cursor-pointer select-none">
-                    <input
-                      type="radio"
-                      name="status"
-                      checked={!isActive}
-                      onChange={() => setIsActive(false)}
-                      className="w-3.5 h-3.5 text-rose-600 border-neutral-400 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                    />
-                    <span className="font-semibold text-neutral-600 dark:text-neutral-400 text-xs">Inactive</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Action Buttons Stack (Accounting ERP style) */}
-            <div className="flex md:flex-col flex-wrap gap-1.5 w-full md:w-32 shrink-0 self-center md:self-start">
-              <button
-                type="button"
-                onClick={handleResetForm}
-                className="flex-1 md:flex-none h-7 px-2.5 bg-white dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-[#b81b4c] hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xs font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors"
-                title="Reset form to enter a new warehouse"
-              >
-                <RotateCcw className="w-3 h-3 text-[#b81b4c]" />
-                Refresh
-              </button>
-
-              <button
-                type="submit"
-                disabled={isSaving}
-                className="flex-1 md:flex-none h-7 px-2.5 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border-2 border-[#b81b4c] hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-xs font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors disabled:opacity-50"
-              >
-                {isSaving ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" />
-                ) : (
-                  <Save className="w-3 h-3 text-emerald-700" />
-                )}
-                {selectedWarehouse ? 'Update' : 'Save'}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={!selectedWarehouse || isDeleting}
-                className="flex-1 md:flex-none h-7 px-2.5 bg-white dark:bg-slate-800 text-[#b81b4c] hover:text-red-700 border border-[#b81b4c] hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xs font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                title="Delete selected warehouse (only if empty)"
-              >
-                {isDeleting ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Trash2 className="w-3 h-3" />
-                )}
-                Delete
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleOpenTransfer(selectedWarehouse?.id)}
-                disabled={warehouses.length < 2 || products.length === 0}
-                className="flex-1 md:flex-none h-7 px-2 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 border border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-xs font-bold text-[11px] flex items-center justify-center gap-1 shadow-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Transfer stock to/from this warehouse"
-              >
-                <ArrowRightLeft className="w-3 h-3 text-blue-600" />
-                Transfer Stock
-              </button>
-            </div>
-          </form>
-
-          {/* Search & Filter Toolbar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-1 border-t border-[#a8c2dc] dark:border-slate-800 shrink-0">
+          {/* Search & Action Toolbar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 p-2 bg-[#dbe7f3] dark:bg-slate-800/60 rounded-xs border border-[#b2c8dc] dark:border-slate-700 shadow-inner shrink-0">
+            {/* Search Input */}
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className="font-bold text-neutral-800 dark:text-neutral-200 text-xs shrink-0">
                 Filter:
@@ -529,59 +301,98 @@ export default function WarehousesPage() {
                 <button
                   type="button"
                   onClick={() => setSearch('')}
-                  className="text-xs text-neutral-600 hover:text-neutral-900 underline"
+                  className="text-xs text-neutral-600 hover:text-neutral-900 dark:hover:text-neutral-200 underline cursor-pointer"
                 >
                   Clear
                 </button>
               )}
             </div>
 
-            {/* Quick Status Filter Tabs */}
-            <div className="flex items-center gap-1 self-end sm:self-auto">
-              <span className="text-[11px] font-semibold text-neutral-700 dark:text-neutral-300 mr-1">
-                Status:
-              </span>
-              <button
-                type="button"
-                onClick={() => setStatusFilter('ALL')}
-                className={`px-2 py-0.5 text-xs font-bold rounded-xs border transition-colors ${
-                  statusFilter === 'ALL'
-                    ? 'bg-[#004d00] text-white border-[#004d00]'
-                    : 'bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-slate-700 hover:bg-neutral-100'
-                }`}
-              >
-                All ({warehouses.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter('ACTIVE')}
-                className={`px-2 py-0.5 text-xs font-bold rounded-xs border transition-colors ${
-                  statusFilter === 'ACTIVE'
-                    ? 'bg-emerald-700 text-white border-emerald-700'
-                    : 'bg-white dark:bg-slate-800 text-emerald-800 dark:text-emerald-400 border-neutral-300 dark:border-slate-700 hover:bg-neutral-100'
-                }`}
-              >
-                Active ({activeCount})
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter('INACTIVE')}
-                className={`px-2 py-0.5 text-xs font-bold rounded-xs border transition-colors ${
-                  statusFilter === 'INACTIVE'
-                    ? 'bg-rose-700 text-white border-rose-700'
-                    : 'bg-white dark:bg-slate-800 text-rose-800 dark:text-rose-400 border-neutral-300 dark:border-slate-700 hover:bg-neutral-100'
-                }`}
-              >
-                Inactive ({inactiveCount})
-              </button>
+            {/* Quick Status Filter Tabs & Table Actions */}
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] font-semibold text-neutral-700 dark:text-neutral-300 mr-1">
+                  Status:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('ALL')}
+                  className={`px-2 py-0.5 text-xs font-bold rounded-xs border transition-colors cursor-pointer ${
+                    statusFilter === 'ALL'
+                      ? 'bg-[#004d00] text-white border-[#004d00]'
+                      : 'bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-slate-700 hover:bg-neutral-100'
+                  }`}
+                >
+                  All ({warehouses.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('ACTIVE')}
+                  className={`px-2 py-0.5 text-xs font-bold rounded-xs border transition-colors cursor-pointer ${
+                    statusFilter === 'ACTIVE'
+                      ? 'bg-emerald-700 text-white border-emerald-700'
+                      : 'bg-white dark:bg-slate-800 text-emerald-800 dark:text-emerald-400 border-neutral-300 dark:border-slate-700 hover:bg-neutral-100'
+                  }`}
+                >
+                  Active ({activeCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('INACTIVE')}
+                  className={`px-2 py-0.5 text-xs font-bold rounded-xs border transition-colors cursor-pointer ${
+                    statusFilter === 'INACTIVE'
+                      ? 'bg-rose-700 text-white border-rose-700'
+                      : 'bg-white dark:bg-slate-800 text-rose-800 dark:text-rose-400 border-neutral-300 dark:border-slate-700 hover:bg-neutral-100'
+                  }`}
+                >
+                  Inactive ({inactiveCount})
+                </button>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-1.5 pl-2 border-l border-neutral-300 dark:border-slate-700">
+                {selectedWarehouse && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditModal(selectedWarehouse)}
+                      className="h-6 px-2 bg-white dark:bg-slate-800 text-emerald-800 dark:text-emerald-300 border border-emerald-600 hover:bg-emerald-50 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                      title="Edit selected warehouse"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteWarehouse(selectedWarehouse)}
+                      className="h-6 px-2 bg-white dark:bg-slate-800 text-rose-700 dark:text-rose-400 border border-rose-500 hover:bg-rose-50 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                      title="Delete selected warehouse"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>Delete</span>
+                    </button>
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  onClick={fetchWarehouses}
+                  disabled={loading}
+                  className="h-6 px-2 bg-white dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 hover:bg-neutral-100 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                  title="Reload warehouse list from database"
+                >
+                  <RotateCcw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+                  <span>Refresh</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Desktop Spreadsheet Data Grid */}
-          <div className="flex-1 min-h-[160px] flex flex-col border border-neutral-400 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shadow-inner">
+          {/* Desktop Spreadsheet Data Grid - Maximized Vertical Space */}
+          <div className="flex-1 min-h-[300px] flex flex-col border border-neutral-400 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shadow-inner">
             <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto flex flex-col">
               <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
-                <thead className="sticky top-0 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border-b border-neutral-400 dark:border-slate-700 font-bold select-none text-xs z-10">
+                <thead className="sticky top-0 bg-[#eaf1f8] dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border-b border-neutral-400 dark:border-slate-700 font-bold select-none text-xs z-10">
                   <tr>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-12 text-center">
                       SN
@@ -615,7 +426,7 @@ export default function WarehousesPage() {
                 <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
                   {loading ? (
                     <tr>
-                      <td colSpan={9} className="py-12 text-center text-neutral-500 font-medium">
+                      <td colSpan={9} className="py-16 text-center text-neutral-500 font-medium">
                         <div className="flex items-center justify-center gap-2">
                           <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
                           <span>Loading warehouses from database...</span>
@@ -624,7 +435,7 @@ export default function WarehousesPage() {
                     </tr>
                   ) : error ? (
                     <tr>
-                      <td colSpan={9} className="py-8 text-center text-rose-600 font-medium">
+                      <td colSpan={9} className="py-12 text-center text-rose-600 font-medium">
                         <div className="flex items-center justify-center gap-2">
                           <AlertCircle className="w-4 h-4" />
                           <span>{error}</span>
@@ -633,8 +444,19 @@ export default function WarehousesPage() {
                     </tr>
                   ) : filteredWarehouses.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="py-12 text-center text-neutral-500 font-medium">
-                        No warehouses found matching your filter criteria.
+                      <td colSpan={9} className="py-16 text-center text-neutral-500 font-medium">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <WarehouseIcon className="w-8 h-8 text-neutral-400" />
+                          <span>No warehouses found matching your filter criteria.</span>
+                          <button
+                            type="button"
+                            onClick={handleOpenCreateModal}
+                            className="mt-2 px-3 py-1 bg-[#006400] text-white rounded-xs font-bold text-xs flex items-center gap-1.5 shadow-xs hover:bg-emerald-800 transition-colors"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Create New Warehouse</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ) : (
@@ -643,7 +465,8 @@ export default function WarehousesPage() {
                       return (
                         <tr
                           key={wh.id}
-                          onClick={() => handleSelectWarehouse(wh)}
+                          onClick={() => setSelectedWarehouse(wh)}
+                          onDoubleClick={() => handleOpenEditModal(wh)}
                           className={`transition-colors ${
                             isSelected
                               ? 'bg-[#0056b3] text-white font-semibold cursor-pointer'
@@ -653,12 +476,12 @@ export default function WarehousesPage() {
                           }`}
                         >
                           {/* SN */}
-                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1 text-center font-mono">
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono">
                             {idx + 1}
                           </td>
 
                           {/* Code */}
-                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1 text-center font-mono font-bold">
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono font-bold">
                             {wh.code ? (
                               <span
                                 className={`px-1.5 py-0.5 rounded-xs ${
@@ -675,18 +498,26 @@ export default function WarehousesPage() {
                           </td>
 
                           {/* Name */}
-                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1 font-semibold flex-1">
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-semibold flex-1">
                             <div className="flex items-center gap-1.5">
-                              <WarehouseIcon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-white' : 'text-emerald-700 dark:text-emerald-400'}`} />
+                              <WarehouseIcon
+                                className={`w-3.5 h-3.5 shrink-0 ${
+                                  isSelected ? 'text-white' : 'text-emerald-700 dark:text-emerald-400'
+                                }`}
+                              />
                               <span>{wh.name}</span>
                             </div>
                           </td>
 
                           {/* Address / Location */}
-                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1 text-neutral-600 dark:text-neutral-400">
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-neutral-600 dark:text-neutral-400">
                             {wh.address ? (
                               <div className="flex items-center gap-1">
-                                <MapPin className={`w-3 h-3 shrink-0 ${isSelected ? 'text-blue-200' : 'text-neutral-400'}`} />
+                                <MapPin
+                                  className={`w-3 h-3 shrink-0 ${
+                                    isSelected ? 'text-blue-200' : 'text-neutral-400'
+                                  }`}
+                                />
                                 <span className={isSelected ? 'text-white' : ''}>{wh.address}</span>
                               </div>
                             ) : (
@@ -697,9 +528,9 @@ export default function WarehousesPage() {
                           </td>
 
                           {/* Products Stocked */}
-                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1 text-center">
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
                             <span
-                              className={`px-1.5 py-0.2 rounded-xs font-mono font-bold ${
+                              className={`px-1.5 py-0.5 rounded-xs font-mono font-bold ${
                                 isSelected
                                   ? 'bg-blue-800 text-white'
                                   : 'bg-neutral-100 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700'
@@ -710,7 +541,7 @@ export default function WarehousesPage() {
                           </td>
 
                           {/* Default */}
-                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1 text-center">
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
                             {wh.isDefault ? (
                               <span
                                 className={`px-1.5 py-0.5 rounded-xs font-bold inline-flex items-center gap-1 text-[11px] ${
@@ -730,7 +561,7 @@ export default function WarehousesPage() {
                           </td>
 
                           {/* Status */}
-                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1 text-center">
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
                             <span
                               className={`px-2 py-0.5 rounded-xs text-[10px] font-bold tracking-wider uppercase ${
                                 wh.isActive
@@ -747,7 +578,7 @@ export default function WarehousesPage() {
                           </td>
 
                           {/* System ID */}
-                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1 text-center font-mono text-[11px]">
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono text-[11px]">
                             <span className={isSelected ? 'text-blue-200' : 'text-neutral-500'}>
                               {wh.id.slice(0, 8).toUpperCase()}
                             </span>
@@ -755,26 +586,26 @@ export default function WarehousesPage() {
 
                           {/* Action Buttons */}
                           <td className="px-2 py-1 text-center">
-                            <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                            <div
+                              className="flex items-center justify-center gap-1.5"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <button
                                 type="button"
-                                onClick={() => {
-                                  handleSelectWarehouse(wh);
-                                  nameInputRef.current?.focus();
-                                }}
-                                className={`p-1 rounded-xs border transition-colors ${
+                                onClick={() => handleOpenEditModal(wh)}
+                                className={`p-1 rounded-xs border transition-colors cursor-pointer ${
                                   isSelected
                                     ? 'bg-white text-blue-700 border-white hover:bg-blue-50'
                                     : 'bg-white dark:bg-slate-800 text-[#006400] dark:text-emerald-400 border-neutral-300 dark:border-slate-700 hover:bg-emerald-50'
                                 }`}
-                                title="Edit this warehouse in master form"
+                                title="Edit warehouse details"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleOpenTransfer(wh.id)}
-                                className={`p-1 rounded-xs border transition-colors ${
+                                className={`p-1 rounded-xs border transition-colors cursor-pointer ${
                                   isSelected
                                     ? 'bg-white text-blue-700 border-white hover:bg-blue-50'
                                     : 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 border-neutral-300 dark:border-slate-700 hover:bg-blue-50'
@@ -782,6 +613,18 @@ export default function WarehousesPage() {
                                 title="Transfer stock from this warehouse"
                               >
                                 <ArrowRightLeft className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteWarehouse(wh)}
+                                className={`p-1 rounded-xs border transition-colors cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-white text-rose-700 border-white hover:bg-rose-50'
+                                    : 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 border-neutral-300 dark:border-slate-700 hover:bg-rose-50'
+                                }`}
+                                title="Delete warehouse"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </td>
@@ -795,7 +638,7 @@ export default function WarehousesPage() {
           </div>
 
           {/* Bottom Status / Summary Bar */}
-          <div className="bg-[#b0c8de] dark:bg-slate-800/90 px-3 py-1 border border-[#9fbcd6] dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono font-semibold text-neutral-800 dark:text-neutral-200 gap-1 shrink-0">
+          <div className="bg-[#b0c8de] dark:bg-slate-800/90 px-3 py-1.5 border border-[#9fbcd6] dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono font-semibold text-neutral-800 dark:text-neutral-200 gap-1 shrink-0">
             <div className="flex items-center gap-3">
               <span>
                 Total Godowns: <strong>{warehouses.length}</strong>
@@ -825,13 +668,27 @@ export default function WarehousesPage() {
                 </span>
               ) : (
                 <span className="italic text-neutral-600 dark:text-neutral-400">
-                  Mode: New Godown Entry
+                  Tip: Double-click a row or click Edit to modify details
                 </span>
               )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Warehouse Add / Edit Desktop Modal */}
+      <WarehouseModal
+        open={isWarehouseModalOpen}
+        onOpenChange={setIsWarehouseModalOpen}
+        warehouse={modalWarehouse}
+        onSuccess={() => {
+          fetchWarehouses();
+        }}
+        onDelete={() => {
+          setSelectedWarehouse(null);
+          fetchWarehouses();
+        }}
+      />
 
       {/* Stock Transfer Desktop Modal */}
       {transferModalOpen && (
@@ -848,7 +705,7 @@ export default function WarehousesPage() {
               <button
                 type="button"
                 onClick={() => setTransferModalOpen(false)}
-                className="w-6 h-6 flex items-center justify-center rounded-xs text-emerald-200 hover:text-white hover:bg-emerald-800/80 transition-colors font-bold text-sm"
+                className="w-6 h-6 flex items-center justify-center rounded-xs text-emerald-200 hover:text-white hover:bg-emerald-800/80 transition-colors font-bold text-sm cursor-pointer"
               >
                 ✕
               </button>
@@ -967,14 +824,14 @@ export default function WarehousesPage() {
                   type="button"
                   onClick={() => setTransferModalOpen(false)}
                   disabled={isTransferring}
-                  className="px-3 py-1.5 bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 hover:bg-neutral-100 rounded-xs font-bold text-xs shadow-xs transition-colors"
+                  className="px-3 py-1.5 bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-200 border border-neutral-300 dark:border-slate-700 hover:bg-neutral-100 rounded-xs font-bold text-xs shadow-xs transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isTransferring}
-                  className="px-4 py-1.5 bg-[#006400] text-white hover:bg-emerald-800 border border-[#004d00] rounded-xs font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors disabled:opacity-50"
+                  className="px-4 py-1.5 bg-[#006400] text-white hover:bg-emerald-800 border border-[#004d00] rounded-xs font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {isTransferring ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
