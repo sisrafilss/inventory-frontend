@@ -160,7 +160,7 @@ export function SaleManualModal({
     setCommission(comm > 0 ? String(comm) : '0');
     const pCost = p.costPrice ? Number(p.costPrice) : dp;
     setPurchaseRate(pCost > 0 ? String(pCost) : '0');
-    setAvailableStock(getStockForWarehouse(p, selectedWarehouseId || defaultWarehouseId));
+    setAvailableStock(getStockForWarehouse(p, selectedWarehouseId));
     setItemType(p.unit || 'Pieces');
     setSaleRate(''); // Never preloaded: admin/manager manually enters Sale Rate
     setQuantity('1');
@@ -191,8 +191,6 @@ export function SaleManualModal({
             const def = list.find((w) => w.isDefault) || list[0];
             if (def) {
               setDefaultWarehouseId(def.id);
-              setSelectedWarehouseId(def.id);
-              setWarehouseSearchText(def.name);
             }
           }
         })
@@ -266,7 +264,7 @@ export function SaleManualModal({
           setCommission(comm > 0 ? String(comm) : '0');
           const pCost = p.costPrice ? Number(p.costPrice) : dp;
           setPurchaseRate(pCost > 0 ? String(pCost) : '0');
-          setAvailableStock(getStockForWarehouse(p, selectedWarehouseId || defaultWarehouseId));
+          setAvailableStock(getStockForWarehouse(p, selectedWarehouseId));
           setItemType(p.unit || 'Pieces');
           setSaleRate(''); // Never preloaded: admin/manager manually enters Sale Rate
           setQuantity('1');
@@ -376,6 +374,11 @@ export function SaleManualModal({
 
   // Add Item to Table
   const handleAddItem = () => {
+    if (!selectedWarehouseId) {
+      setValidationWarning('Please select a warehouse first before adding items.');
+      return;
+    }
+
     if (!selectedProduct) {
       setValidationWarning('Please enter an Item Code and select a product first.');
       return;
@@ -486,11 +489,8 @@ export function SaleManualModal({
     setDiscountPercent('0');
     setLastDiscountType('amount');
     setInvoiceNumber(`INV-${Date.now().toString().slice(-6)}`);
-    if (defaultWarehouseId) {
-      setSelectedWarehouseId(defaultWarehouseId);
-      const def = warehousesList.find((w) => w.id === defaultWarehouseId);
-      if (def) setWarehouseSearchText(def.name);
-    }
+    setSelectedWarehouseId('');
+    setWarehouseSearchText('');
     setActiveFocusedField('itemCode');
     setTimeout(() => codeInputRef.current?.focus(), 50);
   };
@@ -581,6 +581,11 @@ export function SaleManualModal({
 
   // Save Validation & Trigger
   const handleInitiateSave = () => {
+    if (!selectedWarehouseId) {
+      setValidationWarning('Please select a warehouse before saving the sale.');
+      return;
+    }
+
     if (lineItems.length === 0) {
       setValidationWarning('Please add at least one item to the sale invoice before saving.');
       return;
@@ -598,7 +603,7 @@ export function SaleManualModal({
   const handleExecuteSave = async () => {
     setIsSaving(true);
     try {
-      const targetWarehouseId = selectedWarehouseId || defaultWarehouseId || undefined;
+      const targetWarehouseId = selectedWarehouseId || undefined;
       const payload = {
         referenceNumber: invoiceNumber.trim() || undefined,
         paymentType: paymentMode === 'CASH' ? ('CASH' as const) : ('CREDIT' as const),
@@ -720,9 +725,10 @@ export function SaleManualModal({
                 <input
                   type="text"
                   value={invoiceNumber}
-                  onChange={(e) => setInvoiceNumber(e.target.value)}
+                  readOnly
+                  tabIndex={-1}
                   placeholder="Auto"
-                  className="w-36 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-mono text-xs focus:outline-none"
+                  className="w-36 h-6 px-2 bg-neutral-200/80 dark:bg-slate-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 font-mono text-xs focus:outline-none cursor-not-allowed select-all"
                 />
               </div>
 
