@@ -150,19 +150,19 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
   const filteredNav = navItems.filter((item) => item.roles.includes(role));
 
   return (
-    <aside className="w-64 border-r bg-card flex flex-col h-full select-none">
-      {/* Brand */}
-      <div className="h-16 flex items-center justify-between px-5 border-b">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-lg shadow-sm">
+    <aside className="w-56 bg-[#13281b] dark:bg-slate-950 text-slate-200 border-r border-[#0d1d14] flex flex-col h-full select-none shadow-lg">
+      {/* Brand Header */}
+      <div className="h-12 flex items-center justify-between px-4 bg-[#004d00] dark:bg-emerald-950 border-b border-[#003800] dark:border-emerald-900 shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-xs bg-emerald-400 text-neutral-950 flex items-center justify-center font-black text-base shadow-xs">
             I
           </div>
           <div>
-            <h1 className="font-bold text-sm tracking-tight leading-none text-foreground">
+            <h1 className="font-bold text-xs tracking-wide text-white uppercase font-mono">
               {t('common.appName')}
             </h1>
-            <p className="text-[11px] text-muted-foreground mt-0.5 font-medium">
-              {t('common.appSubtitle')}
+            <p className="text-[10px] text-emerald-200/80 font-medium leading-none">
+              POS ERP Solution
             </p>
           </div>
         </div>
@@ -170,16 +170,16 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
         {onCloseMobile && (
           <button
             onClick={onCloseMobile}
-            className="lg:hidden p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            className="lg:hidden p-1 rounded hover:bg-white/10 text-white"
             aria-label="Close menu"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         )}
       </div>
 
-      {/* Navigation list */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      {/* Navigation List */}
+      <nav className="flex-1 px-2 py-2.5 space-y-0.5 overflow-y-auto">
         {filteredNav.map((item) => {
           const Icon = item.icon;
           const title = t(`nav.${item.key}`);
@@ -193,28 +193,28 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
               href={item.href}
               onClick={onCloseMobile}
               className={cn(
-                'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors',
+                'flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-semibold rounded-xs transition-colors',
                 isActive
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  ? 'bg-[#006400] text-white border-l-3 border-emerald-400 shadow-xs'
+                  : 'text-emerald-100/75 hover:bg-white/10 hover:text-white'
               )}
             >
-              <Icon className="w-4 h-4 shrink-0" />
-              <span>{title}</span>
+              <Icon className={cn('w-3.5 h-3.5 shrink-0', isActive ? 'text-emerald-300' : 'text-emerald-200/70')} />
+              <span className="truncate">{title}</span>
             </Link>
           );
         })}
       </nav>
 
-      {/* User info footer in sidebar */}
-      <div className="p-4 border-t bg-muted/20">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs uppercase">
+      {/* User Info Footer in Sidebar */}
+      <div className="p-3 border-t border-[#0d1d14] bg-[#0b1b11] shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-xs bg-[#006400] text-emerald-200 border border-emerald-500/30 flex items-center justify-center font-bold text-[11px] uppercase">
             {user.name?.slice(0, 2) || 'U'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold truncate text-foreground">{user.name}</p>
-            <p className="text-[10px] text-muted-foreground truncate uppercase font-bold tracking-wider">
+            <p className="text-xs font-bold truncate text-white leading-tight">{user.name}</p>
+            <p className="text-[10px] text-emerald-400 truncate uppercase font-mono font-semibold">
               {t(`roles.${user.role}`)}
             </p>
           </div>

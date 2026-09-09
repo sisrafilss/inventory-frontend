@@ -318,9 +318,9 @@ export default function CompaniesPage() {
   const inactiveCount = companies.filter((c) => !c.isActive).length;
 
   return (
-    <div className="py-2 max-w-6xl mx-auto space-y-4">
+    <div className="w-full space-y-3">
       {/* Desktop Main Window Frame */}
-      <div className="border-2 border-[#800000] dark:border-rose-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 shadow-2xl overflow-hidden select-none">
+      <div className="border border-[#004d00] dark:border-emerald-900 rounded-xs bg-[#c6d8ea] dark:bg-slate-900 shadow-sm overflow-hidden select-none">
         {/* Dark Green Banner Header */}
         <div className="relative bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 select-none border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -648,7 +648,7 @@ export default function CompaniesPage() {
           </div>
 
           {/* Desktop Spreadsheet Data Grid */}
-          <div className="border border-neutral-400 dark:border-slate-700 bg-[#9ca3af] dark:bg-slate-950 overflow-hidden shadow-inner">
+          <div className="border border-neutral-400 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shadow-inner">
             <div className="max-h-[380px] overflow-y-auto overflow-x-auto min-h-[200px] flex flex-col">
               <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
                 <thead className="sticky top-0 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border-b border-neutral-400 dark:border-slate-700 font-bold select-none text-xs z-10">

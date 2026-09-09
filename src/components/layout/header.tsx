@@ -4,10 +4,9 @@ import React from 'react';
 import { useAuth } from '@/lib/context/auth-context';
 import { useLanguage } from '@/lib/context/language-context';
 import { Badge } from '../ui/badge';
-import { Button } from '../ui/button';
 import { LanguageSwitcher } from '../ui/language-switcher';
 import { ThemeSwitcher } from '../ui/theme-switcher';
-import { Menu, LogOut, Shield } from 'lucide-react';
+import { Menu, LogOut, Shield, Building2 } from 'lucide-react';
 
 interface HeaderProps {
   onOpenMobileMenu: () => void;
@@ -19,66 +18,55 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
 
   if (!user) return null;
 
-  const getRoleBadgeVariant = (role: string) => {
-    switch (role) {
-      case 'SUPER_ADMIN':
-        return 'destructive';
-      case 'ADMIN':
-        return 'default';
-      case 'MANAGER':
-        return 'warning';
-      default:
-        return 'info';
-    }
-  };
-
   return (
-    <header className="h-16 border-b bg-card px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm">
-      <div className="flex items-center gap-3">
+    <header className="h-12 bg-[#004d00] dark:bg-emerald-950 text-white border-b border-[#003800] dark:border-emerald-900 px-3 sm:px-5 flex items-center justify-between sticky top-0 z-30 shadow-md select-none">
+      {/* Left: Mobile Toggle & Desktop System Title */}
+      <div className="flex items-center gap-2.5">
         <button
           onClick={onOpenMobileMenu}
-          className="lg:hidden p-2 rounded-md hover:bg-muted text-muted-foreground"
+          className="lg:hidden p-1.5 rounded hover:bg-white/10 text-white"
           aria-label="Open mobile menu"
         >
           <Menu className="w-5 h-5" />
         </button>
-        <div>
-          <span className="font-semibold text-sm text-foreground hidden sm:inline-block">
-            {t('common.appName')} — {t('common.appSubtitle')}
+
+        <div className="flex items-center gap-2">
+          <span className="text-base font-bold text-white tracking-wide flex items-center gap-1.5">
+            <Building2 className="w-4 h-4 text-emerald-300" />
+            <span className="hidden sm:inline">Inventory Pro — Management System</span>
+            <span className="sm:hidden">Inventory Pro</span>
           </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 sm:gap-2.5">
+      {/* Right: Controls & User Status */}
+      <div className="flex items-center gap-1.5 sm:gap-2">
         {/* Theme Switcher Button */}
-        <ThemeSwitcher />
+        <ThemeSwitcher size="sm" />
 
         {/* Language Switcher Button */}
-        <LanguageSwitcher />
+        <LanguageSwitcher size="sm" />
 
-        {/* Role Badge - hidden on small mobile to avoid header crowding */}
-        <Badge
-          variant={getRoleBadgeVariant(user.role)}
-          className="uppercase text-[10px] tracking-wider py-1 px-2 hidden sm:inline-flex"
-        >
-          <Shield className="w-3 h-3 mr-1 inline" />
-          {t(`roles.${user.role}`)}
-        </Badge>
+        {/* Role Badge */}
+        <div className="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-xs bg-[#800000] text-white text-[10px] font-mono font-bold tracking-wider uppercase border border-rose-900 shadow-xs">
+          <Shield className="w-3 h-3 text-rose-200" />
+          <span>{t(`roles.${user.role}`)}</span>
+        </div>
 
-        <span className="text-xs text-muted-foreground hidden md:inline font-medium">
+        {/* User Email */}
+        <span className="text-xs text-emerald-100/90 hidden md:inline font-mono font-medium px-2 py-0.5 bg-black/20 rounded-xs border border-white/10">
           {user.email}
         </span>
 
         {/* Logout Button */}
-        <Button
-          variant="outline"
-          size="sm"
+        <button
           onClick={logout}
-          className="text-xs gap-1.5 h-8 text-muted-foreground hover:text-destructive hover:border-destructive"
+          className="h-7 px-2.5 bg-white/95 hover:bg-white text-rose-700 font-bold text-xs rounded-xs border border-rose-300 shadow-xs flex items-center gap-1 transition-colors cursor-pointer"
+          title="Sign out of system"
         >
-          <LogOut className="w-3.5 h-3.5" />
+          <LogOut className="w-3.5 h-3.5 text-rose-600" />
           <span className="hidden sm:inline">{t('nav.logout')}</span>
-        </Button>
+        </button>
       </div>
     </header>
   );
