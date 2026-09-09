@@ -78,6 +78,7 @@ export function SaleManualModal({
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [itemName, setItemName] = useState('');
   const [companyName, setCompanyName] = useState('');
+  const [productSaleRateMRP, setProductSaleRateMRP] = useState<number | string>('');
   const [dpRate, setDpRate] = useState<number | string>('');
   const [commission, setCommission] = useState<number | string>('');
   const [purchaseRate, setPurchaseRate] = useState<number | string>('');
@@ -123,6 +124,7 @@ export function SaleManualModal({
   // Refs
   const codeInputRef = useRef<HTMLInputElement>(null);
   const qtyInputRef = useRef<HTMLInputElement>(null);
+  const saleRateInputRef = useRef<HTMLInputElement>(null);
 
   const handleSelectProductFromLookup = (p: Product) => {
     setItemCode(p.sku);
@@ -130,6 +132,8 @@ export function SaleManualModal({
     setSelectedProduct(p);
     setItemName(p.name);
     setCompanyName(p.company?.name || '—');
+    const mrp = p.sellingPrice ? Number(p.sellingPrice) : 0;
+    setProductSaleRateMRP(mrp > 0 ? String(mrp) : '0');
     const dp = p.dpRate ? Number(p.dpRate) : (p.costPrice ? Number(p.costPrice) : 0);
     setDpRate(dp > 0 ? String(dp) : '0');
     const comm = p.commissionPercent ? Number(p.commissionPercent) : 0;
@@ -138,7 +142,7 @@ export function SaleManualModal({
     setPurchaseRate(pCost > 0 ? String(pCost) : '0');
     setAvailableStock(p.quantity || 0);
     setItemType(p.unit || 'Pieces');
-    setSaleRate(p.sellingPrice ? String(p.sellingPrice) : '0');
+    setSaleRate(''); // Never preloaded: admin/manager manually enters Sale Rate
     setQuantity('1');
     setCodeSuccess(true);
     setCodeWarning(null);
@@ -205,6 +209,8 @@ export function SaleManualModal({
           setSelectedProduct(p);
           setItemName(p.name);
           setCompanyName(p.company?.name || '—');
+          const mrp = p.sellingPrice ? Number(p.sellingPrice) : 0;
+          setProductSaleRateMRP(mrp > 0 ? String(mrp) : '0');
           const dp = p.dpRate ? Number(p.dpRate) : (p.costPrice ? Number(p.costPrice) : 0);
           setDpRate(dp > 0 ? String(dp) : '0');
           const comm = p.commissionPercent ? Number(p.commissionPercent) : 0;
@@ -213,7 +219,7 @@ export function SaleManualModal({
           setPurchaseRate(pCost > 0 ? String(pCost) : '0');
           setAvailableStock(p.quantity || 0);
           setItemType(p.unit || 'Pieces');
-          setSaleRate(p.sellingPrice ? String(p.sellingPrice) : '0');
+          setSaleRate(''); // Never preloaded: admin/manager manually enters Sale Rate
           setQuantity('1');
           setCodeSuccess(true);
           setCodeWarning(null);
@@ -226,6 +232,7 @@ export function SaleManualModal({
         setSelectedProduct(null);
         setItemName('');
         setCompanyName('');
+        setProductSaleRateMRP('');
         setDpRate('');
         setCommission('');
         setPurchaseRate('');
@@ -333,8 +340,9 @@ export function SaleManualModal({
     }
 
     const rate = parseFloat(String(saleRate));
-    if (isNaN(rate) || rate < 0) {
-      setValidationWarning('Please enter a valid Sale Rate.');
+    if (isNaN(rate) || rate <= 0) {
+      setValidationWarning('Please enter a valid Sale Rate. It must be a positive value greater than zero.');
+      setTimeout(() => saleRateInputRef.current?.focus(), 50);
       return;
     }
 
@@ -377,6 +385,7 @@ export function SaleManualModal({
     setSelectedProduct(null);
     setItemName('');
     setCompanyName('');
+    setProductSaleRateMRP('');
     setDpRate('');
     setCommission('');
     setPurchaseRate('');
@@ -411,6 +420,7 @@ export function SaleManualModal({
     setSelectedProduct(null);
     setItemName('');
     setCompanyName('');
+    setProductSaleRateMRP('');
     setDpRate('');
     setCommission('');
     setPurchaseRate('');
@@ -725,7 +735,11 @@ export function SaleManualModal({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        handleAddItem();
+                        if (!saleRate || parseFloat(String(saleRate)) <= 0) {
+                          saleRateInputRef.current?.focus();
+                        } else {
+                          handleAddItem();
+                        }
                       }
                     }}
                     placeholder="0"
@@ -752,12 +766,26 @@ export function SaleManualModal({
                 </label>
                 <div className="flex items-center gap-2">
                   <input
+                    ref={saleRateInputRef}
                     type="number"
                     step="0.01"
+                    min="0.01"
                     value={saleRate}
                     onChange={(e) => setSaleRate(e.target.value)}
+                    onFocus={() => setActiveFocusedField('saleRate')}
+                    onBlur={() => setActiveFocusedField('')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddItem();
+                      }
+                    }}
                     placeholder="0.00"
-                    className="w-24 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none"
+                    className={`w-24 h-6 px-2 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none transition-colors ${
+                      activeFocusedField === 'saleRate'
+                        ? 'bg-[#ffff00] text-black ring-1 ring-amber-500'
+                        : 'bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100'
+                    }`}
                   />
                   <span className="text-xs font-bold text-neutral-800 dark:text-neutral-200 w-10 text-center">Type</span>
                   <input
@@ -829,14 +857,14 @@ export function SaleManualModal({
               </div>
             </div>
 
-            {/* Column 2: Financials (Company, DP Rate, Commission, Purchase Rate) */}
-            <div className="w-full lg:w-[220px] shrink-0 space-y-1.5 lg:ml-2">
+            {/* Column 2: Financials (Company, Sale Rate (MRP), DP Rate, Commission, Purchase Rate) */}
+            <div className="w-full lg:w-[245px] shrink-0 space-y-1.5 lg:ml-2">
               {/* Row 1: Spacer corresponding to Invoice */}
               <div className="h-6 hidden lg:block" />
 
               {/* Row 2: Company */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
                   Company
                 </label>
                 <input
@@ -844,13 +872,30 @@ export function SaleManualModal({
                   value={companyName}
                   readOnly
                   placeholder="—"
-                  className="w-32 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none"
+                  className="w-28 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none"
                 />
               </div>
 
-              {/* Row 3: DP Rate */}
+              {/* Row 3: Sale Rate (MRP) */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                  Sale Rate (MRP)
+                </label>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    value={productSaleRateMRP}
+                    readOnly
+                    placeholder="0.00"
+                    className="w-24 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none"
+                  />
+                  <span className="text-xs font-semibold">Tk</span>
+                </div>
+              </div>
+
+              {/* Row 4: DP Rate */}
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
                   DP Rate
                 </label>
                 <div className="flex items-center gap-1">
@@ -865,9 +910,9 @@ export function SaleManualModal({
                 </div>
               </div>
 
-              {/* Row 4: Commission */}
+              {/* Row 5: Commission */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
                   Commission
                 </label>
                 <div className="flex items-center gap-1">
@@ -882,9 +927,9 @@ export function SaleManualModal({
                 </div>
               </div>
 
-              {/* Row 5: Purchase Rate */}
+              {/* Row 6: Purchase Rate */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
                   Purchase Rate
                 </label>
                 <div className="flex items-center gap-1">
