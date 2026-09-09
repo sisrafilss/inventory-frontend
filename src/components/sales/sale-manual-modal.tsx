@@ -196,6 +196,7 @@ export function SaleManualModal({
       setCustomerDues('0.00');
       setCustomerWarning(null);
       setCustomerSuccess(false);
+      setIsSearchingCustomer(false);
 
       api.get<Customer[]>('/parties/customers')
         .then((res) => {
@@ -367,9 +368,14 @@ export function SaleManualModal({
     if (
       selectedCustomer &&
       (selectedCustomer.id.toLowerCase() === code.toLowerCase() ||
+        selectedCustomer.id.toLowerCase().startsWith(code.toLowerCase()) ||
+        (selectedCustomer.id.length > 12 &&
+          selectedCustomer.id.slice(0, 8).toLowerCase() === code.toLowerCase()) ||
         selectedCustomer.phone === code ||
         selectedCustomer.name.toLowerCase() === code.toLowerCase())
     ) {
+      setIsSearchingCustomer(false);
+      setCustomerSuccess(true);
       return;
     }
 
@@ -403,7 +409,7 @@ export function SaleManualModal({
         }
       })
       .finally(() => {
-        if (active) setIsSearchingCustomer(false);
+        setIsSearchingCustomer(false);
       });
 
     return () => {
@@ -574,6 +580,7 @@ export function SaleManualModal({
     setSelectedCustomer(c);
     const displayId = c.id.length > 12 ? c.id.slice(0, 8) : c.id;
     setCustomerId(displayId);
+    setDebouncedCustomerId(displayId);
     setCustomerSearchText(displayId);
     setCustomerName(c.name);
     setCustomerAddress(c.address || '');
@@ -582,6 +589,7 @@ export function SaleManualModal({
     setCustomerDues(Number(due).toFixed(2));
     setCustomerSuccess(true);
     setCustomerWarning(null);
+    setIsSearchingCustomer(false);
     setIsCustomerDropdownOpen(false);
   };
 
