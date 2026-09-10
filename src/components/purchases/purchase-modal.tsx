@@ -390,9 +390,7 @@ export function PurchaseModal({
         if (!active) return;
         setSelectedSupplier(null);
         setSupplierSuccess(false);
-        if (paymentMode === 'SUPPLIER') {
-          setSupplierWarning(`Supplier "${code}" not found in database.`);
-        }
+        setSupplierWarning(`Supplier "${code}" not found in database.`);
       })
       .finally(() => {
         if (active) setIsSearchingSupplier(false);
@@ -1045,17 +1043,10 @@ export function PurchaseModal({
                       onChange={() => {
                         setPaymentMode('CASH');
                         setPaidTouched(false);
-                        setSelectedSupplier(null);
-                        setSupplierId('0');
-                        setSupplierName('Cash Party');
-                        setSupplierSearchText('');
-                        setDebouncedSupplierSearch('');
-                        setSupplierAddress('');
-                        setSupplierPhone('');
-                        setSupplierDues('0.00');
-                        setSupplierSuccess(false);
-                        setSupplierWarning(null);
-                        setIsSupplierDropdownOpen(false);
+                        if (!selectedSupplier) {
+                          setSupplierId('0');
+                          setSupplierName('Cash Party');
+                        }
                       }}
                       disabled={isSaving}
                       className="accent-emerald-700 dark:accent-emerald-500 w-4 h-4 cursor-pointer"
@@ -1071,16 +1062,10 @@ export function PurchaseModal({
                         setPaymentMode('SUPPLIER');
                         setPaidTouched(true);
                         setPaidAmount('');
-                        setSelectedSupplier(null);
-                        setSupplierId('');
-                        setSupplierName('');
-                        setSupplierSearchText('');
-                        setDebouncedSupplierSearch('');
-                        setSupplierAddress('');
-                        setSupplierPhone('');
-                        setSupplierDues('0.00');
-                        setSupplierSuccess(false);
-                        setSupplierWarning(null);
+                        if (!selectedSupplier) {
+                          setSupplierId('');
+                          setSupplierName('');
+                        }
                         setTimeout(() => supplierInputRef.current?.focus(), 80);
                       }}
                       disabled={isSaving}
@@ -1119,9 +1104,8 @@ export function PurchaseModal({
                       <input
                         ref={supplierInputRef}
                         type="text"
-                        value={paymentMode === 'CASH' ? '0' : supplierSearchText}
+                        value={supplierSearchText}
                         onChange={(e) => {
-                          if (paymentMode === 'CASH') return;
                           const val = e.target.value;
                           setSupplierSearchText(val);
                           setSupplierId(val);
@@ -1129,19 +1113,15 @@ export function PurchaseModal({
                           if (supplierWarning) setSupplierWarning(null);
                           if (!val.trim()) {
                             setSelectedSupplier(null);
-                            setSupplierName('');
+                            setSupplierName(paymentMode === 'CASH' ? 'Cash Party' : '');
                             setSupplierAddress('');
                             setSupplierPhone('');
                             setSupplierDues('0.00');
                             setSupplierSuccess(false);
                           }
                         }}
-                        onFocus={() => {
-                          if (paymentMode !== 'CASH') setIsSupplierDropdownOpen(true);
-                        }}
-                        onClick={() => {
-                          if (paymentMode !== 'CASH') setIsSupplierDropdownOpen(true);
-                        }}
+                        onFocus={() => setIsSupplierDropdownOpen(true)}
+                        onClick={() => setIsSupplierDropdownOpen(true)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
@@ -1149,13 +1129,9 @@ export function PurchaseModal({
                             setDebouncedSupplierSearch(supplierSearchText.trim());
                           }
                         }}
-                        disabled={isSaving || paymentMode === 'CASH'}
-                        placeholder={paymentMode === 'CASH' ? "0 (Cash Party)" : "Search ID, Name, Phone..."}
-                        className={`w-full h-6 px-2 pr-12 font-mono text-xs focus:outline-none truncate ${
-                          paymentMode === 'CASH'
-                            ? 'bg-neutral-200 dark:bg-slate-800 text-neutral-500 dark:text-neutral-400 border border-neutral-300 dark:border-slate-700 cursor-not-allowed select-none'
-                            : 'bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:ring-1 focus:ring-emerald-600'
-                        }`}
+                        disabled={isSaving}
+                        placeholder="Search ID, Name, Phone..."
+                        className="w-full h-6 px-2 pr-12 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 disabled:cursor-not-allowed truncate"
                       />
                       <div className="absolute right-1 flex items-center gap-0.5 text-neutral-500">
                         {isSearchingSupplier && (
@@ -1164,23 +1140,21 @@ export function PurchaseModal({
                         {!isSearchingSupplier && supplierSuccess && (
                           <Check className="w-3.5 h-3.5 text-emerald-600 pointer-events-none" />
                         )}
-                        {paymentMode !== 'CASH' && (
-                          <button
-                            type="button"
-                            tabIndex={-1}
-                            onClick={() => setIsSupplierDropdownOpen((prev) => !prev)}
-                            className="hover:text-neutral-700 dark:hover:text-neutral-300 p-0.5 cursor-pointer"
-                          >
-                            <ChevronDown className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          onClick={() => setIsSupplierDropdownOpen((prev) => !prev)}
+                          className="hover:text-neutral-700 dark:hover:text-neutral-300 p-0.5 cursor-pointer"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setSupplierLookupOpen(true)}
-                      disabled={isSaving || paymentMode === 'CASH'}
-                      title={paymentMode === 'CASH' ? "Not available in Cash mode" : "Open Supplier Directory to browse and select suppliers"}
+                      disabled={isSaving}
+                      title="Open Supplier Directory to browse and select suppliers"
                       className="h-6 px-2.5 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 dark:disabled:text-slate-500 disabled:border-neutral-300 dark:disabled:border-slate-700 disabled:cursor-not-allowed disabled:shadow-none shrink-0 cursor-pointer"
                     >
                       View

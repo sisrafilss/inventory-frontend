@@ -445,9 +445,7 @@ export function SaleManualModal({
         if (!active) return;
         setSelectedCustomer(null);
         setCustomerSuccess(false);
-        if (paymentMode === 'CUSTOMER') {
-          setCustomerWarning(`Customer "${code}" not found in database.`);
-        }
+        setCustomerWarning(`Customer "${code}" not found in database.`);
       })
       .finally(() => {
         setIsSearchingCustomer(false);
@@ -619,8 +617,8 @@ export function SaleManualModal({
   // Customer selection handler
   const handleSelectCustomer = (c: Customer) => {
     setSelectedCustomer(c);
-    const displayId = c.id.length > 12 ? c.id.slice(0, 8) : c.id;
-    setCustomerId(displayId);
+    const displayId = c.code || (c.id.length > 12 ? c.id.slice(0, 8) : c.id);
+    setCustomerId(c.id);
     setDebouncedCustomerId(displayId);
     setCustomerSearchText(displayId);
     setCustomerName(c.name);
@@ -650,7 +648,7 @@ export function SaleManualModal({
     customerSearchText.trim().length > 0 &&
     customerSearchText.trim().toLowerCase() !==
       (selectedCustomer
-        ? (selectedCustomer.id.length > 12 ? selectedCustomer.id.slice(0, 8) : selectedCustomer.id).toLowerCase()
+        ? (selectedCustomer.code || (selectedCustomer.id.length > 12 ? selectedCustomer.id.slice(0, 8) : selectedCustomer.id)).toLowerCase()
         : '');
 
   const filteredCustomers = isSearchingCustomerText
@@ -1316,8 +1314,13 @@ export function SaleManualModal({
                       onChange={() => {
                         setPaymentMode('CASH');
                         setPaidTouched(false);
+                        if (!selectedCustomer) {
+                          setCustomerId('0');
+                          setCustomerName('Cash Party');
+                        }
                       }}
-                      className="accent-emerald-700 w-4 h-4 cursor-pointer"
+                      disabled={isSaving}
+                      className="accent-emerald-700 dark:accent-emerald-500 w-4 h-4 cursor-pointer"
                     />
                     <span>Cash</span>
                   </label>
@@ -1330,9 +1333,14 @@ export function SaleManualModal({
                         setPaymentMode('CUSTOMER');
                         setPaidTouched(true);
                         setPaidAmount('0.00');
+                        if (!selectedCustomer) {
+                          setCustomerId('');
+                          setCustomerName('');
+                        }
                         setTimeout(() => customerInputRef.current?.focus(), 80);
                       }}
-                      className="accent-emerald-700 w-4 h-4 cursor-pointer"
+                      disabled={isSaving}
+                      className="accent-emerald-700 dark:accent-emerald-500 w-4 h-4 cursor-pointer"
                     />
                     <span>Customer</span>
                   </label>
@@ -1361,9 +1369,8 @@ export function SaleManualModal({
                       <input
                         ref={customerInputRef}
                         type="text"
-                        value={paymentMode === 'CASH' ? '0' : customerSearchText}
+                        value={customerSearchText}
                         onChange={(e) => {
-                          if (paymentMode === 'CASH') return;
                           const val = e.target.value;
                           setCustomerSearchText(val);
                           setCustomerId(val);
@@ -1371,19 +1378,15 @@ export function SaleManualModal({
                           if (customerWarning) setCustomerWarning(null);
                           if (!val.trim()) {
                             setSelectedCustomer(null);
-                            setCustomerName('');
+                            setCustomerName(paymentMode === 'CASH' ? 'Cash Party' : '');
                             setCustomerAddress('');
                             setCustomerPhone('');
                             setCustomerDues('0.00');
                             setCustomerSuccess(false);
                           }
                         }}
-                        onFocus={() => {
-                          if (paymentMode !== 'CASH') setIsCustomerDropdownOpen(true);
-                        }}
-                        onClick={() => {
-                          if (paymentMode !== 'CASH') setIsCustomerDropdownOpen(true);
-                        }}
+                        onFocus={() => setIsCustomerDropdownOpen(true)}
+                        onClick={() => setIsCustomerDropdownOpen(true)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
@@ -1391,13 +1394,9 @@ export function SaleManualModal({
                             setDebouncedCustomerId(customerSearchText.trim());
                           }
                         }}
-                        disabled={isSaving || paymentMode === 'CASH'}
-                        placeholder={paymentMode === 'CASH' ? "0 (Cash Party)" : "Search ID, Name, Phone..."}
-                        className={`w-full h-6 px-2 pr-12 font-mono text-xs focus:outline-none truncate ${
-                          paymentMode === 'CASH'
-                            ? 'bg-neutral-200 dark:bg-slate-800 text-neutral-500 dark:text-neutral-400 border border-neutral-300 dark:border-slate-700 cursor-not-allowed select-none'
-                            : 'bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:ring-1 focus:ring-emerald-600'
-                        }`}
+                        disabled={isSaving}
+                        placeholder="Search ID, Name, Phone..."
+                        className="w-full h-6 px-2 pr-12 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 disabled:cursor-not-allowed truncate"
                       />
                       <div className="absolute right-1 flex items-center gap-0.5 text-neutral-500">
                         {isSearchingCustomer && (
@@ -1406,23 +1405,21 @@ export function SaleManualModal({
                         {!isSearchingCustomer && customerSuccess && (
                           <Check className="w-3.5 h-3.5 text-emerald-600 pointer-events-none" />
                         )}
-                        {paymentMode !== 'CASH' && (
-                          <button
-                            type="button"
-                            tabIndex={-1}
-                            onClick={() => setIsCustomerDropdownOpen((prev) => !prev)}
-                            className="hover:text-neutral-700 dark:hover:text-neutral-300 p-0.5 cursor-pointer"
-                          >
-                            <ChevronDown className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          onClick={() => setIsCustomerDropdownOpen((prev) => !prev)}
+                          className="hover:text-neutral-700 dark:hover:text-neutral-300 p-0.5 cursor-pointer"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setCustomerLookupOpen(true)}
-                      disabled={isSaving || paymentMode === 'CASH'}
-                      title={paymentMode === 'CASH' ? "Not available in Cash mode" : "Open Customer Directory to browse and select customers"}
+                      disabled={isSaving}
+                      title="Open Customer Directory to browse and select customers"
                       className="h-6 px-2.5 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 dark:disabled:text-slate-500 disabled:border-neutral-300 dark:disabled:border-slate-700 disabled:cursor-not-allowed disabled:shadow-none shrink-0 cursor-pointer"
                     >
                       View
