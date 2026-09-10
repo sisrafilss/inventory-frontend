@@ -12,6 +12,7 @@ import {
   AlertCircle,
   HelpCircle,
   Lock,
+  ChevronDown,
 } from 'lucide-react';
 import { Product, Supplier, Warehouse } from '@/lib/types';
 import { api } from '@/lib/api/client';
@@ -67,8 +68,16 @@ export function PurchaseModal({
   const [warehousesList, setWarehousesList] = useState<Warehouse[]>([]);
   const [defaultWarehouseId, setDefaultWarehouseId] = useState<string>('');
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('');
+  const [warehouseSearchText, setWarehouseSearchText] = useState<string>('');
+  const [isWarehouseDropdownOpen, setIsWarehouseDropdownOpen] = useState(false);
+  const warehouseDropdownRef = useRef<HTMLDivElement>(null);
+
   const [supplierId, setSupplierId] = useState('0');
   const [supplierName, setSupplierName] = useState('Cash Party');
+  const [supplierSearchText, setSupplierSearchText] = useState('0');
+  const [isSupplierDropdownOpen, setIsSupplierDropdownOpen] = useState(false);
+  const supplierDropdownRef = useRef<HTMLDivElement>(null);
+
   const [supplierAddress, setSupplierAddress] = useState('');
   const [supplierDues, setSupplierDues] = useState('0.00');
 
@@ -107,6 +116,26 @@ export function PurchaseModal({
   const qtyInputRef = useRef<HTMLInputElement>(null);
   const codeInputRef = useRef<HTMLInputElement>(null);
 
+  // Click-outside listener for dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        warehouseDropdownRef.current &&
+        !warehouseDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsWarehouseDropdownOpen(false);
+      }
+      if (
+        supplierDropdownRef.current &&
+        !supplierDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsSupplierDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Load suppliers and warehouses on mount / open
   useEffect(() => {
     if (!open) return;
@@ -125,8 +154,13 @@ export function PurchaseModal({
           setDefaultWarehouseId(def?.id || '');
           if (user?.role === 'MANAGER' && user?.warehouseId) {
             setSelectedWarehouseId(user.warehouseId);
+            const managerWh = res.data.find((w) => w.id === user.warehouseId);
+            setWarehouseSearchText(managerWh ? managerWh.name : 'Assigned Warehouse');
           } else {
-            setSelectedWarehouseId((prev) => prev || def?.id || '');
+            const currentId = def?.id || '';
+            setSelectedWarehouseId(currentId);
+            const chosen = res.data.find((w) => w.id === currentId);
+            if (chosen) setWarehouseSearchText(chosen.name);
           }
         }
       })
@@ -137,8 +171,12 @@ export function PurchaseModal({
   useEffect(() => {
     if (open && user?.role === 'MANAGER' && user?.warehouseId) {
       setSelectedWarehouseId(user.warehouseId);
+      const managerWh = warehousesList.find((w) => w.id === user.warehouseId);
+      if (managerWh) {
+        setWarehouseSearchText(managerWh.name);
+      }
     }
-  }, [open, user]);
+  }, [open, user, warehousesList]);
 
   // If initialProductCode provided
   useEffect(() => {
@@ -237,15 +275,52 @@ export function PurchaseModal({
     const s = suppliersList.find((sup) => sup.id === sId);
     if (s) {
       setSupplierName(s.name);
+      setSupplierSearchText(s.name);
       setSupplierAddress(s.address || '');
       const due = s.currentDue ?? s.openingDue ?? 0;
       setSupplierDues(Number(due).toFixed(2));
     } else {
       setSupplierName('');
+      setSupplierSearchText('');
       setSupplierAddress('');
       setSupplierDues('0.00');
     }
   };
+
+  // Warehouse search and selection helpers
+  const isSearchingWarehouse =
+    warehouseSearchText.trim().length > 0 &&
+    warehouseSearchText.trim().toLowerCase() !==
+      (warehousesList.find((w) => w.id === selectedWarehouseId)?.name || '').trim().toLowerCase();
+
+  const filteredWarehouses = isSearchingWarehouse
+    ? warehousesList.filter((w) => {
+        const query = warehouseSearchText.toLowerCase();
+        return (
+          w.name.toLowerCase().includes(query) ||
+          (w.code && w.code.toLowerCase().includes(query))
+        );
+      })
+    : warehousesList;
+
+  const handleSelectWarehouse = (w: Warehouse) => {
+    setSelectedWarehouseId(w.id);
+    setWarehouseSearchText(w.name);
+    setIsWarehouseDropdownOpen(false);
+  };
+
+  // Supplier filter for combobox
+  const filteredSuppliers =
+    supplierSearchText.trim() && supplierSearchText !== '0'
+      ? suppliersList.filter((s) => {
+          const q = supplierSearchText.toLowerCase();
+          return (
+            s.name.toLowerCase().includes(q) ||
+            (s.phone && s.phone.toLowerCase().includes(q)) ||
+            s.id.toLowerCase().includes(q)
+          );
+        })
+      : suppliersList;
 
   // Add line item to table
   const handleAddItem = () => {
@@ -326,16 +401,22 @@ export function PurchaseModal({
     if (paymentMode === 'CASH') {
       setSupplierId('0');
       setSupplierName('Cash Party');
+      setSupplierSearchText('0');
       setSupplierAddress('');
       setSupplierDues('0.00');
     }
 
     if (user?.role === 'MANAGER' && user?.warehouseId) {
       setSelectedWarehouseId(user.warehouseId);
+      const managerWh = warehousesList.find((w) => w.id === user.warehouseId);
+      setWarehouseSearchText(managerWh ? managerWh.name : 'Assigned Warehouse');
     } else {
       const def = warehousesList.find((w) => w.isDefault && w.isActive) || warehousesList[0];
       setSelectedWarehouseId(def?.id || '');
+      setWarehouseSearchText(def ? def.name : '');
     }
+    setIsWarehouseDropdownOpen(false);
+    setIsSupplierDropdownOpen(false);
   };
 
   // Total calculations
@@ -570,6 +651,106 @@ export function PurchaseModal({
                 />
               </div>
 
+              {/* Warehouse Combobox (Search by Code or Name, locked for Manager) */}
+              <div className="flex items-center gap-2 relative" ref={warehouseDropdownRef}>
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0 flex items-center justify-end gap-1">
+                  {user?.role === 'MANAGER' && <Lock className="w-3 h-3 text-amber-600 dark:text-amber-400" />}
+                  Warehouse
+                </label>
+                <div className="relative w-44 sm:w-56">
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      value={warehouseSearchText}
+                      onChange={(e) => {
+                        if (user?.role === 'MANAGER') return;
+                        setWarehouseSearchText(e.target.value);
+                        setIsWarehouseDropdownOpen(true);
+                        if (!e.target.value.trim()) {
+                          setSelectedWarehouseId('');
+                        }
+                      }}
+                      onFocus={() => {
+                        if (user?.role !== 'MANAGER') setIsWarehouseDropdownOpen(true);
+                        setBannerPrompt('Search & Select Warehouse');
+                        setActiveFocusedField('warehouse');
+                      }}
+                      onClick={() => {
+                        if (user?.role !== 'MANAGER') setIsWarehouseDropdownOpen(true);
+                      }}
+                      placeholder={user?.role === 'MANAGER' ? "No warehouse assigned" : "Search code or name..."}
+                      disabled={isSaving}
+                      readOnly={user?.role === 'MANAGER'}
+                      title={user?.role === 'MANAGER' ? "Assigned warehouse (locked for Manager role)" : "Search by warehouse code (e.g. WA-101) or name"}
+                      className={`w-full h-6 px-2 pr-6 text-xs focus:outline-none disabled:opacity-50 ${
+                        user?.role === 'MANAGER'
+                          ? 'bg-neutral-100 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 cursor-not-allowed select-none font-medium'
+                          : 'bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:ring-1 focus:ring-emerald-600 font-medium'
+                      }`}
+                    />
+                    {user?.role === 'MANAGER' ? (
+                      <div
+                        className="absolute right-1 text-amber-600 dark:text-amber-400 p-0.5"
+                        title="Warehouse is fixed by Administrator"
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        tabIndex={-1}
+                        onClick={() => setIsWarehouseDropdownOpen((prev) => !prev)}
+                        className="absolute right-1 text-neutral-500 hover:text-neutral-700 p-0.5 cursor-pointer"
+                      >
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Dropdown list with Code & Name */}
+                  {user?.role !== 'MANAGER' && isWarehouseDropdownOpen && (
+                    <div className="absolute left-0 top-full mt-1 w-64 max-h-48 overflow-y-auto bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 shadow-xl z-50 py-1">
+                      {filteredWarehouses.length === 0 ? (
+                        <div className="px-3 py-1.5 text-xs text-neutral-500 text-center italic">
+                          No warehouse found
+                        </div>
+                      ) : (
+                        filteredWarehouses.map((w) => {
+                          const isSelected = w.id === selectedWarehouseId;
+                          return (
+                            <button
+                              key={w.id}
+                              type="button"
+                              onClick={() => handleSelectWarehouse(w)}
+                              className={`w-full text-left px-2.5 py-1.5 text-xs flex items-center justify-between hover:bg-emerald-50 dark:hover:bg-slate-700 cursor-pointer transition-colors ${
+                                isSelected
+                                  ? 'bg-emerald-100/70 dark:bg-emerald-950 font-bold text-emerald-900 dark:text-emerald-200'
+                                  : 'text-neutral-800 dark:text-neutral-200'
+                              }`}
+                            >
+                              <div className="flex items-center gap-1.5 truncate">
+                                <span className="truncate">{w.name}</span>
+                                {w.code && (
+                                  <span className="text-[10px] text-neutral-600 dark:text-neutral-300 font-mono bg-neutral-100 dark:bg-slate-700 px-1 py-0.2 rounded border border-neutral-300 dark:border-slate-600">
+                                    {w.code}
+                                  </span>
+                                )}
+                                {w.isDefault && (
+                                  <span className="text-[9px] px-1 bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 rounded border border-amber-300 shrink-0 font-normal">
+                                    Default
+                                  </span>
+                                )}
+                              </div>
+                              {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 ml-1" />}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Quantity & Type Dropdown */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
@@ -734,62 +915,85 @@ export function PurchaseModal({
                 </div>
               </div>
 
-              {/* Warehouse (Destination Godown) */}
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0 flex items-center justify-end gap-1">
-                  {user?.role === 'MANAGER' && <Lock className="w-3 h-3 text-amber-600 dark:text-amber-400" />}
-                  Warehouse
-                </label>
-                <select
-                  value={selectedWarehouseId}
-                  onChange={(e) => {
-                    if (user?.role !== 'MANAGER') {
-                      setSelectedWarehouseId(e.target.value);
-                    }
-                  }}
-                  disabled={isSaving || user?.role === 'MANAGER'}
-                  title={user?.role === 'MANAGER' ? "Assigned warehouse (locked for Manager role)" : "Select destination warehouse"}
-                  className={`flex-1 h-6 px-1.5 border text-xs focus:outline-none ${
-                    user?.role === 'MANAGER'
-                      ? 'bg-neutral-100 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-slate-700 cursor-not-allowed select-none font-medium'
-                      : 'bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border-neutral-400 dark:border-slate-600 focus:ring-1 focus:ring-emerald-600 font-medium'
-                  }`}
-                >
-                  <option value="">-- Select Warehouse --</option>
-                  {warehousesList.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name} {w.isDefault ? '(Default)' : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               {/* Supplier ID & Invoice */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 relative" ref={supplierDropdownRef}>
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Supplier ID
                 </label>
-                {paymentMode === 'SUPPLIER' && suppliersList.length > 0 ? (
-                  <select
-                    value={supplierId}
-                    onChange={(e) => handleSelectSupplier(e.target.value)}
-                    disabled={isSaving}
-                    className="w-24 h-6 px-1 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 text-xs focus:outline-none disabled:opacity-50"
-                  >
-                    <option value="">Select</option>
-                    {suppliersList.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
+                {paymentMode === 'SUPPLIER' ? (
+                  <div className="relative w-28">
+                    <div className="relative flex items-center">
+                      <input
+                        type="text"
+                        value={supplierSearchText}
+                        onChange={(e) => {
+                          setSupplierSearchText(e.target.value);
+                          setIsSupplierDropdownOpen(true);
+                          if (!e.target.value.trim()) {
+                            setSupplierId('');
+                            setSupplierName('');
+                            setSupplierAddress('');
+                            setSupplierDues('0.00');
+                          }
+                        }}
+                        onFocus={() => setIsSupplierDropdownOpen(true)}
+                        onClick={() => setIsSupplierDropdownOpen(true)}
+                        placeholder="Search..."
+                        disabled={isSaving}
+                        className="w-full h-6 px-1.5 pr-5 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-50"
+                      />
+                      <button
+                        type="button"
+                        tabIndex={-1}
+                        onClick={() => setIsSupplierDropdownOpen((prev) => !prev)}
+                        className="absolute right-0.5 text-neutral-500 hover:text-neutral-700 p-0.5 cursor-pointer"
+                      >
+                        <ChevronDown className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    {isSupplierDropdownOpen && (
+                      <div className="absolute left-0 top-full mt-1 w-56 max-h-44 overflow-y-auto bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 shadow-xl z-50 py-1">
+                        {filteredSuppliers.length === 0 ? (
+                          <div className="px-2 py-1 text-xs text-neutral-500 text-center italic">
+                            No supplier found
+                          </div>
+                        ) : (
+                          filteredSuppliers.map((s) => {
+                            const isSelected = s.id === supplierId;
+                            return (
+                              <button
+                                key={s.id}
+                                type="button"
+                                onClick={() => {
+                                  handleSelectSupplier(s.id);
+                                  setIsSupplierDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-2 py-1 text-xs flex items-center justify-between hover:bg-emerald-50 dark:hover:bg-slate-700 cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-emerald-100 dark:bg-emerald-950 font-bold text-emerald-900 dark:text-emerald-200'
+                                    : 'text-neutral-800 dark:text-neutral-200'
+                                }`}
+                              >
+                                <div className="truncate">
+                                  <div className="font-medium truncate">{s.name}</div>
+                                  {s.phone && <div className="text-[10px] text-neutral-500">{s.phone}</div>}
+                                </div>
+                                {isSelected && <Check className="w-3 h-3 text-emerald-600 shrink-0" />}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <input
                     type="text"
                     value={supplierId}
                     onChange={(e) => setSupplierId(e.target.value)}
                     disabled={isSaving || paymentMode === 'CASH'}
-                    className="w-24 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none disabled:opacity-75"
+                    className="w-28 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none disabled:opacity-75 font-mono text-xs"
                   />
                 )}
                 <span className="text-xs font-bold text-neutral-900 dark:text-neutral-200 ml-auto mr-1">Invoice</span>
