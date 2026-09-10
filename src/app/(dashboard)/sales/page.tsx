@@ -1,21 +1,16 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useAuth } from '@/lib/context/auth-context';
 import { useLanguage } from '@/lib/context/language-context';
 import { api } from '@/lib/api/client';
-import { Sale, SaleStatus } from '@/lib/types';
+import { Sale } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { ShoppingCart, PlusCircle, Search, Eye, Clock, CheckCircle2, XCircle, Printer, ShoppingBag } from 'lucide-react';
+import { Dialog } from '@/components/ui/dialog';
+import { ShoppingCart, Search, Eye, Printer, Loader2, AlertCircle, Package, X } from 'lucide-react';
 import { InvoiceMemoModal } from '@/components/sales/invoice-memo-modal';
 import { SaleManualModal } from '@/components/sales/sale-manual-modal';
+import { SaleBarcodeModal } from '@/components/sales/sale-barcode-modal';
 
 export default function SalesListPage() {
   const { user } = useAuth();
@@ -31,10 +26,11 @@ export default function SalesListPage() {
   // Sale Details Modal
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
 
-  // Memo Modal
+  // Modals
   const [memoSale, setMemoSale] = useState<Sale | null>(null);
   const [memoOpen, setMemoOpen] = useState(false);
   const [saleManualModalOpen, setSaleManualModalOpen] = useState(false);
+  const [saleBarcodeModalOpen, setSaleBarcodeModalOpen] = useState(false);
 
   const fetchSales = async () => {
     try {
@@ -57,238 +53,273 @@ export default function SalesListPage() {
   }, [statusFilter]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <ShoppingCart className="w-6 h-6 text-primary" />
-            {t('sales.allSales')}
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {t('sales.subtitleAll')}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={() => setSaleManualModalOpen(true)}
-            variant="outline"
-            className="gap-2 border-[#006400] text-[#006400] hover:bg-emerald-50 dark:border-emerald-600 dark:text-emerald-400 dark:hover:bg-emerald-950/40 font-semibold"
-          >
-            <ShoppingBag className="w-4 h-4" /> Sale by Manual
-          </Button>
-          <Link href="/sales/new">
-            <Button className="gap-2 shadow-sm">
-              <PlusCircle className="w-4 h-4" /> {t('sales.createSale')}
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      {/* Filter Bar */}
-      <Card className="p-4">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            fetchSales();
-          }}
-          className="grid grid-cols-1 sm:grid-cols-12 gap-3"
-        >
-          <div className="sm:col-span-8 relative">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
-            <Input
-              placeholder={t('sales.searchPlaceholder')}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 text-xs h-9"
-            />
+    <div className="w-full h-full flex-1 min-h-0 flex flex-col">
+      <div className="w-full flex-1 min-h-0 flex flex-col border border-[#004d00] dark:border-emerald-900 rounded-xs bg-[#c6d8ea] dark:bg-slate-900 shadow-sm overflow-hidden select-none">
+        
+        {/* Dark Green Banner Header */}
+        <div className="relative bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 select-none border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            <ShoppingCart className="w-4 h-4 text-white" />
+            <h2 className="text-sm font-bold text-white tracking-wide uppercase">Sales Register</h2>
           </div>
-
-          <div className="sm:col-span-4">
-            <Select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="text-xs h-9"
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSaleManualModalOpen(true)}
+              className="h-7 px-3 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 hover:bg-neutral-100 font-bold text-xs rounded-xs flex items-center gap-1 shadow-sm transition-colors border border-neutral-400"
             >
-              <option value="">{t('sales.allStatuses')}</option>
-              <option value="COMPLETED">{t('statuses.completed') || 'Completed'}</option>
-              <option value="CANCELLED">{t('statuses.cancelled') || 'Cancelled'}</option>
-            </Select>
+              Sale By Manual
+            </button>
+            <button
+              type="button"
+              onClick={() => setSaleBarcodeModalOpen(true)}
+              className="h-7 px-3 bg-[#800000] text-white hover:bg-red-900 font-bold text-xs rounded-xs flex items-center gap-1 shadow-sm transition-colors border border-red-950"
+            >
+              Sale By POS
+            </button>
           </div>
-        </form>
-      </Card>
+        </div>
 
-      {/* Sales Table */}
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="p-12 text-center text-xs text-muted-foreground">{t('sales.loading')}</div>
-          ) : error ? (
-            <div className="p-6 text-center text-xs text-destructive">{error}</div>
-          ) : sales.length === 0 ? (
-            <div className="p-12 text-center text-xs text-muted-foreground">
-              {t('sales.noSales')}
+        {/* Toolbar */}
+        <div className="bg-[#eaf1f8] dark:bg-slate-800 border-b border-neutral-400 dark:border-slate-700 py-2 px-3 shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              fetchSales();
+            }}
+            className="flex flex-wrap items-center gap-2 w-full sm:w-auto"
+          >
+            <div className="flex items-center gap-2 flex-1 max-w-sm relative">
+              <input
+                type="text"
+                placeholder="Search sales..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-64 pl-7 pr-2 py-1 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400"
+              />
+              <Search className="w-3.5 h-3.5 text-neutral-500 absolute left-2 top-1.5" />
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs min-w-[750px]">
-                <thead className="bg-muted/30 border-b text-muted-foreground">
-                  <tr className="text-left font-semibold">
-                    <th className="p-3">{t('sales.refNumber')}</th>
-                    <th className="p-3">{t('sales.date')}</th>
-                    <th className="p-3">{t('sales.createdBy')}</th>
-                    <th className="p-3">{t('sales.customer')}</th>
-                    <th className="p-3">{t('sales.items')}</th>
-                    <th className="p-3 text-right">{t('sales.totalAmount')}</th>
-                    <th className="p-3">{t('sales.status')}</th>
-                    <th className="p-3 text-right">{t('sales.action')}</th>
+
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-semibold text-neutral-700 dark:text-neutral-300">Status:</span>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="h-6 px-1.5 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-[#006400]"
+              >
+                <option value="">All Statuses</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+            </div>
+            
+            <button
+              type="submit"
+              disabled={loading}
+              className="h-6 px-2 bg-white dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 hover:bg-neutral-100 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer ml-1"
+            >
+              <Loader2 className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
+          </form>
+        </div>
+
+        {/* Desktop Spreadsheet Data Grid */}
+        <div className="flex-1 min-h-[300px] flex flex-col border border-neutral-400 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shadow-inner">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto flex flex-col">
+            <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
+              <thead className="sticky top-0 bg-[#eaf1f8] dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border-b border-neutral-400 dark:border-slate-700 font-bold select-none text-xs z-10">
+                <tr>
+                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-10 text-center">SN</th>
+                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32">Ref Number</th>
+                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32">Date</th>
+                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-40">Created By</th>
+                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[150px]">Customer</th>
+                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center">Items</th>
+                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32 text-right">Total Amount</th>
+                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28 text-center">Status</th>
+                  <th className="px-3 py-1.5 w-32 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
+                {loading ? (
+                  <tr>
+                    <td colSpan={9} className="py-16 text-center text-neutral-500 font-medium">
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
+                        <span>Loading sales...</span>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {sales.map((sale) => (
-                    <tr key={sale.id} className="hover:bg-muted/40">
-                      <td className="p-3 font-mono font-medium text-foreground">
-                        {sale.referenceNumber}
-                      </td>
-                      <td className="p-3 text-muted-foreground">{formatDate(sale.createdAt)}</td>
-                      <td className="p-3 font-medium text-foreground">
-                        {sale.createdBy?.name || '—'}
-                      </td>
-                      <td className="p-3 text-muted-foreground">
+                ) : error ? (
+                  <tr>
+                    <td colSpan={9} className="py-12 text-center text-rose-600 font-medium">
+                      <div className="flex items-center justify-center gap-2">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>{error}</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : sales.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="py-16 text-center text-neutral-500 font-medium">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Package className="w-8 h-8 text-neutral-400" />
+                        <span>No sales found matching criteria.</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  sales.map((sale, idx) => (
+                    <tr
+                      key={sale.id}
+                      className={`transition-colors cursor-pointer ${
+                        idx % 2 === 0
+                          ? 'bg-white dark:bg-slate-900 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80'
+                          : 'bg-[#f4f8fc] dark:bg-slate-900/50 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80'
+                      }`}
+                      onClick={() => setSelectedSale(sale)}
+                      title="Click to view details"
+                    >
+                      <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono text-neutral-500">{idx + 1}</td>
+                      <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-mono font-bold text-neutral-800 dark:text-neutral-100">{sale.referenceNumber}</td>
+                      <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-neutral-600 dark:text-neutral-400">{formatDate(sale.createdAt)}</td>
+                      <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-semibold text-neutral-900 dark:text-neutral-100">{sale.createdBy?.name || '—'}</td>
+                      <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-neutral-700 dark:text-neutral-300">
                         {sale.customerName ? (
-                          <>
-                            <span className="font-medium text-foreground">{sale.customerName}</span>
-                            {sale.customerPhone && (
-                              <span className="text-[10px] block">{sale.customerPhone}</span>
-                            )}
-                          </>
-                        ) : (
-                          t('sales.walkIn')
-                        )}
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-neutral-900 dark:text-neutral-100">{sale.customerName}</span>
+                            {sale.customerPhone && <span className="text-[10px] text-neutral-500">{sale.customerPhone}</span>}
+                          </div>
+                        ) : 'Walk-in Customer'}
                       </td>
-                      <td className="p-3 font-medium">{sale.items?.length || 0} {t('sales.lines')}</td>
-                      <td className="p-3 text-right font-bold text-foreground">
-                        {formatMoney(sale.totalAmount)}
+                      <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono text-neutral-700 dark:text-neutral-300">{sale.items?.length || 0}</td>
+                      <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-right font-mono font-bold text-neutral-900 dark:text-neutral-100">
+                        ৳ {Number(sale.totalAmount).toFixed(2)}
                       </td>
-                      <td className="p-3">
-                        <Badge
-                          variant={sale.status === 'COMPLETED' ? 'success' : 'destructive'}
-                          className="text-[10px] uppercase font-bold"
-                        >
-                          {sale.status === 'COMPLETED'
-                            ? t('statuses.completed') || 'Completed'
-                            : t('statuses.cancelled') || 'Cancelled'}
-                        </Badge>
+                      <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
+                        <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-bold uppercase border ${
+                          sale.status === 'COMPLETED'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800'
+                            : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-800'
+                        }`}>
+                          {sale.status === 'COMPLETED' ? 'COMPLETED' : 'CANCELLED'}
+                        </span>
                       </td>
-                      <td className="p-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs gap-1"
-                            onClick={() => {
-                              setMemoSale(sale);
-                              setMemoOpen(true);
-                            }}
+                      <td className="px-3 py-1.5 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setMemoSale(sale); setMemoOpen(true); }}
+                            className="h-6 px-2 bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-400 hover:bg-neutral-100 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
                           >
                             <Printer className="w-3 h-3" /> Memo
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 text-xs"
-                            onClick={() => setSelectedSale(sale)}
-                          >
-                            <Eye className="w-3 h-3 mr-1" /> {t('sales.viewDetails')}
-                          </Button>
+                          </button>
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          
+          {/* Grey backdrop filling remaining space */}
+          <div className="flex-1 min-h-[60px] bg-[#9ca3af] dark:bg-slate-950 w-full" />
+        </div>
+      </div>
 
-      {/* Sale Details Modal */}
-      <Dialog open={!!selectedSale} onOpenChange={(open) => !open && setSelectedSale(null)}>
-        <DialogHeader>
-          <DialogTitle>{t('sales.saleDetails')}</DialogTitle>
-          <DialogDescription>
-            {t('sales.refNumber')}: <strong className="font-mono text-foreground">{selectedSale?.referenceNumber}</strong>
-          </DialogDescription>
-        </DialogHeader>
+      {/* Sale Details Modal (ERP Style) */}
+      <Dialog
+        open={!!selectedSale}
+        onOpenChange={(open) => { if (!open) setSelectedSale(null); }}
+        draggable={true}
+        closeOnBackdropClick={true}
+        className="p-0 max-w-3xl w-full border-2 border-[#004d00] dark:border-emerald-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 overflow-hidden shadow-2xl"
+      >
+        <div
+          data-drag-handle
+          className="relative bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 select-none border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none"
+        >
+          <h2 className="text-xl font-bold text-white tracking-wide pointer-events-none select-none">Sale Details</h2>
+          <button
+            type="button"
+            onClick={() => setSelectedSale(null)}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/90 hover:text-white hover:bg-black/20 p-1 rounded transition-colors cursor-pointer"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
         {selectedSale && (
-          <div className="space-y-4 text-xs">
-            {/* Meta details */}
-            <div className="grid grid-cols-2 gap-3 p-3 bg-muted/40 rounded-lg">
-              <div>
-                <span className="text-muted-foreground block text-[10px]">{t('sales.createdBy')}</span>
-                <span className="font-semibold text-foreground">{selectedSale.createdBy?.name || '—'}</span>
+          <div className="p-4 sm:p-5 space-y-4 text-xs">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white dark:bg-slate-800 p-3 border border-neutral-400 dark:border-slate-600 shadow-sm">
+                <h3 className="font-bold text-neutral-500 uppercase tracking-wide border-b pb-1 mb-2">General Info</h3>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Reference Number:</span><span className="font-mono font-bold text-neutral-900 dark:text-neutral-100">{selectedSale.referenceNumber}</span></div>
+                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Date:</span><span className="font-bold text-neutral-900 dark:text-neutral-100">{formatDate(selectedSale.createdAt)}</span></div>
+                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Created By:</span><span className="text-neutral-900 dark:text-neutral-100">{selectedSale.createdBy?.name || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Status:</span>
+                    <span className={`font-bold uppercase ${
+                      selectedSale.status === 'COMPLETED' ? 'text-emerald-600' : 'text-rose-600'
+                    }`}>
+                      {selectedSale.status}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div>
-                <span className="text-muted-foreground block text-[10px]">{t('sales.status')}</span>
-                <Badge
-                  variant={selectedSale.status === 'COMPLETED' ? 'success' : 'destructive'}
-                  className="text-[10px] uppercase font-bold mt-0.5"
-                >
-                  {selectedSale.status === 'COMPLETED'
-                    ? t('statuses.completed') || 'Completed'
-                    : t('statuses.cancelled') || 'Cancelled'}
-                </Badge>
-              </div>
-              <div>
-                <span className="text-muted-foreground block text-[10px]">{t('sales.date')}</span>
-                <span className="text-foreground">{formatDate(selectedSale.createdAt)}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground block text-[10px]">{t('sales.customer')}</span>
-                <span className="text-foreground">{selectedSale.customerName || t('sales.walkIn')}</span>
+
+              <div className="bg-white dark:bg-slate-800 p-3 border border-neutral-400 dark:border-slate-600 shadow-sm">
+                <h3 className="font-bold text-neutral-500 uppercase tracking-wide border-b pb-1 mb-2">Customer Info</h3>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Name:</span><span className="font-bold text-neutral-900 dark:text-neutral-100">{selectedSale.customerName || 'Walk-in Customer'}</span></div>
+                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Phone:</span><span className="text-neutral-900 dark:text-neutral-100">{selectedSale.customerPhone || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Total Lines:</span><span className="font-bold text-neutral-900 dark:text-neutral-100">{selectedSale.items?.length || 0} Items</span></div>
+                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Grand Total:</span><span className="font-mono font-bold text-neutral-900 dark:text-neutral-100">৳ {Number(selectedSale.totalAmount).toFixed(2)}</span></div>
+                </div>
               </div>
             </div>
 
-            {/* Line items table */}
-            <div>
-              <h4 className="font-bold mb-1.5 text-foreground">{t('sales.itemsInSale')}</h4>
-              <div className="border rounded-lg overflow-x-auto">
+            <div className="bg-white dark:bg-slate-800 p-3 border border-neutral-400 dark:border-slate-600 shadow-sm">
+              <h3 className="font-bold text-neutral-500 uppercase tracking-wide border-b pb-2 mb-3">Items in Sale</h3>
+              <div className="border border-neutral-300 dark:border-slate-700 overflow-x-auto">
                 <table className="w-full text-xs min-w-[380px]">
-                  <thead className="bg-muted/50 border-b">
-                    <tr className="text-left font-semibold text-muted-foreground">
-                      <th className="p-2">{t('sales.product')}</th>
-                      <th className="p-2 text-center">{t('sales.quantity')}</th>
-                      <th className="p-2 text-right">{t('sales.unitPrice')}</th>
-                      <th className="p-2 text-right">{t('sales.total')}</th>
+                  <thead className="bg-[#eaf1f8] dark:bg-slate-800 border-b border-neutral-300 dark:border-slate-700">
+                    <tr className="text-left font-bold text-neutral-700 dark:text-neutral-300">
+                      <th className="p-2 border-r border-neutral-300 dark:border-slate-700 w-10 text-center">SN</th>
+                      <th className="p-2 border-r border-neutral-300 dark:border-slate-700">Product</th>
+                      <th className="p-2 border-r border-neutral-300 dark:border-slate-700 text-center w-24">Quantity</th>
+                      <th className="p-2 border-r border-neutral-300 dark:border-slate-700 text-right w-32">Unit Price</th>
+                      <th className="p-2 text-right w-32">Total</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y">
-                    {selectedSale.items?.map((item) => (
-                      <tr key={item.id}>
-                        <td className="p-2">
-                          <span className="font-medium text-foreground">{item.product?.name}</span>
-                          <span className="text-[10px] text-muted-foreground block font-mono">
-                            {item.product?.sku}
-                          </span>
+                  <tbody className="divide-y divide-neutral-200 dark:divide-slate-700">
+                    {selectedSale.items?.map((item, idx) => (
+                      <tr key={item.id} className="hover:bg-neutral-50 dark:hover:bg-slate-800/50">
+                        <td className="p-2 border-r border-neutral-200 dark:border-slate-700 text-center text-neutral-500">{idx + 1}</td>
+                        <td className="p-2 border-r border-neutral-200 dark:border-slate-700">
+                          <span className="font-medium text-neutral-900 dark:text-neutral-100 block">{item.product?.name}</span>
+                          <span className="text-[10px] text-neutral-500 block font-mono">{item.product?.sku}</span>
                         </td>
-                        <td className="p-2 text-center font-bold">{item.quantity}</td>
-                        <td className="p-2 text-right text-muted-foreground">
-                          {formatMoney(item.unitPrice)}
+                        <td className="p-2 border-r border-neutral-200 dark:border-slate-700 text-center font-bold text-neutral-900 dark:text-neutral-100">{item.quantity}</td>
+                        <td className="p-2 border-r border-neutral-200 dark:border-slate-700 text-right text-neutral-600 dark:text-neutral-400">
+                          ৳ {Number(item.unitPrice).toFixed(2)}
                         </td>
-                        <td className="p-2 text-right font-semibold text-foreground">
-                          {formatMoney(item.lineTotal)}
+                        <td className="p-2 text-right font-semibold text-neutral-900 dark:text-neutral-100">
+                          ৳ {Number(item.lineTotal).toFixed(2)}
                         </td>
                       </tr>
                     ))}
                   </tbody>
-                  <tfoot className="bg-muted/20 font-bold border-t">
+                  <tfoot className="bg-[#eaf1f8] dark:bg-slate-800 border-t border-neutral-300 dark:border-slate-700 font-bold">
                     <tr>
-                      <td colSpan={3} className="p-2 text-right">
-                        {t('sales.grandTotal')}:
+                      <td colSpan={4} className="p-2 text-right border-r border-neutral-300 dark:border-slate-700 uppercase tracking-wider text-neutral-700 dark:text-neutral-300">
+                        Grand Total:
                       </td>
-                      <td className="p-2 text-right text-sm text-foreground">
-                        {formatMoney(selectedSale.totalAmount)}
+                      <td className="p-2 text-right text-sm text-neutral-900 dark:text-neutral-100">
+                        ৳ {Number(selectedSale.totalAmount).toFixed(2)}
                       </td>
                     </tr>
                   </tfoot>
@@ -297,27 +328,30 @@ export default function SalesListPage() {
             </div>
 
             {selectedSale.note && (
-              <p className="text-[11px] text-muted-foreground bg-muted/20 p-2 rounded">
-                <strong>{t('sales.saleNote')}:</strong> {selectedSale.note}
-              </p>
+              <div className="bg-white dark:bg-slate-800 p-2 border border-neutral-400 dark:border-slate-600 shadow-sm text-neutral-800 dark:text-neutral-200">
+                <strong>Sale Note:</strong> {selectedSale.note}
+              </div>
             )}
 
-            <DialogFooter className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 w-full">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1 text-xs w-full sm:w-auto"
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
                 onClick={() => {
                   setMemoSale(selectedSale);
                   setMemoOpen(true);
                 }}
+                className="w-auto px-4 h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 text-neutral-900 dark:text-neutral-100 border border-neutral-500 font-bold text-xs tracking-wider shadow-sm transition-colors cursor-pointer flex items-center gap-1.5"
               >
                 <Printer className="w-3.5 h-3.5" /> Print Invoice Memo
-              </Button>
-              <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => setSelectedSale(null)}>
-                {t('sales.close')}
-              </Button>
-            </DialogFooter>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedSale(null)}
+                className="w-24 h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 text-neutral-900 dark:text-neutral-100 border border-neutral-500 font-bold text-xs tracking-wider shadow-sm transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         )}
       </Dialog>
@@ -328,13 +362,17 @@ export default function SalesListPage() {
         onOpenChange={setMemoOpen}
       />
 
-      {/* Sale Manual Modal */}
       <SaleManualModal
         open={saleManualModalOpen}
         onOpenChange={setSaleManualModalOpen}
         onSaveSuccess={fetchSales}
       />
+
+      <SaleBarcodeModal
+        open={saleBarcodeModalOpen}
+        onOpenChange={setSaleBarcodeModalOpen}
+        onSaveSuccess={fetchSales}
+      />
     </div>
   );
 }
-

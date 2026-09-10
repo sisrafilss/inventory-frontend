@@ -50,12 +50,6 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
-      key: 'newSale',
-      href: '/sales/new',
-      icon: PlusCircle,
-      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
-    },
-    {
       key: 'allSales',
       href: '/sales',
       icon: ShoppingCart,
