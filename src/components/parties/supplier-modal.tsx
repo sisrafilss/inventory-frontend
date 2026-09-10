@@ -154,6 +154,15 @@ export function SupplierModal({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmedCode = code.trim();
+    if (!trimmedCode) {
+      setStatusMessage({
+        text: 'Supplier Code is required and cannot be empty.',
+        isError: true,
+      });
+      return;
+    }
+
     const trimmedName = name.trim();
     if (!trimmedName || trimmedName.length < 2) {
       setStatusMessage({
@@ -175,7 +184,7 @@ export function SupplierModal({
     setStatusMessage(null);
 
     const payload = {
-      code: code.trim() ? code.trim() : undefined,
+      code: trimmedCode,
       name: trimmedName,
       companyName: companyName.trim() || undefined,
       phone: phone.trim() || undefined,
@@ -319,15 +328,16 @@ export function SupplierModal({
 
         {/* Inner Card: Structured Desktop Grid Rows */}
         <div className="space-y-2.5 bg-[#dbe7f3] dark:bg-slate-800/60 p-3.5 rounded border border-[#b2c8dc] dark:border-slate-700 shadow-inner">
-          {/* Supplier Code (Manual Input with Real-time Duplicate Check) */}
+          {/* Supplier Code (Manual Input with Real-time Duplicate Check - MANDATORY) */}
           <div className="grid grid-cols-12 items-start gap-2">
             <label className="col-span-4 text-right font-medium text-neutral-800 dark:text-neutral-200 pt-1">
-              Supplier Code
+              Supplier Code <span className="text-rose-600 font-bold">*</span>
             </label>
             <div className="col-span-8 space-y-1">
               <div className="relative flex items-center">
                 <input
                   type="text"
+                  required
                   placeholder="e.g. SUP-101, ACI-01"
                   value={code}
                   onChange={(e) => {

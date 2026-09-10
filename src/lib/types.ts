@@ -103,7 +103,7 @@ export interface Warehouse {
 
 export interface Supplier {
   id: string;
-  code?: string | null;
+  code: string;
   name: string;
   companyName?: string | null;
   phone?: string | null;
@@ -122,7 +122,7 @@ export interface Supplier {
 
 export interface Customer {
   id: string;
-  code?: string | null;
+  code: string;
   name: string;
   phone?: string | null;
   email?: string | null;
