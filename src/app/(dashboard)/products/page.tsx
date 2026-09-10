@@ -29,6 +29,8 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [companyFilter, setCompanyFilter] = useState('');
+  const [warehouseFilter, setWarehouseFilter] = useState('');
+  const [warehouseInput, setWarehouseInput] = useState('');
   const [stockFilter, setStockFilter] = useState('ALL');
 
   // Debounce search query (300ms)
@@ -99,6 +101,7 @@ export default function ProductsPage() {
         limit,
         search: debouncedSearch || undefined,
         companyId: companyFilter || undefined,
+        warehouseId: warehouseFilter || undefined,
         stockStatus: stockFilter !== 'ALL' ? stockFilter : undefined,
       });
       if (page === 1) {
@@ -125,7 +128,7 @@ export default function ProductsPage() {
 
   useEffect(() => {
     fetchProducts();
-  }, [page, limit, debouncedSearch, companyFilter, stockFilter]);
+  }, [page, limit, debouncedSearch, companyFilter, warehouseFilter, stockFilter]);
 
   // Check if Item Code already exists in database (Immediate or onBlur)
   const checkCodeAvailability = async (rawCode: string) => {
@@ -574,6 +577,39 @@ export default function ProductsPage() {
                   ))}
                 </select>
 
+                <span className="text-[11px] font-semibold text-neutral-700 dark:text-neutral-300 ml-1">Warehouse:</span>
+                <input
+                  type="text"
+                  list="warehouse-list"
+                  value={warehouseInput}
+                  placeholder="All Warehouses..."
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setWarehouseInput(val);
+                    const found = warehouses.find(w => w.name.toLowerCase() === val.toLowerCase());
+                    if (found) {
+                      setWarehouseFilter(found.id);
+                      setPage(1);
+                    } else if (val.trim() === '') {
+                      setWarehouseFilter('');
+                      setPage(1);
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (!warehouses.find(w => w.name.toLowerCase() === e.target.value.toLowerCase())) {
+                      setWarehouseInput('');
+                      setWarehouseFilter('');
+                      setPage(1);
+                    }
+                  }}
+                  className="h-6 w-32 px-1.5 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-[#006400]"
+                />
+                <datalist id="warehouse-list">
+                  {warehouses.map((w) => (
+                    <option key={w.id} value={w.name} />
+                  ))}
+                </datalist>
+
                 <span className="text-[11px] font-semibold text-neutral-700 dark:text-neutral-300 ml-1">Stock:</span>
                 <select
                   value={stockFilter}
@@ -697,19 +733,6 @@ export default function ProductsPage() {
                               {p.quantity}
                             </span>
                             <span className="text-[10px] text-neutral-400 ml-1">{p.unit}</span>
-                            {p.warehouseStocks && p.warehouseStocks.length > 0 && (
-                              <div className="flex flex-wrap gap-1 justify-center mt-0.5">
-                                {p.warehouseStocks.filter((ws) => ws.quantity > 0).map((ws) => (
-                                  <span
-                                    key={ws.id}
-                                    className="text-[9px] px-1 py-0.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xs"
-                                    title={`${ws.warehouse?.name || 'Warehouse'}: ${ws.quantity} ${p.unit}`}
-                                  >
-                                    {ws.warehouse?.name?.split(' ')[0] || 'WH'}: <strong>{ws.quantity}</strong>
-                                  </span>
-                                ))}
-                              </div>
-                            )}
                           </td>
                           <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
                             <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-bold uppercase border ${
@@ -1127,6 +1150,24 @@ export default function ProductsPage() {
                <h3 className="font-bold text-neutral-500 uppercase tracking-wide border-b pb-1 mb-2">Description</h3>
                <p className="text-neutral-800 dark:text-neutral-200">{viewProduct.description || 'None'}</p>
             </div>
+
+            {viewProduct.warehouseStocks && viewProduct.warehouseStocks.length > 0 && (
+              <div className="bg-white dark:bg-slate-800 p-3 border border-neutral-400 dark:border-slate-600 shadow-sm mt-4">
+                 <h3 className="font-bold text-neutral-500 uppercase tracking-wide border-b pb-1 mb-2">Stock per Godown / Warehouse</h3>
+                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                   {viewProduct.warehouseStocks.map(ws => (
+                     <div key={ws.id} className="flex justify-between items-center p-2 bg-[#f4f8fc] dark:bg-slate-900/50 border border-neutral-300 dark:border-slate-700 shadow-xs">
+                       <span className="font-semibold text-neutral-700 dark:text-neutral-300 truncate pr-2" title={ws.warehouse?.name || 'Unknown Godown'}>
+                         {ws.warehouse?.name || 'Unknown Godown'}
+                       </span>
+                       <span className={`font-mono font-bold text-sm ${ws.quantity > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                         {ws.quantity}
+                       </span>
+                     </div>
+                   ))}
+                 </div>
+              </div>
+            )}
 
             <div className="flex justify-end pt-2">
               <button
