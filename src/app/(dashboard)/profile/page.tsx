@@ -5,10 +5,12 @@ import { useAuth } from '@/lib/context/auth-context';
 import { api } from '@/lib/api/client';
 import { formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useLanguage } from '@/lib/context/language-context';
 import { User, KeyRound, CheckCircle2, AlertTriangle, Shield, Save, Loader2, Info } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth();
+  const { t } = useLanguage();
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -57,7 +59,7 @@ export default function ProfilePage() {
         <div className="bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 border-b border-[#004d00] dark:border-emerald-900 flex flex-wrap items-center justify-between shrink-0 gap-2">
           <div className="flex items-center gap-2 text-white">
             <User className="w-5 h-5 text-emerald-200" />
-            <h1 className="text-lg font-bold tracking-wide">My Profile & Security</h1>
+            <h1 className="text-lg font-bold tracking-wide">{t('profile.pageTitle')}</h1>
           </div>
         </div>
 
@@ -67,7 +69,7 @@ export default function ProfilePage() {
           <div className="p-4 bg-[#f4f8fc] dark:bg-slate-900/50">
             <div className="flex items-center gap-2 border-b border-neutral-300 dark:border-slate-700 pb-2 mb-4">
               <Info className="w-4 h-4 text-[#0056b3]" />
-              <h3 className="text-sm font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Account Information</h3>
+              <h3 className="text-sm font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">{t('profile.accountInfo')}</h3>
             </div>
             
             <div className="flex items-center gap-4 pb-4">
@@ -87,21 +89,21 @@ export default function ProfilePage() {
             <table className="w-full text-xs text-left border-collapse border border-neutral-300 dark:border-slate-700 bg-white dark:bg-slate-900">
               <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
                 <tr>
-                  <th className="p-2 border-r border-neutral-300 dark:border-slate-700 bg-neutral-100 dark:bg-slate-800 w-32 font-bold text-neutral-700 dark:text-neutral-300">Status</th>
+                  <th className="p-2 border-r border-neutral-300 dark:border-slate-700 bg-neutral-100 dark:bg-slate-800 w-32 font-bold text-neutral-700 dark:text-neutral-300">{t('profile.status')}</th>
                   <td className="p-2 font-mono font-semibold text-emerald-700 dark:text-emerald-400">
                     {user.status}
                   </td>
                 </tr>
                 <tr>
-                  <th className="p-2 border-r border-neutral-300 dark:border-slate-700 bg-neutral-100 dark:bg-slate-800 font-bold text-neutral-700 dark:text-neutral-300">Phone</th>
+                  <th className="p-2 border-r border-neutral-300 dark:border-slate-700 bg-neutral-100 dark:bg-slate-800 font-bold text-neutral-700 dark:text-neutral-300">{t('profile.phone')}</th>
                   <td className="p-2 font-mono font-semibold">{user.phone || '—'}</td>
                 </tr>
                 <tr>
-                  <th className="p-2 border-r border-neutral-300 dark:border-slate-700 bg-neutral-100 dark:bg-slate-800 font-bold text-neutral-700 dark:text-neutral-300">Address</th>
+                  <th className="p-2 border-r border-neutral-300 dark:border-slate-700 bg-neutral-100 dark:bg-slate-800 font-bold text-neutral-700 dark:text-neutral-300">{t('profile.address')}</th>
                   <td className="p-2">{user.address || '—'}</td>
                 </tr>
                 <tr>
-                  <th className="p-2 border-r border-neutral-300 dark:border-slate-700 bg-neutral-100 dark:bg-slate-800 font-bold text-neutral-700 dark:text-neutral-300">Last Login</th>
+                  <th className="p-2 border-r border-neutral-300 dark:border-slate-700 bg-neutral-100 dark:bg-slate-800 font-bold text-neutral-700 dark:text-neutral-300">{t('profile.lastLogin')}</th>
                   <td className="p-2 font-mono">{user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Current Session'}</td>
                 </tr>
               </tbody>
@@ -112,7 +114,7 @@ export default function ProfilePage() {
           <div className="p-4 bg-white dark:bg-slate-950">
             <div className="flex items-center gap-2 border-b border-neutral-300 dark:border-slate-700 pb-2 mb-4">
               <KeyRound className="w-4 h-4 text-rose-700" />
-              <h3 className="text-sm font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Change Password</h3>
+              <h3 className="text-sm font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">{t('profile.changePassword')}</h3>
             </div>
             
             <form onSubmit={handlePasswordChange} className="space-y-4">

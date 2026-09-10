@@ -8,6 +8,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Receipt, Plus, Search, Calendar, DollarSign, Tag, Trash2, Edit2, Loader2, AlertCircle, X, HelpCircle } from 'lucide-react';
 import { useAuth } from '@/lib/context/auth-context';
+import { useLanguage } from '@/lib/context/language-context';
 
 const CATEGORIES = [
   { value: 'ALL', label: 'All Categories' },
@@ -23,6 +24,7 @@ const CATEGORIES = [
 
 export default function ExpensesPage() {
   const { user } = useAuth();
+  const { t, formatMoney } = useLanguage();
   const canManage = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
   // Data & Pagination
@@ -210,7 +212,7 @@ export default function ExpensesPage() {
         <div className="bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2 text-white">
             <Receipt className="w-5 h-5 text-emerald-200" />
-            <h1 className="text-lg font-bold tracking-wide">Daily Costs & Expenses</h1>
+            <h1 className="text-lg font-bold tracking-wide">{t('expenses.title')}</h1>
           </div>
           {canManage && (
             <button
@@ -219,7 +221,7 @@ export default function ExpensesPage() {
               className="px-2.5 py-1 text-xs font-bold bg-white text-[#006400] border border-[#004d00] shadow-xs flex items-center gap-1.5 rounded-xs hover:bg-emerald-50 transition-colors cursor-pointer uppercase tracking-wider"
             >
               <Plus className="w-3.5 h-3.5 stroke-[3]" />
-              <span>Add Expense</span>
+              <span>{t('expenses.addExpense')}</span>
             </button>
           )}
         </div>
@@ -227,12 +229,12 @@ export default function ExpensesPage() {
         {/* Gray Filter Bar */}
         <div className="bg-[#eaf1f8] dark:bg-slate-800/80 p-2 border-b border-neutral-300 dark:border-slate-700 shrink-0 flex flex-wrap gap-2 items-center text-sm">
           <div className="flex items-center gap-1.5 flex-1 min-w-[200px]">
-            <label className="font-semibold text-neutral-700 dark:text-neutral-300 whitespace-nowrap text-xs uppercase tracking-wider">Search:</label>
+            <label className="font-semibold text-neutral-700 dark:text-neutral-300 whitespace-nowrap text-xs uppercase tracking-wider">{t('common.search')}:</label>
             <div className="relative flex-1">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
               <input
                 type="text"
-                placeholder="By title, note..."
+                placeholder={t('expenses.searchPlaceholder')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full h-7 pl-7 pr-2 text-xs border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-emerald-600 text-neutral-900 dark:text-neutral-100"

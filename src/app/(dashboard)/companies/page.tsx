@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '@/lib/api/client';
 import { useAuth } from '@/lib/context/auth-context';
+import { useLanguage } from '@/lib/context/language-context';
 import { Company } from '@/lib/types';
 import {
   Building2,
@@ -20,6 +21,7 @@ import { CompanyModal } from '@/components/companies/company-modal';
 
 export default function CompaniesPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
 
   // Current Date Display
@@ -154,9 +156,9 @@ export default function CompaniesPage() {
           <div className="flex items-center gap-2">
             <span className="text-lg">🏢</span>
             <h1 className="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2 pointer-events-none">
-              Company / Brand Management
+              {t('companies.title')}
               <span className="text-[11px] font-mono font-normal text-emerald-200 uppercase tracking-widest hidden sm:inline border border-emerald-500/40 px-1.5 py-0.5 rounded-xs bg-emerald-900/30">
-                [MANUFACTURER REGISTRY]
+                [{t('companies.badge')}]
               </span>
             </h1>
           </div>
@@ -165,7 +167,7 @@ export default function CompaniesPage() {
             {/* Live Date Box */}
             <div className="hidden md:flex items-center gap-1.5 bg-[#004d00]/60 border border-emerald-600/40 px-2 py-0.5 rounded-xs text-[11px] font-mono text-emerald-100 shadow-inner">
               <CalendarIcon className="w-3.5 h-3.5 text-emerald-300" />
-              <span>Date {currentDate}</span>
+              <span>{t('common.date')} {currentDate}</span>
             </div>
 
             {/* Add Company Modal Trigger Button */}
@@ -176,7 +178,7 @@ export default function CompaniesPage() {
               title="Add a new company / brand"
             >
               <Plus className="w-3.5 h-3.5 text-[#006400] stroke-[3]" />
-              <span>Add Company</span>
+              <span>{t('companies.addCompany')}</span>
             </button>
           </div>
         </div>
@@ -215,12 +217,12 @@ export default function CompaniesPage() {
             {/* Search Input */}
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className="font-bold text-neutral-800 dark:text-neutral-200 text-xs shrink-0">
-                Filter:
+                {t('common.filter')}:
               </span>
               <div className="relative flex-1 sm:w-80">
                 <input
                   type="text"
-                  placeholder="Search by name, 3-digit code, or ID..."
+                  placeholder={t('companies.searchPlaceholder')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full pl-7 pr-2 py-1 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400"
@@ -233,7 +235,7 @@ export default function CompaniesPage() {
                   onClick={() => setSearch('')}
                   className="text-xs text-neutral-600 hover:text-neutral-900 dark:hover:text-neutral-200 underline cursor-pointer"
                 >
-                  Clear
+                  {t('common.clear')}
                 </button>
               )}
             </div>
@@ -242,7 +244,7 @@ export default function CompaniesPage() {
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
               <div className="flex items-center gap-1">
                 <span className="text-[11px] font-semibold text-neutral-700 dark:text-neutral-300 mr-1">
-                  Status:
+                  {t('common.status')}:
                 </span>
                 <button
                   type="button"
@@ -250,57 +252,57 @@ export default function CompaniesPage() {
                   className={`px-2 py-0.5 text-xs font-bold rounded-xs border transition-colors cursor-pointer ${
                     statusFilter === 'ALL'
                       ? 'bg-[#004d00] text-white border-[#004d00]'
-                      : 'bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-slate-700 hover:bg-neutral-100'
+                      : 'bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border-neutral-400 dark:border-slate-600 hover:bg-neutral-100'
                   }`}
                 >
-                  All ({companies.length})
+                  {t('common.all')} ({companies.length})
                 </button>
                 <button
                   type="button"
                   onClick={() => setStatusFilter('ACTIVE')}
                   className={`px-2 py-0.5 text-xs font-bold rounded-xs border transition-colors cursor-pointer ${
                     statusFilter === 'ACTIVE'
-                      ? 'bg-emerald-700 text-white border-emerald-700'
-                      : 'bg-white dark:bg-slate-800 text-emerald-800 dark:text-emerald-400 border-neutral-300 dark:border-slate-700 hover:bg-neutral-100'
+                      ? 'bg-emerald-700 text-white border-emerald-800'
+                      : 'bg-white dark:bg-slate-800 text-emerald-800 dark:text-emerald-400 border-neutral-400 dark:border-slate-600 hover:bg-emerald-50'
                   }`}
                 >
-                  Active ({activeCount})
+                  {t('common.active')} ({activeCount})
                 </button>
                 <button
                   type="button"
                   onClick={() => setStatusFilter('INACTIVE')}
                   className={`px-2 py-0.5 text-xs font-bold rounded-xs border transition-colors cursor-pointer ${
                     statusFilter === 'INACTIVE'
-                      ? 'bg-rose-700 text-white border-rose-700'
-                      : 'bg-white dark:bg-slate-800 text-rose-800 dark:text-rose-400 border-neutral-300 dark:border-slate-700 hover:bg-neutral-100'
+                      ? 'bg-rose-700 text-white border-rose-800'
+                      : 'bg-white dark:bg-slate-800 text-rose-800 dark:text-rose-400 border-neutral-400 dark:border-slate-600 hover:bg-rose-50'
                   }`}
                 >
-                  Inactive ({inactiveCount})
+                  {t('common.inactive')} ({inactiveCount})
                 </button>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-1.5 pl-2 border-l border-neutral-300 dark:border-slate-700">
+              {/* Action Buttons for Selected Company */}
+              <div className="flex items-center gap-1.5 ml-auto sm:ml-2">
                 {selectedCompany && (
                   <>
                     <button
                       type="button"
                       onClick={() => handleOpenEditModal(selectedCompany)}
-                      className="h-6 px-2 bg-white dark:bg-slate-800 text-emerald-800 dark:text-emerald-300 border border-emerald-600 hover:bg-emerald-50 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                      className="h-6 px-2 bg-[#006400] text-white hover:bg-emerald-800 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
                       title="Edit selected company"
                     >
                       <Edit2 className="w-3 h-3" />
-                      <span>Edit</span>
+                      <span>{t('common.edit')}</span>
                     </button>
                     {isAdmin && (
                       <button
                         type="button"
                         onClick={() => handleDeleteCompany(selectedCompany)}
-                        className="h-6 px-2 bg-white dark:bg-slate-800 text-rose-700 dark:text-rose-400 border border-rose-500 hover:bg-rose-50 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                        className="h-6 px-2 bg-rose-700 text-white hover:bg-rose-800 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
                         title="Delete selected company"
                       >
                         <Trash2 className="w-3 h-3" />
-                        <span>Delete</span>
+                        <span>{t('common.delete')}</span>
                       </button>
                     )}
                   </>
@@ -314,7 +316,7 @@ export default function CompaniesPage() {
                   title="Reload company list from database"
                 >
                   <RotateCcw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-                  <span>Refresh</span>
+                  <span>{t('common.refresh')}</span>
                 </button>
               </div>
             </div>
@@ -327,28 +329,28 @@ export default function CompaniesPage() {
                 <thead className="sticky top-0 bg-[#eaf1f8] dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border-b border-neutral-400 dark:border-slate-700 font-bold select-none text-xs z-10">
                   <tr>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-12 text-center">
-                      SN
+                      {t('common.sn')}
                     </th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center">
-                      Code
+                      {t('companies.code')}
                     </th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[200px]">
-                      Company / Brand Name
+                      {t('companies.name')}
                     </th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[220px]">
-                      Description
+                      {t('products.description')}
                     </th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center">
-                      Products
+                      {t('companies.totalProducts')}
                     </th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-20 text-center">
-                      Status
+                      {t('companies.status')}
                     </th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28 text-center font-mono">
                       System ID
                     </th>
                     <th className="px-3 py-1.5 w-24 text-center">
-                      Action
+                      {t('common.actions')}
                     </th>
                   </tr>
                 </thead>
@@ -529,26 +531,26 @@ export default function CompaniesPage() {
           <div className="bg-[#b0c8de] dark:bg-slate-800/90 px-3 py-1.5 border border-[#9fbcd6] dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono font-semibold text-neutral-800 dark:text-neutral-200 gap-1 shrink-0">
             <div className="flex items-center gap-3">
               <span className="text-blue-900 dark:text-blue-300">
-                Loaded <strong>{visibleCompanies.length}</strong> total of <strong>{filteredCompanies.length}</strong>
+                {t('common.loaded')} <strong>{visibleCompanies.length}</strong> {t('common.of')} <strong>{filteredCompanies.length}</strong>
               </span>
               <span>•</span>
               <span className="text-emerald-900 dark:text-emerald-300">
-                Active: <strong>{activeCount}</strong>
+                {t('common.active')}: <strong>{activeCount}</strong>
               </span>
               <span>•</span>
               <span className="text-rose-900 dark:text-rose-400">
-                Inactive: <strong>{inactiveCount}</strong>
+                {t('common.inactive')}: <strong>{inactiveCount}</strong>
               </span>
             </div>
 
             <div className="flex items-center gap-3 text-neutral-700 dark:text-neutral-300">
               {selectedCompany ? (
                 <span className="bg-[#006400] text-white px-2 py-0.5 rounded-xs font-bold">
-                  Selected: {selectedCompany.name} {selectedCompany.code ? `[#${selectedCompany.code}]` : ''}
+                  {t('common.selected')}: {selectedCompany.name} {selectedCompany.code ? `[#${selectedCompany.code}]` : ''}
                 </span>
               ) : (
                 <span className="italic text-neutral-600 dark:text-neutral-400">
-                  Tip: Double-click a row or click Edit to modify details
+                  {t('companies.tip')}
                 </span>
               )}
             </div>

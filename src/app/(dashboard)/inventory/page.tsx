@@ -243,7 +243,7 @@ export default function InventoryPage() {
         <div className="bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 border-b border-[#004d00] dark:border-emerald-900 flex flex-wrap items-center justify-between shrink-0 gap-2">
           <div className="flex items-center gap-2 text-white">
             <Boxes className="w-5 h-5 text-emerald-200" />
-            <h1 className="text-lg font-bold tracking-wide">Inventory & Stock Control</h1>
+            <h1 className="text-lg font-bold tracking-wide">{t('inventory.title')}</h1>
           </div>
           {canAdjust && (
             <div className="flex items-center gap-2">
@@ -253,7 +253,7 @@ export default function InventoryPage() {
                 className="px-2.5 py-1 text-xs font-bold bg-white text-[#006400] border border-[#004d00] shadow-xs flex items-center gap-1.5 rounded-xs hover:bg-emerald-50 transition-colors cursor-pointer uppercase tracking-wider"
               >
                 <PlusCircle className="w-3.5 h-3.5 stroke-[3]" />
-                <span>Adjust Stock</span>
+                <span>{t('inventory.adjustStock')}</span>
               </button>
             </div>
           )}

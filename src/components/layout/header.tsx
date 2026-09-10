@@ -33,8 +33,8 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
         <div className="flex items-center gap-2">
           <span className="text-base font-bold text-white tracking-wide flex items-center gap-1.5">
             <Building2 className="w-4 h-4 text-emerald-300" />
-            <span className="hidden sm:inline">Inventory Pro — Management System</span>
-            <span className="sm:hidden">Inventory Pro</span>
+            <span className="hidden sm:inline">{t('common.appName')} — {t('common.appSubtitle')}</span>
+            <span className="sm:hidden">{t('common.appName')}</span>
           </span>
         </div>
       </div>

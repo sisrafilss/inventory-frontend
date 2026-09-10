@@ -102,7 +102,7 @@ export default function SalesListPage() {
         <div className="relative bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 select-none border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <ShoppingCart className="w-4 h-4 text-white" />
-            <h2 className="text-sm font-bold text-white tracking-wide uppercase">Sales Register</h2>
+            <h2 className="text-sm font-bold text-white tracking-wide uppercase">{t('sales.salesRegister')}</h2>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -110,14 +110,14 @@ export default function SalesListPage() {
               onClick={() => setSaleManualModalOpen(true)}
               className="h-7 px-3 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 hover:bg-neutral-100 font-bold text-xs rounded-xs flex items-center gap-1 shadow-sm transition-colors border border-neutral-400"
             >
-              Sale By Manual
+              {t('sales.saleByManual')}
             </button>
             <button
               type="button"
               onClick={() => setSaleBarcodeModalOpen(true)}
               className="h-7 px-3 bg-[#800000] text-white hover:bg-red-900 font-bold text-xs rounded-xs flex items-center gap-1 shadow-sm transition-colors border border-red-950"
             >
-              Sale By POS
+              {t('sales.saleByPos')}
             </button>
           </div>
         </div>
@@ -134,7 +134,7 @@ export default function SalesListPage() {
             <div className="flex items-center gap-2 flex-1 max-w-sm relative">
               <input
                 type="text"
-                placeholder="Search sales..."
+                placeholder={t('sales.searchPlaceholder')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-64 pl-7 pr-2 py-1 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400"
@@ -161,7 +161,7 @@ export default function SalesListPage() {
               className="h-6 px-2 bg-white dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 hover:bg-neutral-100 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer ml-1"
             >
               <Loader2 className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-              <span>Refresh</span>
+              <span>{t('common.refresh')}</span>
             </button>
           </form>
         </div>
@@ -172,15 +172,15 @@ export default function SalesListPage() {
             <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
               <thead className="sticky top-0 bg-[#eaf1f8] dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border-b border-neutral-400 dark:border-slate-700 font-bold select-none text-xs z-10">
                 <tr>
-                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-10 text-center">SN</th>
-                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32">Ref Number</th>
-                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32">Date</th>
-                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-40">Created By</th>
-                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[150px]">Customer</th>
-                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center">Items</th>
-                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32 text-right">Total Amount</th>
-                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28 text-center">Status</th>
-                  <th className="px-3 py-1.5 w-32 text-center">Action</th>
+                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-10 text-center">{t('common.sn')}</th>
+                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32">{t('dashboard.refNumber')}</th>
+                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32">{t('common.date')}</th>
+                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-40">{t('dashboard.createdBy')}</th>
+                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[150px]">{t('dashboard.customer')}</th>
+                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center">{t('sales.itemsCount')}</th>
+                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32 text-right">{t('sales.totalAmount')}</th>
+                  <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28 text-center">{t('common.status')}</th>
+                  <th className="px-3 py-1.5 w-32 text-center">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
@@ -295,7 +295,7 @@ export default function SalesListPage() {
           <div className="bg-[#b0c8de] dark:bg-slate-800/90 px-3 py-1.5 border-t border-[#9fbcd6] dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono font-semibold text-neutral-800 dark:text-neutral-200 gap-1 shrink-0">
             <div className="flex items-center gap-3">
               <span className="text-emerald-900 dark:text-emerald-300">
-                Loaded <strong>{sales.length}</strong> total of <strong>{meta.total}</strong>
+                {t('common.loaded')} <strong>{sales.length}</strong> {t('common.of')} <strong>{meta.total}</strong>
               </span>
               <span>•</span>
               <span className="text-rose-900 dark:text-rose-300">
@@ -305,11 +305,11 @@ export default function SalesListPage() {
             <div className="flex items-center gap-3 text-neutral-700 dark:text-neutral-300">
               {highlightedSale ? (
                 <span className="bg-[#006400] text-white px-2 py-0.5 rounded-xs font-bold">
-                  Selected: {highlightedSale.referenceNumber}
+                  {t('common.selected')}: {highlightedSale.referenceNumber}
                 </span>
               ) : (
                 <span className="italic text-neutral-600 dark:text-neutral-400 font-sans">
-                  Tip: Double-click a row to view details
+                  {t('sales.tip')}
                 </span>
               )}
             </div>
@@ -329,7 +329,7 @@ export default function SalesListPage() {
           data-drag-handle
           className="relative bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 select-none border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none"
         >
-          <h2 className="text-xl font-bold text-white tracking-wide pointer-events-none select-none">Sale Details</h2>
+          <h2 className="text-xl font-bold text-white tracking-wide pointer-events-none select-none">{t('sales.saleDetails')}</h2>
           <button
             type="button"
             onClick={() => setSelectedSale(null)}

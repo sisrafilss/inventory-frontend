@@ -222,7 +222,7 @@ export default function UsersPage() {
         <div className="bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 border-b border-[#004d00] dark:border-emerald-900 flex flex-wrap items-center justify-between shrink-0 gap-2">
           <div className="flex items-center gap-2 text-white">
             <Users className="w-5 h-5 text-emerald-200" />
-            <h1 className="text-lg font-bold tracking-wide">User & Access Management</h1>
+            <h1 className="text-lg font-bold tracking-wide">{t('users.pageTitle')}</h1>
           </div>
           {isSuperAdmin && (
             <button
@@ -231,7 +231,7 @@ export default function UsersPage() {
               className="px-2.5 py-1 text-xs font-bold bg-white text-[#006400] border border-[#004d00] shadow-xs flex items-center gap-1.5 rounded-xs hover:bg-emerald-50 transition-colors cursor-pointer uppercase tracking-wider"
             >
               <UserPlus className="w-3.5 h-3.5 stroke-[3]" />
-              <span>Register User</span>
+              <span>{t('users.registerUser')}</span>
             </button>
           )}
         </div>
@@ -239,12 +239,12 @@ export default function UsersPage() {
         {/* Gray Filter Bar */}
         <div className="bg-[#eaf1f8] dark:bg-slate-800/80 p-2 border-b border-neutral-300 dark:border-slate-700 shrink-0 flex flex-wrap gap-2 items-center justify-between text-sm">
           <div className="flex items-center gap-1.5 flex-1 max-w-[300px]">
-            <label className="font-semibold text-neutral-700 dark:text-neutral-300 whitespace-nowrap text-xs uppercase tracking-wider">Search:</label>
+            <label className="font-semibold text-neutral-700 dark:text-neutral-300 whitespace-nowrap text-xs uppercase tracking-wider">{t('common.search')}:</label>
             <div className="relative flex-1">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
               <input
                 type="text"
-                placeholder="By name, email, phone..."
+                placeholder={t('users.searchPlaceholder')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full h-7 pl-7 pr-2 text-xs border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#0056b3]"
@@ -252,7 +252,7 @@ export default function UsersPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <label className="font-semibold text-neutral-700 dark:text-neutral-300 whitespace-nowrap text-xs uppercase tracking-wider">Role:</label>
+            <label className="font-semibold text-neutral-700 dark:text-neutral-300 whitespace-nowrap text-xs uppercase tracking-wider">{t('users.role')}:</label>
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
@@ -293,13 +293,13 @@ export default function UsersPage() {
           <table className="w-full text-xs text-left min-w-[900px] border-collapse relative">
             <thead className="sticky top-0 bg-[#eaf1f8] dark:bg-slate-900 shadow-[0_1px_0_#9fbcd6] dark:shadow-[0_1px_0_#334155] z-10 text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
               <tr>
-                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-10 text-center">SN</th>
-                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[150px]">User Details</th>
-                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-40">Role</th>
-                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-48">Branch / Warehouse</th>
-                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32">Joined Date</th>
-                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center">Status</th>
-                {isSuperAdmin && <th className="px-3 py-1.5 w-32 text-center">Actions</th>}
+                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-10 text-center">{t('common.sn')}</th>
+                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[150px]">{t('users.userDetails')}</th>
+                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-40">{t('users.role')}</th>
+                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-48">{t('users.branchWarehouse')}</th>
+                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32">{t('users.joinedDate')}</th>
+                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center">{t('common.status')}</th>
+                {isSuperAdmin && <th className="px-3 py-1.5 w-32 text-center">{t('common.actions')}</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
@@ -451,7 +451,7 @@ export default function UsersPage() {
         {/* Bottom Status / Summary Bar */}
         <div className="bg-[#b0c8de] dark:bg-slate-800/90 px-3 py-1.5 border-t border-[#9fbcd6] dark:border-slate-700 flex items-center justify-between text-[11px] font-mono font-semibold text-neutral-800 dark:text-neutral-200 shrink-0">
           <div>
-            Loaded <strong>{users.length}</strong> total of <strong>{meta.total}</strong>
+            {t('common.loaded')} <strong>{users.length}</strong> {t('common.of')} <strong>{meta.total}</strong>
           </div>
           <div className="flex items-center gap-3 text-neutral-700 dark:text-neutral-300">
             {selectedUserRow ? (

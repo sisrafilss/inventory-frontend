@@ -6,8 +6,10 @@ import { AuditLog } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
 import { Dialog } from '@/components/ui/dialog';
 import { ShieldCheck, Search, Eye, Filter, Loader2, X } from 'lucide-react';
+import { useLanguage } from '@/lib/context/language-context';
 
 export default function AuditLogsPage() {
+  const { t } = useLanguage();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -84,14 +86,14 @@ export default function AuditLogsPage() {
         <div className="bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 border-b border-[#004d00] dark:border-emerald-900 flex flex-wrap items-center justify-between shrink-0 gap-2">
           <div className="flex items-center gap-2 text-white">
             <ShieldCheck className="w-5 h-5 text-emerald-200" />
-            <h1 className="text-lg font-bold tracking-wide">System Audit Logs</h1>
+            <h1 className="text-lg font-bold tracking-wide">{t('audit.pageTitle')}</h1>
           </div>
         </div>
 
         {/* Gray Filter Bar */}
         <div className="bg-[#eaf1f8] dark:bg-slate-800/80 p-2 border-b border-neutral-300 dark:border-slate-700 shrink-0 flex flex-wrap gap-3 items-center text-sm">
           <div className="flex items-center gap-1.5">
-            <label className="font-semibold text-neutral-700 dark:text-neutral-300 text-xs uppercase tracking-wider">Action:</label>
+            <label className="font-semibold text-neutral-700 dark:text-neutral-300 text-xs uppercase tracking-wider">{t('audit.action')}:</label>
             <div className="relative">
               <Filter className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
               <input
@@ -104,7 +106,7 @@ export default function AuditLogsPage() {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            <label className="font-semibold text-neutral-700 dark:text-neutral-300 text-xs uppercase tracking-wider">Entity Type:</label>
+            <label className="font-semibold text-neutral-700 dark:text-neutral-300 text-xs uppercase tracking-wider">{t('audit.entityType')}:</label>
             <div className="relative">
               <Filter className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
               <input
@@ -133,13 +135,13 @@ export default function AuditLogsPage() {
           <table className="w-full text-xs text-left min-w-[900px] border-collapse relative">
             <thead className="sticky top-0 bg-[#eaf1f8] dark:bg-slate-900 shadow-[0_1px_0_#9fbcd6] dark:shadow-[0_1px_0_#334155] z-10 text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
               <tr>
-                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-10 text-center">SN</th>
-                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-36">Timestamp</th>
-                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-48">Actor</th>
-                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-40">Action</th>
-                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32">Entity Type</th>
-                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-48">Entity ID</th>
-                <th className="px-3 py-1.5 text-center w-28">Metadata</th>
+                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-10 text-center">{t('common.sn')}</th>
+                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-36">{t('audit.timestamp')}</th>
+                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-48">{t('audit.actor')}</th>
+                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-40">{t('audit.action')}</th>
+                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32">{t('audit.entityType')}</th>
+                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-48">{t('audit.entityId')}</th>
+                <th className="px-3 py-1.5 text-center w-28">{t('audit.metadata')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
@@ -252,7 +254,7 @@ export default function AuditLogsPage() {
         {/* Bottom Status / Summary Bar */}
         <div className="bg-[#b0c8de] dark:bg-slate-800/90 px-3 py-1.5 border-t border-[#9fbcd6] dark:border-slate-700 flex items-center justify-between text-[11px] font-mono font-semibold text-neutral-800 dark:text-neutral-200 shrink-0">
           <div>
-            Loaded <strong>{logs.length}</strong> total of <strong>{meta.total}</strong>
+            {t('common.loaded')} <strong>{logs.length}</strong> {t('common.of')} <strong>{meta.total}</strong>
           </div>
           <div className="flex items-center gap-3 text-neutral-700 dark:text-neutral-300">
             {selectedLogRow ? (
@@ -261,7 +263,7 @@ export default function AuditLogsPage() {
               </span>
             ) : (
               <span className="italic text-neutral-600 dark:text-neutral-400 font-sans">
-                Tip: Double-click a row to view metadata payload
+                {t('audit.tip')}
               </span>
             )}
           </div>

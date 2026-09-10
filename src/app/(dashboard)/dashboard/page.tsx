@@ -192,7 +192,7 @@ export default function DashboardPage() {
                   <tr className="border-b text-left text-muted-foreground font-semibold">
                     <th className="pb-2">{t('dashboard.refNumber')}</th>
                     <th className="pb-2">{t('common.date')}</th>
-                    <th className="pb-2">{t('common.createdBy')}</th>
+                    <th className="pb-2">{t('dashboard.createdBy')}</th>
                     <th className="pb-2">{t('common.status')}</th>
                     <th className="pb-2 text-right">{t('dashboard.amount')}</th>
                   </tr>
@@ -211,8 +211,8 @@ export default function DashboardPage() {
                           className="text-[10px] uppercase font-bold"
                         >
                           {sale.status === 'COMPLETED'
-                            ? t('statuses.completed') || 'Completed'
-                            : t('statuses.cancelled') || 'Cancelled'}
+                            ? t('statuses.COMPLETED')
+                            : t('statuses.CANCELLED')}
                         </Badge>
                       </td>
                       <td className="py-2.5 text-right font-bold text-foreground font-mono">
