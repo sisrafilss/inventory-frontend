@@ -11,9 +11,11 @@ import {
   Check,
   AlertCircle,
   HelpCircle,
+  Lock,
 } from 'lucide-react';
 import { Product, Supplier, Warehouse } from '@/lib/types';
 import { api } from '@/lib/api/client';
+import { useAuth } from '@/lib/context/auth-context';
 
 export interface PurchaseLineItem {
   id: string;
@@ -58,9 +60,13 @@ export function PurchaseModal({
   });
   const [invoiceNumber, setInvoiceNumber] = useState('');
 
+  const { user } = useAuth();
+
   // Supplier & Warehouse State
   const [suppliersList, setSuppliersList] = useState<Supplier[]>([]);
+  const [warehousesList, setWarehousesList] = useState<Warehouse[]>([]);
   const [defaultWarehouseId, setDefaultWarehouseId] = useState<string>('');
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('');
   const [supplierId, setSupplierId] = useState('0');
   const [supplierName, setSupplierName] = useState('Cash Party');
   const [supplierAddress, setSupplierAddress] = useState('');
@@ -113,12 +119,26 @@ export function PurchaseModal({
     api.get<Warehouse[]>('/warehouses')
       .then((res) => {
         if (res.data && res.data.length > 0) {
-          const def = res.data.find((w) => w.isDefault && w.isActive) || res.data[0];
-          if (def) setDefaultWarehouseId(def.id);
+          setWarehousesList(res.data);
+          const activeWhs = res.data.filter((w) => w.isActive);
+          const def = activeWhs.find((w) => w.isDefault) || activeWhs[0] || res.data[0];
+          setDefaultWarehouseId(def?.id || '');
+          if (user?.role === 'MANAGER' && user?.warehouseId) {
+            setSelectedWarehouseId(user.warehouseId);
+          } else {
+            setSelectedWarehouseId((prev) => prev || def?.id || '');
+          }
         }
       })
       .catch(() => {});
-  }, [open]);
+  }, [open, user]);
+
+  // Sync manager assigned warehouse
+  useEffect(() => {
+    if (open && user?.role === 'MANAGER' && user?.warehouseId) {
+      setSelectedWarehouseId(user.warehouseId);
+    }
+  }, [open, user]);
 
   // If initialProductCode provided
   useEffect(() => {
@@ -309,6 +329,13 @@ export function PurchaseModal({
       setSupplierAddress('');
       setSupplierDues('0.00');
     }
+
+    if (user?.role === 'MANAGER' && user?.warehouseId) {
+      setSelectedWarehouseId(user.warehouseId);
+    } else {
+      const def = warehousesList.find((w) => w.isDefault && w.isActive) || warehousesList[0];
+      setSelectedWarehouseId(def?.id || '');
+    }
   };
 
   // Total calculations
@@ -331,6 +358,11 @@ export function PurchaseModal({
       return;
     }
 
+    if (!selectedWarehouseId) {
+      setValidationWarning('Please select a destination warehouse for this purchase.');
+      return;
+    }
+
     if (paymentMode === 'SUPPLIER' && (!supplierId || supplierId === '0')) {
       setValidationWarning('Please select a valid supplier for supplier/credit purchases.');
       return;
@@ -348,7 +380,7 @@ export function PurchaseModal({
         paymentType: paymentMode,
         supplierId: paymentMode === 'SUPPLIER' && supplierId !== '0' ? supplierId : undefined,
         supplierName: paymentMode === 'CASH' ? (supplierName || 'Cash Party') : undefined,
-        warehouseId: defaultWarehouseId || undefined,
+        warehouseId: selectedWarehouseId || defaultWarehouseId || undefined,
         paidAmount: effectivePaid,
         items: lineItems.map((item) => ({
           productId: item.productId,
@@ -700,6 +732,36 @@ export function PurchaseModal({
                   <span>{purchaseDate}</span>
                   <CalendarIcon className="w-3.5 h-3.5 text-neutral-500" />
                 </div>
+              </div>
+
+              {/* Warehouse (Destination Godown) */}
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0 flex items-center justify-end gap-1">
+                  {user?.role === 'MANAGER' && <Lock className="w-3 h-3 text-amber-600 dark:text-amber-400" />}
+                  Warehouse
+                </label>
+                <select
+                  value={selectedWarehouseId}
+                  onChange={(e) => {
+                    if (user?.role !== 'MANAGER') {
+                      setSelectedWarehouseId(e.target.value);
+                    }
+                  }}
+                  disabled={isSaving || user?.role === 'MANAGER'}
+                  title={user?.role === 'MANAGER' ? "Assigned warehouse (locked for Manager role)" : "Select destination warehouse"}
+                  className={`flex-1 h-6 px-1.5 border text-xs focus:outline-none ${
+                    user?.role === 'MANAGER'
+                      ? 'bg-neutral-100 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-slate-700 cursor-not-allowed select-none font-medium'
+                      : 'bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border-neutral-400 dark:border-slate-600 focus:ring-1 focus:ring-emerald-600 font-medium'
+                  }`}
+                >
+                  <option value="">-- Select Warehouse --</option>
+                  {warehousesList.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.name} {w.isDefault ? '(Default)' : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Supplier ID & Invoice */}
