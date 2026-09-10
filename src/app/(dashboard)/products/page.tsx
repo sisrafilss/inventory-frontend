@@ -755,12 +755,8 @@ export default function ProductsPage() {
             {/* Bottom Status / Summary Bar */}
             <div className="bg-[#b0c8de] dark:bg-slate-800/90 px-3 py-1.5 border border-[#9fbcd6] dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono font-semibold text-neutral-800 dark:text-neutral-200 gap-1 shrink-0">
               <div className="flex items-center gap-3">
-                <span>
-                  Total Products: <strong>{meta.total}</strong>
-                </span>
-                <span>•</span>
                 <span className="text-emerald-900 dark:text-emerald-300">
-                  Loaded: <strong>{products.length}</strong>
+                  Loaded <strong>{products.length}</strong> total of <strong>{meta.total}</strong>
                 </span>
                 <span>•</span>
                 <span className="text-neutral-900 dark:text-neutral-100">

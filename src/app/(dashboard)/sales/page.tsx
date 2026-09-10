@@ -32,25 +32,65 @@ export default function SalesListPage() {
   const [saleManualModalOpen, setSaleManualModalOpen] = useState(false);
   const [saleBarcodeModalOpen, setSaleBarcodeModalOpen] = useState(false);
 
+  // Pagination states
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [meta, setMeta] = useState({ page: 1, limit: 20, total: 0, totalPages: 1 });
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [search]);
+
   const fetchSales = async () => {
     try {
-      setLoading(true);
+      if (page === 1) setLoading(true);
+      else setLoadingMore(true);
+      
       setError(null);
       const res = await api.get<Sale[]>('/sales', {
-        search,
+        page,
+        limit,
+        search: debouncedSearch || undefined,
         status: statusFilter || undefined,
       });
-      setSales(res.data);
+      
+      if (page === 1) {
+        setSales(res.data);
+      } else {
+        setSales(prev => [...prev, ...res.data]);
+      }
+      
+      if (res.meta) {
+        setMeta(res.meta);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load sales.');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
-    fetchSales();
+    setPage(1);
   }, [statusFilter]);
+
+  useEffect(() => {
+    fetchSales();
+  }, [page, limit, debouncedSearch, statusFilter]);
+
+  const handleTableScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 50 && !loading && !loadingMore && page < (meta.totalPages || 1)) {
+      setPage((p) => p + 1);
+    }
+  };
 
   return (
     <div className="w-full h-full flex-1 min-h-0 flex flex-col">
@@ -126,7 +166,7 @@ export default function SalesListPage() {
 
         {/* Desktop Spreadsheet Data Grid */}
         <div className="flex-1 min-h-[300px] flex flex-col border border-neutral-400 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shadow-inner">
-          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto flex flex-col">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto flex flex-col" onScroll={handleTableScroll}>
             <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
               <thead className="sticky top-0 bg-[#eaf1f8] dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border-b border-neutral-400 dark:border-slate-700 font-bold select-none text-xs z-10">
                 <tr>
@@ -142,7 +182,7 @@ export default function SalesListPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
-                {loading ? (
+                {loading && page === 1 ? (
                   <tr>
                     <td colSpan={9} className="py-16 text-center text-neutral-500 font-medium">
                       <div className="flex items-center justify-center gap-2">
@@ -170,55 +210,67 @@ export default function SalesListPage() {
                     </td>
                   </tr>
                 ) : (
-                  sales.map((sale, idx) => (
-                    <tr
-                      key={sale.id}
-                      className={`transition-colors cursor-pointer ${
-                        idx % 2 === 0
-                          ? 'bg-white dark:bg-slate-900 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80'
-                          : 'bg-[#f4f8fc] dark:bg-slate-900/50 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80'
-                      }`}
-                      onClick={() => setSelectedSale(sale)}
-                      title="Click to view details"
-                    >
-                      <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono text-neutral-500">{idx + 1}</td>
-                      <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-mono font-bold text-neutral-800 dark:text-neutral-100">{sale.referenceNumber}</td>
-                      <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-neutral-600 dark:text-neutral-400">{formatDate(sale.createdAt)}</td>
-                      <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-semibold text-neutral-900 dark:text-neutral-100">{sale.createdBy?.name || '—'}</td>
-                      <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-neutral-700 dark:text-neutral-300">
-                        {sale.customerName ? (
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-neutral-900 dark:text-neutral-100">{sale.customerName}</span>
-                            {sale.customerPhone && <span className="text-[10px] text-neutral-500">{sale.customerPhone}</span>}
+                  <>
+                    {sales.map((sale, idx) => (
+                      <tr
+                        key={sale.id}
+                        className={`transition-colors cursor-pointer ${
+                          idx % 2 === 0
+                            ? 'bg-white dark:bg-slate-900 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80'
+                            : 'bg-[#f4f8fc] dark:bg-slate-900/50 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80'
+                        }`}
+                        onClick={() => setSelectedSale(sale)}
+                        title="Click to view details"
+                      >
+                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono text-neutral-500">{idx + 1}</td>
+                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-mono font-bold text-neutral-800 dark:text-neutral-100">{sale.referenceNumber}</td>
+                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-neutral-600 dark:text-neutral-400">{formatDate(sale.createdAt)}</td>
+                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-semibold text-neutral-900 dark:text-neutral-100">{sale.createdBy?.name || '—'}</td>
+                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-neutral-700 dark:text-neutral-300">
+                          {sale.customerName ? (
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-neutral-900 dark:text-neutral-100">{sale.customerName}</span>
+                              {sale.customerPhone && <span className="text-[10px] text-neutral-500">{sale.customerPhone}</span>}
+                            </div>
+                          ) : 'Walk-in Customer'}
+                        </td>
+                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono text-neutral-700 dark:text-neutral-300">{sale.items?.length || 0}</td>
+                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-right font-mono font-bold text-neutral-900 dark:text-neutral-100">
+                          ৳ {Number(sale.totalAmount).toFixed(2)}
+                        </td>
+                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
+                          <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-bold uppercase border ${
+                            sale.status === 'COMPLETED'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800'
+                              : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-800'
+                          }`}>
+                            {sale.status === 'COMPLETED' ? 'COMPLETED' : 'CANCELLED'}
+                          </span>
+                        </td>
+                        <td className="px-3 py-1.5 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setMemoSale(sale); setMemoOpen(true); }}
+                              className="h-6 px-2 bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-400 hover:bg-neutral-100 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                            >
+                              <Printer className="w-3 h-3" /> Memo
+                            </button>
                           </div>
-                        ) : 'Walk-in Customer'}
-                      </td>
-                      <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono text-neutral-700 dark:text-neutral-300">{sale.items?.length || 0}</td>
-                      <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-right font-mono font-bold text-neutral-900 dark:text-neutral-100">
-                        ৳ {Number(sale.totalAmount).toFixed(2)}
-                      </td>
-                      <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
-                        <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-bold uppercase border ${
-                          sale.status === 'COMPLETED'
-                            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800'
-                            : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-800'
-                        }`}>
-                          {sale.status === 'COMPLETED' ? 'COMPLETED' : 'CANCELLED'}
-                        </span>
-                      </td>
-                      <td className="px-3 py-1.5 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); setMemoSale(sale); setMemoOpen(true); }}
-                            className="h-6 px-2 bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-400 hover:bg-neutral-100 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
-                          >
-                            <Printer className="w-3 h-3" /> Memo
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                      </tr>
+                    ))}
+                    {loadingMore && (
+                      <tr>
+                        <td colSpan={9} className="py-6 text-center text-neutral-500 font-medium">
+                          <div className="flex items-center justify-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
+                            <span>Loading more sales...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 )}
               </tbody>
             </table>
@@ -230,16 +282,12 @@ export default function SalesListPage() {
           {/* Bottom Status / Summary Bar */}
           <div className="bg-[#b0c8de] dark:bg-slate-800/90 px-3 py-1.5 border-t border-[#9fbcd6] dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono font-semibold text-neutral-800 dark:text-neutral-200 gap-1 shrink-0">
             <div className="flex items-center gap-3">
-              <span>
-                Total Loaded: <strong>{sales.length}</strong>
-              </span>
-              <span>•</span>
               <span className="text-emerald-900 dark:text-emerald-300">
-                Completed: <strong>{sales.filter(s => s.status === 'COMPLETED').length}</strong>
+                Loaded <strong>{sales.length}</strong> total of <strong>{meta.total}</strong>
               </span>
               <span>•</span>
               <span className="text-rose-900 dark:text-rose-300">
-                Cancelled: <strong>{sales.filter(s => s.status === 'CANCELLED').length}</strong>
+                Page: <strong>{page} / {meta.totalPages || 1}</strong>
               </span>
             </div>
             <div className="text-neutral-600 dark:text-neutral-400 font-sans italic flex items-center gap-1.5">

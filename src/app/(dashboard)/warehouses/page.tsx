@@ -115,6 +115,22 @@ export default function WarehousesPage() {
     });
   }, [warehouses, statusFilter, search]);
 
+  const [page, setPage] = useState(1);
+  const limit = 30;
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter]);
+
+  const handleTableScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 50 && page * limit < filteredWarehouses.length) {
+      setPage((p) => p + 1);
+    }
+  };
+
+  const visibleWarehouses = filteredWarehouses.slice(0, page * limit);
+
   // Open Warehouse Modal for Creation
   const handleOpenCreateModal = () => {
     setModalWarehouse(null);
@@ -391,7 +407,7 @@ export default function WarehousesPage() {
 
           {/* Desktop Spreadsheet Data Grid - Maximized Vertical Space */}
           <div className="flex-1 min-h-[300px] flex flex-col border border-neutral-400 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shadow-inner">
-            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto flex flex-col">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto flex flex-col" onScroll={handleTableScroll}>
               <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
                 <thead className="sticky top-0 bg-[#eaf1f8] dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border-b border-neutral-400 dark:border-slate-700 font-bold select-none text-xs z-10">
                   <tr>
@@ -461,7 +477,7 @@ export default function WarehousesPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredWarehouses.map((wh, idx) => {
+                    visibleWarehouses.map((wh, idx) => {
                       const isSelected = selectedWarehouse?.id === wh.id;
                       return (
                         <tr
@@ -641,8 +657,8 @@ export default function WarehousesPage() {
           {/* Bottom Status / Summary Bar */}
           <div className="bg-[#b0c8de] dark:bg-slate-800/90 px-3 py-1.5 border border-[#9fbcd6] dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono font-semibold text-neutral-800 dark:text-neutral-200 gap-1 shrink-0">
             <div className="flex items-center gap-3">
-              <span>
-                Total Godowns: <strong>{warehouses.length}</strong>
+              <span className="text-blue-900 dark:text-blue-300">
+                Loaded <strong>{visibleWarehouses.length}</strong> total of <strong>{filteredWarehouses.length}</strong>
               </span>
               <span>•</span>
               <span className="text-emerald-900 dark:text-emerald-300">
