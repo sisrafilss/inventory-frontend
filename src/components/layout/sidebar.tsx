@@ -86,18 +86,6 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
-      key: 'purchases',
-      href: '/purchases',
-      icon: Truck,
-      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
-    },
-    {
-      key: 'saleRate',
-      href: '/products/sale-rate',
-      icon: Tag,
-      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
-    },
-    {
       key: 'expenses',
       href: '/expenses',
       icon: Receipt,
