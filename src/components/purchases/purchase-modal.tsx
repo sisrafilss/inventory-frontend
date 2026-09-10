@@ -20,6 +20,7 @@ import { api } from '@/lib/api/client';
 import { useAuth } from '@/lib/context/auth-context';
 import { SupplierLookupModal } from '@/components/suppliers/supplier-lookup-modal';
 import { SupplierModal as AddSupplierModal } from '@/components/parties/supplier-modal';
+import { PremiumNumberInput } from '@/components/ui/number-input';
 
 export interface PurchaseLineItem {
   id: string;
@@ -265,11 +266,11 @@ export function PurchaseModal({
           setCompanyName(p.company?.name || '');
           setItemType(p.unit || 'Pieces');
           const dp = p.dpRate ? Number(p.dpRate) : (p.costPrice ? Number(p.costPrice) : 0);
-          setDpRate(dp > 0 ? String(dp) : '0');
+          setDpRate(dp > 0 ? String(dp) : '');
           const comm = p.commissionPercent ? Number(p.commissionPercent) : 0;
-          setCommission(comm > 0 ? String(comm) : '0');
+          setCommission(comm > 0 ? String(comm) : '');
           const pRate = p.costPrice ? Number(p.costPrice) : (dp > 0 ? dp : 0);
-          setPurchaseRate(pRate > 0 ? String(pRate) : '0');
+          setPurchaseRate(pRate > 0 ? String(pRate) : '');
           setCodeSuccess(true);
           setCodeWarning(null);
           setBannerPrompt('Type Quantity . . .');
@@ -305,6 +306,8 @@ export function PurchaseModal({
     if (dp > 0) {
       const net = dp - (dp * comm) / 100;
       setPurchaseRate(net.toFixed(2));
+    } else {
+      setPurchaseRate('');
     }
   }, [dpRate, commission]);
 
@@ -896,12 +899,15 @@ export function PurchaseModal({
                   Quantity
                 </label>
                 <div className="flex items-center gap-2">
-                  <input
-                    ref={qtyInputRef}
-                    type="number"
-                    min="1"
+                  <PremiumNumberInput
+                    inputRef={qtyInputRef}
+                    min={1}
+                    step={1}
                     value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
+                    onChange={(val) => setQuantity(val)}
+                    placeholder="0"
+                    className="w-28"
+                    isFocusedHighlight={activeFocusedField === 'quantity'}
                     onFocus={() => {
                       setBannerPrompt('Type Quantity . . .');
                       setActiveFocusedField('quantity');
@@ -914,12 +920,6 @@ export function PurchaseModal({
                       }
                     }}
                     disabled={isSaving}
-                    placeholder="0"
-                    className={`w-28 h-6 px-2 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none transition-colors disabled:opacity-50 ${
-                      activeFocusedField === 'quantity'
-                        ? 'bg-[#ffff00] text-black ring-1 ring-amber-500'
-                        : 'bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100'
-                    }`}
                   />
                   <select
                     value={itemType}
@@ -944,16 +944,19 @@ export function PurchaseModal({
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
                   DP Rate
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={dpRate}
-                  onChange={(e) => setDpRate(e.target.value)}
-                  onFocus={() => setBannerPrompt('Type DP Rate')}
-                  disabled={isSaving}
-                  placeholder="0.00"
-                  className="w-28 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none disabled:opacity-50"
-                />
+                <div className="flex items-center gap-1">
+                  <PremiumNumberInput
+                    min={0}
+                    step={1}
+                    value={dpRate}
+                    onChange={(val) => setDpRate(val)}
+                    placeholder="0.00"
+                    className="w-28"
+                    onFocus={() => setBannerPrompt('Type DP Rate')}
+                    disabled={isSaving}
+                  />
+                  <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-400">Tk</span>
+                </div>
               </div>
 
               {/* Commission */}
@@ -961,39 +964,44 @@ export function PurchaseModal({
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
                   Commission
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={commission}
-                  onChange={(e) => setCommission(e.target.value)}
-                  onFocus={() => setBannerPrompt('Type Commission')}
-                  disabled={isSaving}
-                  placeholder="0.00"
-                  className="w-28 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none disabled:opacity-50"
-                />
+                <div className="flex items-center gap-1">
+                  <PremiumNumberInput
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={commission}
+                    onChange={(val) => setCommission(val)}
+                    placeholder="0.00"
+                    className="w-28"
+                    onFocus={() => setBannerPrompt('Type Commission')}
+                    disabled={isSaving}
+                  />
+                  <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-400">%</span>
+                </div>
               </div>
 
-              {/* Purchase Rate & Add Button */}
+              {/* Purchase Rate (Disabled / Auto-calculated) & Add Button */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
                   Purchase Rate
                 </label>
                 <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={purchaseRate}
-                    onChange={(e) => setPurchaseRate(e.target.value)}
-                    onFocus={() => setBannerPrompt('Type Purchase Rate')}
-                    disabled={isSaving}
-                    placeholder="0.00"
-                    className="w-28 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none disabled:opacity-50"
-                  />
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="text"
+                      value={purchaseRate}
+                      readOnly
+                      tabIndex={-1}
+                      placeholder="0.00"
+                      className="w-28 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none select-none cursor-not-allowed"
+                    />
+                    <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-400">Tk</span>
+                  </div>
                   <button
                     type="button"
                     onClick={handleAddItem}
                     disabled={isSaving}
-                    className="h-6 px-6 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border-2 border-[#b81b4c] dark:border-rose-500 font-bold text-xs shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="h-6 px-6 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border-2 border-[#b81b4c] dark:border-rose-500 font-bold text-xs shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     Add
                   </button>
@@ -1040,7 +1048,7 @@ export function PurchaseModal({
                       onChange={() => {
                         setPaymentMode('SUPPLIER');
                         setPaidTouched(true);
-                        setPaidAmount('0.00');
+                        setPaidAmount('');
                         setSelectedSupplier(null);
                         setSupplierId('');
                         setSupplierName('');
@@ -1363,17 +1371,22 @@ export function PurchaseModal({
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right">
                   Paid
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={paidTouched ? paidAmount : (paymentMode === 'CASH' && effectivePaid > 0 ? effectivePaid : (paidAmount || ''))}
-                  onChange={(e) => {
+                <PremiumNumberInput
+                  min={0}
+                  step={1}
+                  value={
+                    paidTouched
+                      ? (paidAmount === 0 || paidAmount === '0.00' ? '' : paidAmount)
+                      : (paymentMode === 'CASH' && effectivePaid > 0 ? effectivePaid.toFixed(2) : (paidAmount || ''))
+                  }
+                  onChange={(val) => {
                     setPaidTouched(true);
-                    setPaidAmount(e.target.value);
+                    setPaidAmount(val);
                   }}
                   disabled={isSaving}
                   placeholder="0.00"
-                  className="w-32 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 text-right font-bold disabled:opacity-50"
+                  className="w-32"
+                  textAlign="right"
                 />
               </div>
 
@@ -1408,14 +1421,15 @@ export function PurchaseModal({
                 <label className="text-xs font-bold text-red-600 dark:text-red-500 w-24 text-right">
                   Discount
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={discountAmount}
-                  onChange={(e) => setDiscountAmount(e.target.value)}
+                <PremiumNumberInput
+                  min={0}
+                  step={1}
+                  value={discountAmount === 0 || discountAmount === '0.00' ? '' : discountAmount}
+                  onChange={(val) => setDiscountAmount(val)}
                   disabled={isSaving}
                   placeholder="0.00"
-                  className="w-36 h-6 px-2 bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 border border-neutral-400 dark:border-slate-600 text-right font-bold disabled:opacity-50"
+                  className="w-36 text-red-600 dark:text-red-400 font-bold"
+                  textAlign="right"
                 />
               </div>
 
