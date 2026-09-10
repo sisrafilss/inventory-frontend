@@ -4,8 +4,9 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '@/lib/api/client';
 import { useLanguage } from '@/lib/context/language-context';
 import { Category } from '@/lib/types';
-import { Layers, Plus, Edit2, Search } from 'lucide-react';
+import { Layers, Plus, Edit2, Search, X } from 'lucide-react';
 import { CategoryModal } from '@/components/categories/category-modal';
+import { Dialog } from '@/components/ui/dialog';
 
 export default function CategoriesPage() {
   const { t } = useLanguage();
@@ -24,6 +25,9 @@ export default function CategoriesPage() {
   // Create / Edit Modal
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [modalCategory, setModalCategory] = useState<Category | null>(null);
+
+  // View Details Modal
+  const [viewCategory, setViewCategory] = useState<Category | null>(null);
 
   const fetchCategories = async () => {
     try {
@@ -179,7 +183,9 @@ export default function CategoriesPage() {
                     visibleCategories.map((cat, idx) => (
                       <tr
                         key={cat.id}
-                        className={`transition-colors hover:bg-[#c6d8ea]/50 dark:hover:bg-slate-800/80 cursor-default ${
+                        onClick={() => setViewCategory(cat)}
+                        title="Click to view details"
+                        className={`transition-colors hover:bg-[#c6d8ea]/50 dark:hover:bg-slate-800/80 cursor-pointer ${
                           idx % 2 === 0
                             ? 'bg-white dark:bg-slate-900'
                             : 'bg-[#f4f8fc] dark:bg-slate-900/50'
@@ -216,7 +222,7 @@ export default function CategoriesPage() {
                         <td className="px-2 py-1 text-center">
                           <button
                             type="button"
-                            onClick={() => handleOpenEditModal(cat)}
+                            onClick={(e) => { e.stopPropagation(); handleOpenEditModal(cat); }}
                             className="p-1 rounded-xs border bg-white dark:bg-slate-800 text-[#006400] dark:text-emerald-400 border-neutral-300 dark:border-slate-700 hover:bg-emerald-50 transition-colors cursor-pointer"
                             title="Edit Category"
                           >
@@ -260,6 +266,78 @@ export default function CategoriesPage() {
         category={modalCategory}
         onSuccess={() => fetchCategories()}
       />
+
+      {/* View Category Details Modal */}
+      <Dialog
+        open={!!viewCategory}
+        onOpenChange={(isOpen) => !isOpen && setViewCategory(null)}
+        draggable={true}
+        className="p-0 max-w-lg w-full border-2 border-[#004d00] dark:border-emerald-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 overflow-hidden shadow-2xl"
+      >
+        <div
+          data-drag-handle
+          className="relative bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 select-none border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none"
+        >
+          <h2 className="text-[13px] font-bold text-white tracking-wide pointer-events-none select-none">
+            Category Details
+          </h2>
+          <button
+            type="button"
+            onClick={() => setViewCategory(null)}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/90 hover:text-white hover:bg-black/20 p-1 rounded transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {viewCategory && (
+          <div className="flex flex-col">
+            <div className="p-4 sm:p-5 space-y-4 text-xs">
+              {/* General Info */}
+              <div className="bg-white dark:bg-slate-800 p-3 border border-neutral-400 dark:border-slate-600 shadow-sm">
+                <h3 className="font-bold text-neutral-500 uppercase tracking-wide border-b pb-1 mb-2">General Info</h3>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Category Name:</span><span className="font-bold text-neutral-900 dark:text-neutral-100">{viewCategory.name}</span></div>
+                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Status:</span>
+                    <span className={`font-bold uppercase ${viewCategory.isActive ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {viewCategory.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Assigned Products:</span><span className="font-bold text-neutral-900 dark:text-neutral-100">{viewCategory._count?.products || 0}</span></div>
+                </div>
+              </div>
+              
+              {/* Description */}
+              <div className="bg-white dark:bg-slate-800 p-3 border border-neutral-400 dark:border-slate-600 shadow-sm">
+                <h3 className="font-bold text-neutral-500 uppercase tracking-wide border-b pb-1 mb-2">Description</h3>
+                <p className="text-neutral-800 dark:text-neutral-200">{viewCategory.description || 'None'}</p>
+              </div>
+            </div>
+            
+            <div className="bg-[#b0c8de] dark:bg-slate-800 border-t border-[#9fbcd6] dark:border-slate-700 p-3 px-4 flex justify-end gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setViewCategory(null)}
+                className="h-7 px-4 bg-white dark:bg-slate-700 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 font-bold text-[11px] uppercase tracking-wider hover:bg-neutral-50 dark:hover:bg-slate-600 transition-colors shadow-sm"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const cat = viewCategory;
+                  setViewCategory(null);
+                  handleOpenEditModal(cat);
+                }}
+                className="h-7 px-4 bg-white dark:bg-slate-700 text-[#006400] dark:text-emerald-400 border border-neutral-400 dark:border-slate-600 font-bold text-[11px] uppercase tracking-wider hover:bg-emerald-50 dark:hover:bg-slate-600 transition-colors shadow-sm flex items-center gap-1.5"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+                Edit
+              </button>
+            </div>
+          </div>
+        )}
+      </Dialog>
     </div>
   );
 }
