@@ -13,10 +13,13 @@ import {
   HelpCircle,
   Lock,
   ChevronDown,
+  UserPlus,
 } from 'lucide-react';
 import { Product, Supplier, Warehouse } from '@/lib/types';
 import { api } from '@/lib/api/client';
 import { useAuth } from '@/lib/context/auth-context';
+import { SupplierLookupModal } from '@/components/suppliers/supplier-lookup-modal';
+import { SupplierModal as AddSupplierModal } from '@/components/parties/supplier-modal';
 
 export interface PurchaseLineItem {
   id: string;
@@ -72,14 +75,22 @@ export function PurchaseModal({
   const [isWarehouseDropdownOpen, setIsWarehouseDropdownOpen] = useState(false);
   const warehouseDropdownRef = useRef<HTMLDivElement>(null);
 
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [supplierId, setSupplierId] = useState('0');
+  const [debouncedSupplierSearch, setDebouncedSupplierSearch] = useState('');
+  const [supplierSearchText, setSupplierSearchText] = useState('');
   const [supplierName, setSupplierName] = useState('Cash Party');
-  const [supplierSearchText, setSupplierSearchText] = useState('0');
-  const [isSupplierDropdownOpen, setIsSupplierDropdownOpen] = useState(false);
-  const supplierDropdownRef = useRef<HTMLDivElement>(null);
-
   const [supplierAddress, setSupplierAddress] = useState('');
+  const [supplierPhone, setSupplierPhone] = useState('');
   const [supplierDues, setSupplierDues] = useState('0.00');
+  const [isSupplierDropdownOpen, setIsSupplierDropdownOpen] = useState(false);
+  const [isSearchingSupplier, setIsSearchingSupplier] = useState(false);
+  const [supplierWarning, setSupplierWarning] = useState<string | null>(null);
+  const [supplierSuccess, setSupplierSuccess] = useState(false);
+  const [supplierLookupOpen, setSupplierLookupOpen] = useState(false);
+  const [addSupplierModalOpen, setAddSupplierModalOpen] = useState(false);
+  const supplierDropdownRef = useRef<HTMLDivElement>(null);
+  const supplierInputRef = useRef<HTMLInputElement>(null);
 
   // Item form fields
   const [itemCode, setItemCode] = useState(initialProductCode || '');
@@ -130,15 +141,43 @@ export function PurchaseModal({
         !supplierDropdownRef.current.contains(event.target as Node)
       ) {
         setIsSupplierDropdownOpen(false);
+        if (selectedSupplier) {
+          const displayId =
+            selectedSupplier.code ||
+            (selectedSupplier.id.length > 12 ? selectedSupplier.id.slice(0, 8) : selectedSupplier.id);
+          setSupplierSearchText(displayId);
+        } else if (!supplierId || supplierId === '0') {
+          setSupplierSearchText('');
+        }
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [selectedSupplier, supplierId]);
 
   // Load suppliers and warehouses on mount / open
   useEffect(() => {
     if (!open) return;
+    if (!invoiceNumber) {
+      setInvoiceNumber(`PUR-${Date.now().toString().slice(-6)}`);
+    }
+    setPaymentMode('CASH');
+    setPaidAmount('');
+    setPaidTouched(false);
+    setDiscountAmount('');
+    setSelectedSupplier(null);
+    setSupplierId('0');
+    setSupplierName('Cash Party');
+    setSupplierSearchText('');
+    setDebouncedSupplierSearch('');
+    setIsSupplierDropdownOpen(false);
+    setSupplierAddress('');
+    setSupplierPhone('');
+    setSupplierDues('0.00');
+    setSupplierWarning(null);
+    setSupplierSuccess(false);
+    setIsSearchingSupplier(false);
+
     api.get<Supplier[]>('/parties/suppliers')
       .then((res) => {
         if (res.data) setSuppliersList(res.data);
@@ -269,22 +308,102 @@ export function PurchaseModal({
     }
   }, [dpRate, commission]);
 
-  // Supplier selection helper
-  const handleSelectSupplier = (sId: string) => {
-    setSupplierId(sId);
-    const s = suppliersList.find((sup) => sup.id === sId);
-    if (s) {
-      setSupplierName(s.name);
-      setSupplierSearchText(s.name);
-      setSupplierAddress(s.address || '');
-      const due = s.currentDue ?? s.openingDue ?? 0;
-      setSupplierDues(Number(due).toFixed(2));
-    } else {
-      setSupplierName('');
-      setSupplierSearchText('');
-      setSupplierAddress('');
-      setSupplierDues('0.00');
+  // Debounced Supplier Search (400ms)
+  useEffect(() => {
+    if (!open) return;
+    const handler = setTimeout(() => {
+      setDebouncedSupplierSearch(supplierSearchText.trim());
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [supplierSearchText, open]);
+
+  // Query Supplier when debouncedSupplierSearch changes
+  useEffect(() => {
+    if (!open) return;
+    const code = debouncedSupplierSearch.trim();
+    if (!code || code === '0') {
+      setSupplierWarning(null);
+      setSupplierSuccess(false);
+      setIsSearchingSupplier(false);
+      return;
     }
+
+    if (
+      selectedSupplier &&
+      (selectedSupplier.id.toLowerCase() === code.toLowerCase() ||
+        selectedSupplier.id.toLowerCase().startsWith(code.toLowerCase()) ||
+        (selectedSupplier.id.length > 12 &&
+          selectedSupplier.id.slice(0, 8).toLowerCase() === code.toLowerCase()) ||
+        (selectedSupplier.code &&
+          selectedSupplier.code.toLowerCase() === code.toLowerCase()) ||
+        (selectedSupplier.phone && selectedSupplier.phone === code) ||
+        selectedSupplier.name.toLowerCase() === code.toLowerCase())
+    ) {
+      setIsSearchingSupplier(false);
+      setSupplierSuccess(true);
+      return;
+    }
+
+    let active = true;
+    setIsSearchingSupplier(true);
+    setSupplierWarning(null);
+    setSupplierSuccess(false);
+
+    api
+      .get<Supplier>(`/parties/suppliers/by-code/${encodeURIComponent(code)}`)
+      .then((res) => {
+        if (!active) return;
+        const s = res.data;
+        if (s) {
+          handleSelectSupplier(s);
+        }
+      })
+      .catch(() => {
+        if (!active) return;
+        setSelectedSupplier(null);
+        setSupplierSuccess(false);
+        if (paymentMode === 'SUPPLIER') {
+          setSupplierWarning(`Supplier "${code}" not found in database.`);
+        }
+      })
+      .finally(() => {
+        if (active) setIsSearchingSupplier(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [debouncedSupplierSearch, open, paymentMode, selectedSupplier]);
+
+  // Supplier selection handlers
+  const handleSelectSupplier = (s: Supplier) => {
+    setSelectedSupplier(s);
+    const displayId = s.code || (s.id.length > 12 ? s.id.slice(0, 8) : s.id);
+    setSupplierId(s.id);
+    setSupplierSearchText(displayId);
+    setDebouncedSupplierSearch(displayId);
+    setSupplierName(s.name);
+    setSupplierAddress(s.address || '');
+    setSupplierPhone(s.phone || '');
+    const due = s.currentDue ?? s.openingDue ?? 0;
+    setSupplierDues(Number(due).toFixed(2));
+    setSupplierSuccess(true);
+    setSupplierWarning(null);
+    setIsSearchingSupplier(false);
+    setIsSupplierDropdownOpen(false);
+  };
+
+  const handleSelectSupplierFromLookup = (s: Supplier) => {
+    handleSelectSupplier(s);
+    setSupplierLookupOpen(false);
+  };
+
+  const handleSupplierCreated = (s?: Supplier) => {
+    if (s) {
+      setSuppliersList((prev) => [s, ...prev]);
+      handleSelectSupplier(s);
+    }
+    setAddSupplierModalOpen(false);
   };
 
   // Warehouse search and selection helpers
@@ -309,19 +428,27 @@ export function PurchaseModal({
     setIsWarehouseDropdownOpen(false);
   };
 
-  // Supplier filter for combobox
-  const filteredSuppliers =
-    supplierSearchText.trim() && supplierSearchText !== '0'
-      ? suppliersList.filter((s) => {
-          const q = supplierSearchText.toLowerCase();
-          return (
-            (s.code && s.code.toLowerCase().includes(q)) ||
-            s.name.toLowerCase().includes(q) ||
-            (s.phone && s.phone.toLowerCase().includes(q)) ||
-            s.id.toLowerCase().includes(q)
-          );
-        })
-      : suppliersList;
+  // Filtered suppliers based on search text (matching Code, Name, Company, Phone, ID, Address)
+  const isSearchingSupplierText =
+    supplierSearchText.trim().length > 0 &&
+    supplierSearchText.trim().toLowerCase() !==
+      (selectedSupplier
+        ? (selectedSupplier.code || (selectedSupplier.id.length > 12 ? selectedSupplier.id.slice(0, 8) : selectedSupplier.id)).toLowerCase()
+        : '');
+
+  const filteredSuppliers = isSearchingSupplierText
+    ? suppliersList.filter((s) => {
+        const q = supplierSearchText.toLowerCase();
+        return (
+          (s.code && s.code.toLowerCase().includes(q)) ||
+          s.name.toLowerCase().includes(q) ||
+          (s.companyName && s.companyName.toLowerCase().includes(q)) ||
+          (s.phone && s.phone.toLowerCase().includes(q)) ||
+          s.id.toLowerCase().includes(q) ||
+          (s.address && s.address.toLowerCase().includes(q))
+        );
+      })
+    : suppliersList;
 
   // Add line item to table
   const handleAddItem = () => {
@@ -395,17 +522,22 @@ export function PurchaseModal({
     setPaidAmount('');
     setPaidTouched(false);
     setDiscountAmount('');
-    setInvoiceNumber('');
+    setInvoiceNumber(`PUR-${Date.now().toString().slice(-6)}`);
     setBannerPrompt('Type Product Code');
     setActiveFocusedField('itemCode');
 
-    if (paymentMode === 'CASH') {
-      setSupplierId('0');
-      setSupplierName('Cash Party');
-      setSupplierSearchText('0');
-      setSupplierAddress('');
-      setSupplierDues('0.00');
-    }
+    setPaymentMode('CASH');
+    setSelectedSupplier(null);
+    setSupplierId('0');
+    setSupplierName('Cash Party');
+    setSupplierSearchText('');
+    setDebouncedSupplierSearch('');
+    setSupplierAddress('');
+    setSupplierPhone('');
+    setSupplierDues('0.00');
+    setSupplierWarning(null);
+    setSupplierSuccess(false);
+    setIsSupplierDropdownOpen(false);
 
     if (user?.role === 'MANAGER' && user?.warehouseId) {
       setSelectedWarehouseId(user.warehouseId);
@@ -445,7 +577,7 @@ export function PurchaseModal({
       return;
     }
 
-    if (paymentMode === 'SUPPLIER' && (!supplierId || supplierId === '0')) {
+    if (paymentMode === 'SUPPLIER' && (!selectedSupplier && (!supplierId || supplierId === '0'))) {
       setValidationWarning('Please select a valid supplier for supplier/credit purchases.');
       return;
     }
@@ -460,8 +592,14 @@ export function PurchaseModal({
       await api.post('/purchases', {
         invoiceNumber: invoiceNumber.trim() || undefined,
         paymentType: paymentMode,
-        supplierId: paymentMode === 'SUPPLIER' && supplierId !== '0' ? supplierId : undefined,
-        supplierName: paymentMode === 'CASH' ? (supplierName || 'Cash Party') : undefined,
+        supplierId:
+          paymentMode === 'SUPPLIER'
+            ? selectedSupplier?.id || (supplierId !== '0' ? supplierId : undefined)
+            : undefined,
+        supplierName:
+          paymentMode === 'CASH'
+            ? supplierName || 'Cash Party'
+            : selectedSupplier?.name || supplierName || undefined,
         warehouseId: selectedWarehouseId || defaultWarehouseId || undefined,
         paidAmount: effectivePaid,
         items: lineItems.map((item) => ({
@@ -863,189 +1001,275 @@ export function PurchaseModal({
               </div>
             </div>
 
-            {/* 3. Right Section: Cash / Supplier Radio (Bigger & Bold), Date, Invoice, Supplier Info */}
+            {/* 3. Right Section: Cash / Supplier Radio, Date, Invoice, Supplier Info */}
             <div className="space-y-1.5 flex-1 w-full max-w-sm">
-              {/* Cash / Supplier Radio + Date Header */}
-              <div className="flex items-center justify-between gap-4 pb-1">
-                {/* Enriched & Enlarged Cash & Supplier Radio Buttons */}
-                <div className="flex items-center gap-5">
-                  <label className="flex items-center gap-2 cursor-pointer font-bold text-sm sm:text-base text-neutral-900 dark:text-neutral-100 select-none">
+              {/* Row 1: Cash / Supplier Radio + Invoice & Date Header */}
+              <div className="flex items-center justify-between gap-2 pb-1">
+                {/* Cash & Supplier Radio Buttons */}
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <label className="flex items-center gap-1.5 cursor-pointer font-bold text-xs sm:text-sm text-neutral-900 dark:text-neutral-100 select-none">
                     <input
                       type="radio"
-                      name="paymentMode"
+                      name="purchasePaymentMode"
                       checked={paymentMode === 'CASH'}
                       onChange={() => {
                         setPaymentMode('CASH');
+                        setPaidTouched(false);
+                        setSelectedSupplier(null);
                         setSupplierId('0');
                         setSupplierName('Cash Party');
+                        setSupplierSearchText('');
+                        setDebouncedSupplierSearch('');
                         setSupplierAddress('');
+                        setSupplierPhone('');
                         setSupplierDues('0.00');
+                        setSupplierSuccess(false);
+                        setSupplierWarning(null);
+                        setIsSupplierDropdownOpen(false);
                       }}
                       disabled={isSaving}
-                      className="accent-emerald-700 dark:accent-emerald-500 w-4 h-4 sm:w-5 sm:h-5 cursor-pointer"
+                      className="accent-emerald-700 dark:accent-emerald-500 w-4 h-4 cursor-pointer"
                     />
                     <span>Cash</span>
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer font-bold text-sm sm:text-base text-neutral-900 dark:text-neutral-100 select-none">
+                  <label className="flex items-center gap-1.5 cursor-pointer font-bold text-xs sm:text-sm text-neutral-900 dark:text-neutral-100 select-none">
                     <input
                       type="radio"
-                      name="paymentMode"
+                      name="purchasePaymentMode"
                       checked={paymentMode === 'SUPPLIER'}
                       onChange={() => {
                         setPaymentMode('SUPPLIER');
-                        if (suppliersList.length > 0) {
-                          handleSelectSupplier(suppliersList[0].id);
-                        } else {
-                          setSupplierId('');
-                          setSupplierName('');
-                          setSupplierAddress('');
-                          setSupplierDues('0.00');
-                        }
+                        setPaidTouched(true);
+                        setPaidAmount('0.00');
+                        setSelectedSupplier(null);
+                        setSupplierId('');
+                        setSupplierName('');
+                        setSupplierSearchText('');
+                        setDebouncedSupplierSearch('');
+                        setSupplierAddress('');
+                        setSupplierPhone('');
+                        setSupplierDues('0.00');
+                        setSupplierSuccess(false);
+                        setSupplierWarning(null);
+                        setTimeout(() => supplierInputRef.current?.focus(), 80);
                       }}
                       disabled={isSaving}
-                      className="accent-emerald-700 dark:accent-emerald-500 w-4 h-4 sm:w-5 sm:h-5 cursor-pointer"
+                      className="accent-emerald-700 dark:accent-emerald-500 w-4 h-4 cursor-pointer"
                     />
                     <span>Supplier</span>
                   </label>
                 </div>
 
-                {/* Date Box */}
-                <div className="flex items-center gap-1 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 px-1.5 py-0.5 font-mono text-xs">
-                  <span>{purchaseDate}</span>
-                  <CalendarIcon className="w-3.5 h-3.5 text-neutral-500" />
+                {/* Date & Invoice */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-neutral-900 dark:text-neutral-200">Invoice</span>
+                  <input
+                    type="text"
+                    value={invoiceNumber}
+                    onChange={(e) => setInvoiceNumber(e.target.value)}
+                    disabled={isSaving}
+                    placeholder="AUTO"
+                    className="w-20 h-6 px-1.5 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-mono text-xs disabled:opacity-50"
+                  />
+                  <div className="flex items-center gap-1 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 px-1.5 py-0.5 font-mono text-xs">
+                    <span>{purchaseDate}</span>
+                    <CalendarIcon className="w-3.5 h-3.5 text-neutral-500" />
+                  </div>
                 </div>
               </div>
 
-              {/* Supplier ID & Invoice */}
-              <div className="flex items-center gap-2 relative" ref={supplierDropdownRef}>
-                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
-                  Supplier ID
-                </label>
-                {paymentMode === 'SUPPLIER' ? (
-                  <div className="relative w-28">
-                    <div className="relative flex items-center">
+              {/* Row 2: Supplier ID Combobox & View Button */}
+              <div className="relative" ref={supplierDropdownRef}>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
+                    Supplier ID
+                  </label>
+                  <div className="flex items-center gap-1.5 flex-1 min-w-0 relative">
+                    <div className="relative flex-1 min-w-0 flex items-center">
                       <input
+                        ref={supplierInputRef}
                         type="text"
                         value={supplierSearchText}
                         onChange={(e) => {
-                          setSupplierSearchText(e.target.value);
+                          const val = e.target.value;
+                          setSupplierSearchText(val);
+                          setSupplierId(val);
                           setIsSupplierDropdownOpen(true);
-                          if (!e.target.value.trim()) {
-                            setSupplierId('');
+                          if (supplierWarning) setSupplierWarning(null);
+                          if (!val.trim()) {
+                            setSelectedSupplier(null);
                             setSupplierName('');
                             setSupplierAddress('');
+                            setSupplierPhone('');
                             setSupplierDues('0.00');
+                            setSupplierSuccess(false);
                           }
                         }}
                         onFocus={() => setIsSupplierDropdownOpen(true)}
                         onClick={() => setIsSupplierDropdownOpen(true)}
-                        placeholder="Search..."
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            setIsSupplierDropdownOpen(false);
+                            setDebouncedSupplierSearch(supplierSearchText.trim());
+                          }
+                        }}
                         disabled={isSaving}
-                        className="w-full h-6 px-1.5 pr-5 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-50"
+                        placeholder="Search ID, Name, Phone..."
+                        className="w-full h-6 px-2 pr-12 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-75 truncate"
                       />
-                      <button
-                        type="button"
-                        tabIndex={-1}
-                        onClick={() => setIsSupplierDropdownOpen((prev) => !prev)}
-                        className="absolute right-0.5 text-neutral-500 hover:text-neutral-700 p-0.5 cursor-pointer"
-                      >
-                        <ChevronDown className="w-3 h-3" />
-                      </button>
+                      <div className="absolute right-1 flex items-center gap-0.5 text-neutral-500">
+                        {isSearchingSupplier && (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600 pointer-events-none" />
+                        )}
+                        {!isSearchingSupplier && supplierSuccess && (
+                          <Check className="w-3.5 h-3.5 text-emerald-600 pointer-events-none" />
+                        )}
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          onClick={() => setIsSupplierDropdownOpen((prev) => !prev)}
+                          className="hover:text-neutral-700 dark:hover:text-neutral-300 p-0.5 cursor-pointer"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSupplierLookupOpen(true)}
+                      disabled={isSaving}
+                      title="Open Supplier Directory to browse and select suppliers"
+                      className="h-6 px-2.5 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
+                    >
+                      View
+                    </button>
+                  </div>
+                </div>
+
+                {/* Warning message if supplier not found */}
+                {supplierWarning && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <div className="w-20 shrink-0" />
+                    <div className="flex items-center gap-1 text-[11px] text-red-600 dark:text-red-400 font-bold">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{supplierWarning}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Dropdown list */}
+                {isSupplierDropdownOpen && (
+                  <div className="absolute left-20 right-0 top-full mt-1 max-h-60 overflow-y-auto bg-white dark:bg-slate-800 border border-neutral-300 dark:border-slate-600 shadow-xl z-50 py-1">
+                    <div className="px-2.5 py-1 border-b border-neutral-200 dark:border-slate-700 bg-neutral-50 dark:bg-slate-800/90 text-[11px]">
+                      <span className="font-bold text-neutral-600 dark:text-neutral-300">
+                        {filteredSuppliers.length} Suppliers
+                      </span>
                     </div>
 
-                    {isSupplierDropdownOpen && (
-                      <div className="absolute left-0 top-full mt-1 w-56 max-h-44 overflow-y-auto bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 shadow-xl z-50 py-1">
-                        {filteredSuppliers.length === 0 ? (
-                          <div className="px-2 py-1 text-xs text-neutral-500 text-center italic">
-                            No supplier found
-                          </div>
-                        ) : (
-                          filteredSuppliers.map((s) => {
-                            const isSelected = s.id === supplierId;
-                            return (
-                              <button
-                                key={s.id}
-                                type="button"
-                                onClick={() => {
-                                  handleSelectSupplier(s.id);
-                                  setIsSupplierDropdownOpen(false);
-                                }}
-                                className={`w-full text-left px-2 py-1 text-xs flex items-center justify-between hover:bg-emerald-50 dark:hover:bg-slate-700 cursor-pointer ${
-                                  isSelected
-                                    ? 'bg-emerald-100 dark:bg-emerald-950 font-bold text-emerald-900 dark:text-emerald-200'
-                                    : 'text-neutral-800 dark:text-neutral-200'
-                                }`}
-                              >
-                                <div className="truncate">
-                                  <div className="font-medium truncate flex items-center gap-1">
-                                    {s.code && (
-                                      <span className="font-mono text-[10px] text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-1 py-0.2 rounded border border-emerald-200 dark:border-emerald-800">
-                                        #{s.code}
-                                      </span>
-                                    )}
-                                    <span className="truncate">{s.name}</span>
-                                  </div>
-                                  {s.phone && <div className="text-[10px] text-neutral-500">{s.phone}</div>}
-                                </div>
-                                {isSelected && <Check className="w-3 h-3 text-emerald-600 shrink-0" />}
-                              </button>
-                            );
-                          })
-                        )}
+                    {filteredSuppliers.length === 0 ? (
+                      <div className="p-3 text-center space-y-2">
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          No supplier found {supplierSearchText ? `for "${supplierSearchText}"` : ''}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsSupplierDropdownOpen(false);
+                            setAddSupplierModalOpen(true);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded shadow cursor-pointer transition-colors"
+                        >
+                          <UserPlus className="w-3.5 h-3.5" />
+                          <span>Add New Supplier</span>
+                        </button>
                       </div>
+                    ) : (
+                      filteredSuppliers.map((s) => {
+                        const isSelected = selectedSupplier?.id === s.id;
+                        const due = Number(s.currentDue ?? s.openingDue ?? 0);
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => handleSelectSupplier(s)}
+                            className={`w-full text-left px-3 py-1.5 text-xs hover:bg-emerald-50 dark:hover:bg-slate-700 cursor-pointer transition-colors border-b border-neutral-100 dark:border-slate-700/50 last:border-b-0 ${
+                              isSelected
+                                ? 'bg-emerald-100/70 dark:bg-emerald-950 font-bold text-emerald-900 dark:text-emerald-200'
+                                : 'text-neutral-800 dark:text-neutral-200'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="truncate font-semibold">{s.name}</span>
+                              {due > 0 && (
+                                <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 rounded">
+                                  Due: ৳{due.toFixed(0)}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px] text-neutral-500 font-mono mt-0.5">
+                              {s.code ? (
+                                <span className="text-emerald-700 dark:text-emerald-400 font-bold">#{s.code}</span>
+                              ) : (
+                                <span>ID: #{s.id.slice(0, 8)}</span>
+                              )}
+                              {s.companyName && <span>• {s.companyName}</span>}
+                              {s.phone && <span>• {s.phone}</span>}
+                            </div>
+                          </button>
+                        );
+                      })
                     )}
                   </div>
-                ) : (
-                  <input
-                    type="text"
-                    value={supplierId}
-                    onChange={(e) => setSupplierId(e.target.value)}
-                    disabled={isSaving || paymentMode === 'CASH'}
-                    className="w-28 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none disabled:opacity-75 font-mono text-xs"
-                  />
                 )}
-                <span className="text-xs font-bold text-neutral-900 dark:text-neutral-200 ml-auto mr-1">Invoice</span>
-                <input
-                  type="text"
-                  value={invoiceNumber}
-                  onChange={(e) => setInvoiceNumber(e.target.value)}
-                  disabled={isSaving}
-                  placeholder="AUTO"
-                  className="w-24 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-mono text-xs disabled:opacity-50"
-                />
               </div>
 
-              {/* Supplier Name */}
+              {/* Row 3: Name (Read-only) */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Name
                 </label>
                 <input
                   type="text"
-                  value={supplierName}
-                  onChange={(e) => setSupplierName(e.target.value)}
-                  disabled={isSaving || paymentMode === 'CASH'}
-                  placeholder="Supplier / Party Name"
-                  className="flex-1 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none disabled:opacity-75"
+                  readOnly
+                  tabIndex={-1}
+                  value={supplierName || (paymentMode === 'CASH' && !selectedSupplier ? 'Cash Party' : '')}
+                  placeholder={paymentMode === 'CASH' ? 'Cash Party' : 'Supplier Name (auto)'}
+                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 font-medium select-none focus:outline-none cursor-not-allowed truncate"
                 />
               </div>
 
-              {/* Address */}
+              {/* Row 4: Address (Read-only) */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Address
                 </label>
                 <input
                   type="text"
+                  readOnly
+                  tabIndex={-1}
                   value={supplierAddress}
-                  onChange={(e) => setSupplierAddress(e.target.value)}
-                  disabled={isSaving || paymentMode === 'CASH'}
-                  placeholder="Supplier Address"
-                  className="flex-1 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none disabled:opacity-75"
+                  placeholder="Address (auto)"
+                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 font-medium select-none focus:outline-none cursor-not-allowed truncate"
                 />
               </div>
 
-              {/* Dues */}
+              {/* Row 5: Phone No (Read-only) */}
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
+                  Phone No
+                </label>
+                <input
+                  type="text"
+                  readOnly
+                  tabIndex={-1}
+                  value={supplierPhone}
+                  placeholder="Phone (auto)"
+                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 font-medium select-none focus:outline-none cursor-not-allowed truncate"
+                />
+              </div>
+
+              {/* Row 6: Dues (Read-only) */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Dues
@@ -1054,7 +1278,8 @@ export function PurchaseModal({
                   type="text"
                   value={supplierDues}
                   readOnly
-                  className="w-28 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-semibold focus:outline-none"
+                  tabIndex={-1}
+                  className="w-28 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none select-none cursor-not-allowed"
                 />
               </div>
             </div>
@@ -1243,7 +1468,9 @@ export function PurchaseModal({
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Party Name:</span>
-              <span className="font-bold text-foreground">{supplierName || 'Cash Party'}</span>
+              <span className="font-bold text-foreground">
+                {selectedSupplier?.name || supplierName || (paymentMode === 'CASH' ? 'Cash Party' : 'Supplier')}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Total Items:</span>
@@ -1309,6 +1536,21 @@ export function PurchaseModal({
           </div>
         </div>
       </Dialog>
+
+      {/* Supplier Directory Lookup Modal */}
+      <SupplierLookupModal
+        open={supplierLookupOpen}
+        onOpenChange={setSupplierLookupOpen}
+        onSelectSupplier={handleSelectSupplierFromLookup}
+        initialSearch={supplierSearchText}
+      />
+
+      {/* Add Supplier Modal */}
+      <AddSupplierModal
+        open={addSupplierModalOpen}
+        onOpenChange={setAddSupplierModalOpen}
+        onSuccess={handleSupplierCreated}
+      />
     </>
   );
 }
