@@ -699,7 +699,7 @@ export function PurchaseModal({
                 type="button"
                 onClick={handleRefresh}
                 disabled={isSaving}
-                className="w-24 sm:w-28 h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-24 sm:w-28 h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 dark:disabled:text-slate-500 disabled:border-neutral-300 dark:disabled:border-slate-700 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer"
               >
                 Refresh
               </button>
@@ -707,7 +707,7 @@ export function PurchaseModal({
                 type="button"
                 onClick={handleInitiateSave}
                 disabled={isSaving}
-                className="w-24 sm:w-28 h-7 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border-2 border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                className="w-24 sm:w-28 h-7 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border-2 border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 dark:disabled:text-slate-500 disabled:border-neutral-300 dark:disabled:border-slate-700 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-1 cursor-pointer"
               >
                 {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600" />}
                 Save
@@ -716,7 +716,7 @@ export function PurchaseModal({
                 type="button"
                 onClick={() => onOpenChange(false)}
                 disabled={isSaving}
-                className="w-24 sm:w-28 h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-24 sm:w-28 h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 dark:disabled:text-slate-500 disabled:border-neutral-300 dark:disabled:border-slate-700 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer"
               >
                 Exit
               </button>
@@ -766,7 +766,7 @@ export function PurchaseModal({
                       onClick={() => setProductLookupOpen(true)}
                       disabled={isSaving}
                       title="Open Product Catalog to browse and select products"
-                      className="h-6 px-3 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="h-6 px-3 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 dark:disabled:text-slate-500 disabled:border-neutral-300 dark:disabled:border-slate-700 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer"
                     >
                       View
                     </button>
@@ -785,7 +785,7 @@ export function PurchaseModal({
                 )}
               </div>
 
-              {/* Item Name */}
+              {/* Item Name (Read-only auto-populated from product) */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
                   Item Name
@@ -793,18 +793,14 @@ export function PurchaseModal({
                 <input
                   type="text"
                   value={itemName}
-                  onChange={(e) => setItemName(e.target.value)}
-                  onFocus={() => {
-                    setBannerPrompt('Type Item Name');
-                    setActiveFocusedField('itemName');
-                  }}
-                  disabled={isSaving}
+                  readOnly
+                  tabIndex={-1}
                   placeholder="Product name"
-                  className="flex-1 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-medium focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-50"
+                  className="flex-1 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 font-medium select-none cursor-not-allowed focus:outline-none placeholder:text-neutral-400"
                 />
               </div>
 
-              {/* Company */}
+              {/* Company (Read-only auto-populated from product) */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
                   Company
@@ -812,10 +808,10 @@ export function PurchaseModal({
                 <input
                   type="text"
                   value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  disabled={isSaving}
+                  readOnly
+                  tabIndex={-1}
                   placeholder="Company name"
-                  className="w-44 sm:w-56 h-6 px-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-50"
+                  className="w-44 sm:w-56 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 font-medium select-none cursor-not-allowed focus:outline-none placeholder:text-neutral-400"
                 />
               </div>
 
@@ -852,7 +848,7 @@ export function PurchaseModal({
                       title={user?.role === 'MANAGER' ? "Assigned warehouse (locked for Manager role)" : "Search by warehouse code (e.g. WA-101) or name"}
                       className={`w-full h-6 px-2 pr-6 text-xs focus:outline-none disabled:opacity-50 ${
                         user?.role === 'MANAGER'
-                          ? 'bg-neutral-100 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 cursor-not-allowed select-none font-medium'
+                          ? 'bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 cursor-not-allowed select-none font-medium'
                           : 'bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:ring-1 focus:ring-emerald-600 font-medium'
                       }`}
                     />
@@ -1019,7 +1015,7 @@ export function PurchaseModal({
                       readOnly
                       tabIndex={-1}
                       placeholder="0.00"
-                      className="w-28 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none select-none cursor-not-allowed"
+                      className="w-28 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-slate-700 font-bold select-none cursor-not-allowed focus:outline-none placeholder:text-neutral-400"
                     />
                     <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-400">Tk</span>
                   </div>
@@ -1027,7 +1023,7 @@ export function PurchaseModal({
                     type="button"
                     onClick={handleAddItem}
                     disabled={isSaving}
-                    className="h-6 px-6 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border-2 border-[#b81b4c] dark:border-rose-500 font-bold text-xs shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    className="h-6 px-6 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border-2 border-[#b81b4c] dark:border-rose-500 font-bold text-xs shadow-sm transition-colors disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 dark:disabled:text-slate-500 disabled:border-neutral-300 dark:disabled:border-slate-700 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer"
                   >
                     Add
                   </button>
@@ -1123,8 +1119,9 @@ export function PurchaseModal({
                       <input
                         ref={supplierInputRef}
                         type="text"
-                        value={supplierSearchText}
+                        value={paymentMode === 'CASH' ? '0' : supplierSearchText}
                         onChange={(e) => {
+                          if (paymentMode === 'CASH') return;
                           const val = e.target.value;
                           setSupplierSearchText(val);
                           setSupplierId(val);
@@ -1139,8 +1136,12 @@ export function PurchaseModal({
                             setSupplierSuccess(false);
                           }
                         }}
-                        onFocus={() => setIsSupplierDropdownOpen(true)}
-                        onClick={() => setIsSupplierDropdownOpen(true)}
+                        onFocus={() => {
+                          if (paymentMode !== 'CASH') setIsSupplierDropdownOpen(true);
+                        }}
+                        onClick={() => {
+                          if (paymentMode !== 'CASH') setIsSupplierDropdownOpen(true);
+                        }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
@@ -1148,9 +1149,13 @@ export function PurchaseModal({
                             setDebouncedSupplierSearch(supplierSearchText.trim());
                           }
                         }}
-                        disabled={isSaving}
-                        placeholder="Search ID, Name, Phone..."
-                        className="w-full h-6 px-2 pr-12 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-75 truncate"
+                        disabled={isSaving || paymentMode === 'CASH'}
+                        placeholder={paymentMode === 'CASH' ? "0 (Cash Party)" : "Search ID, Name, Phone..."}
+                        className={`w-full h-6 px-2 pr-12 font-mono text-xs focus:outline-none truncate ${
+                          paymentMode === 'CASH'
+                            ? 'bg-neutral-200 dark:bg-slate-800 text-neutral-500 dark:text-neutral-400 border border-neutral-300 dark:border-slate-700 cursor-not-allowed select-none'
+                            : 'bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:ring-1 focus:ring-emerald-600'
+                        }`}
                       />
                       <div className="absolute right-1 flex items-center gap-0.5 text-neutral-500">
                         {isSearchingSupplier && (
@@ -1159,22 +1164,24 @@ export function PurchaseModal({
                         {!isSearchingSupplier && supplierSuccess && (
                           <Check className="w-3.5 h-3.5 text-emerald-600 pointer-events-none" />
                         )}
-                        <button
-                          type="button"
-                          tabIndex={-1}
-                          onClick={() => setIsSupplierDropdownOpen((prev) => !prev)}
-                          className="hover:text-neutral-700 dark:hover:text-neutral-300 p-0.5 cursor-pointer"
-                        >
-                          <ChevronDown className="w-3.5 h-3.5" />
-                        </button>
+                        {paymentMode !== 'CASH' && (
+                          <button
+                            type="button"
+                            tabIndex={-1}
+                            onClick={() => setIsSupplierDropdownOpen((prev) => !prev)}
+                            className="hover:text-neutral-700 dark:hover:text-neutral-300 p-0.5 cursor-pointer"
+                          >
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setSupplierLookupOpen(true)}
-                      disabled={isSaving}
-                      title="Open Supplier Directory to browse and select suppliers"
-                      className="h-6 px-2.5 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
+                      disabled={isSaving || paymentMode === 'CASH'}
+                      title={paymentMode === 'CASH' ? "Not available in Cash mode" : "Open Supplier Directory to browse and select suppliers"}
+                      className="h-6 px-2.5 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 dark:disabled:text-slate-500 disabled:border-neutral-300 dark:disabled:border-slate-700 disabled:cursor-not-allowed disabled:shadow-none shrink-0 cursor-pointer"
                     >
                       View
                     </button>
@@ -1269,7 +1276,7 @@ export function PurchaseModal({
                   tabIndex={-1}
                   value={supplierName || (paymentMode === 'CASH' && !selectedSupplier ? 'Cash Party' : '')}
                   placeholder={paymentMode === 'CASH' ? 'Cash Party' : 'Supplier Name (auto)'}
-                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 font-medium select-none focus:outline-none cursor-not-allowed truncate"
+                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 font-medium select-none focus:outline-none cursor-not-allowed truncate placeholder:text-neutral-400"
                 />
               </div>
 
@@ -1284,7 +1291,7 @@ export function PurchaseModal({
                   tabIndex={-1}
                   value={supplierAddress}
                   placeholder="Address (auto)"
-                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 font-medium select-none focus:outline-none cursor-not-allowed truncate"
+                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 font-medium select-none focus:outline-none cursor-not-allowed truncate placeholder:text-neutral-400"
                 />
               </div>
 
@@ -1299,7 +1306,7 @@ export function PurchaseModal({
                   tabIndex={-1}
                   value={supplierPhone}
                   placeholder="Phone (auto)"
-                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 font-medium select-none focus:outline-none cursor-not-allowed truncate"
+                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 font-medium select-none focus:outline-none cursor-not-allowed truncate placeholder:text-neutral-400"
                 />
               </div>
 
@@ -1313,7 +1320,7 @@ export function PurchaseModal({
                   value={supplierDues}
                   readOnly
                   tabIndex={-1}
-                  className="w-28 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none select-none cursor-not-allowed"
+                  className="w-28 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-slate-700 font-bold focus:outline-none select-none cursor-not-allowed placeholder:text-neutral-400"
                 />
               </div>
             </div>
@@ -1423,8 +1430,9 @@ export function PurchaseModal({
                 <input
                   type="text"
                   readOnly
+                  tabIndex={-1}
                   value={currentDues.toFixed(2)}
-                  className="w-32 h-6 px-2 bg-white/80 dark:bg-slate-800/80 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 text-right font-bold"
+                  className="w-32 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-red-600 dark:text-red-400 border border-neutral-300 dark:border-slate-700 text-right font-bold select-none cursor-not-allowed focus:outline-none"
                 />
               </div>
             </div>
@@ -1438,8 +1446,9 @@ export function PurchaseModal({
                 <input
                   type="text"
                   readOnly
+                  tabIndex={-1}
                   value={totalAmount.toFixed(2)}
-                  className="w-36 h-6 px-2 bg-white/80 dark:bg-slate-800/80 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 text-right font-bold"
+                  className="w-36 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-300 dark:border-slate-700 text-right font-bold select-none cursor-not-allowed focus:outline-none"
                 />
               </div>
 
@@ -1466,8 +1475,9 @@ export function PurchaseModal({
                 <input
                   type="text"
                   readOnly
+                  tabIndex={-1}
                   value={netAmount.toFixed(2)}
-                  className="w-36 h-6 px-2 bg-white/90 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 text-right font-bold"
+                  className="w-36 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-300 dark:border-slate-700 text-right font-bold select-none cursor-not-allowed focus:outline-none"
                 />
               </div>
             </div>

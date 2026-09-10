@@ -929,7 +929,7 @@ export function SaleManualModal({
                       onClick={() => setProductLookupOpen(true)}
                       disabled={isSaving}
                       title="Open Product Catalog to browse and select products"
-                      className="h-6 px-4 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:opacity-50"
+                      className="h-6 px-4 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 dark:disabled:text-slate-500 disabled:border-neutral-300 dark:disabled:border-slate-700 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer"
                     >
                       View
                     </button>
@@ -948,7 +948,7 @@ export function SaleManualModal({
                 )}
               </div>
 
-              {/* Row 3: Item Name */}
+              {/* Row 3: Item Name (Read-only) */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Item Name
@@ -957,8 +957,9 @@ export function SaleManualModal({
                   type="text"
                   value={itemName}
                   readOnly
+                  tabIndex={-1}
                   placeholder="Product name"
-                  className="flex-1 max-w-[270px] h-6 px-2 bg-white/90 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-medium focus:outline-none"
+                  className="flex-1 max-w-[270px] h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 font-medium select-none cursor-not-allowed focus:outline-none placeholder:text-neutral-400"
                 />
               </div>
 
@@ -997,8 +998,9 @@ export function SaleManualModal({
                   <input
                     type="text"
                     readOnly
+                    tabIndex={-1}
                     value={availableStock}
-                    className="w-20 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none"
+                    className="w-20 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-slate-700 font-bold select-none cursor-not-allowed focus:outline-none"
                   />
                 </div>
               </div>
@@ -1035,8 +1037,9 @@ export function SaleManualModal({
                   <input
                     type="text"
                     readOnly
+                    tabIndex={-1}
                     value={itemType}
-                    className="w-20 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-medium focus:outline-none"
+                    className="w-20 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 font-medium select-none cursor-not-allowed focus:outline-none"
                   />
                 </div>
               </div>
@@ -1049,9 +1052,10 @@ export function SaleManualModal({
                 <input
                   type="text"
                   readOnly
+                  tabIndex={-1}
                   value={currentItemAmount > 0 ? currentItemAmount.toFixed(2) : ''}
                   placeholder="0.00"
-                  className="w-24 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none"
+                  className="w-24 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-slate-700 font-bold select-none cursor-not-allowed focus:outline-none placeholder:text-neutral-400"
                 />
               </div>
 
@@ -1061,7 +1065,7 @@ export function SaleManualModal({
                   type="button"
                   onClick={handleRefresh}
                   disabled={isSaving}
-                  className="w-[66px] h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
+                  className="w-[66px] h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 dark:disabled:text-slate-500 disabled:border-neutral-300 dark:disabled:border-slate-700 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer"
                 >
                   Refresh
                 </button>
@@ -1069,7 +1073,7 @@ export function SaleManualModal({
                   type="button"
                   onClick={handleAddItem}
                   disabled={isSaving}
-                  className="w-[66px] h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
+                  className="w-[66px] h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 dark:disabled:text-slate-500 disabled:border-neutral-300 dark:disabled:border-slate-700 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer"
                 >
                   Add
                 </button>
@@ -1077,7 +1081,7 @@ export function SaleManualModal({
                   type="button"
                   onClick={handleInitiateSave}
                   disabled={isSaving}
-                  className="w-[66px] h-7 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border-2 border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-1 cursor-pointer"
+                  className="w-[66px] h-7 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border-2 border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 dark:disabled:text-slate-500 disabled:border-neutral-300 dark:disabled:border-slate-700 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-1 cursor-pointer"
                 >
                   {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600" />}
                   Save
@@ -1086,7 +1090,7 @@ export function SaleManualModal({
                   type="button"
                   onClick={handleDeleteSelectedRow}
                   disabled={isSaving}
-                  className="w-[66px] h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-blue-600 dark:text-blue-400 border border-blue-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
+                  className="w-[66px] h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-blue-600 dark:text-blue-400 border border-blue-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 dark:disabled:text-slate-500 disabled:border-neutral-300 dark:disabled:border-slate-700 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer"
                 >
                   Delete
                 </button>
@@ -1094,7 +1098,7 @@ export function SaleManualModal({
                   type="button"
                   onClick={() => onOpenChange(false)}
                   disabled={isSaving}
-                  className="w-[66px] h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
+                  className="w-[66px] h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 dark:disabled:text-slate-500 disabled:border-neutral-300 dark:disabled:border-slate-700 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer"
                 >
                   Close
                 </button>
@@ -1136,7 +1140,7 @@ export function SaleManualModal({
                       title={isManager ? "Assigned warehouse (locked for Manager role)" : undefined}
                       className={`w-full h-6 px-2 pr-6 font-medium text-xs focus:outline-none disabled:opacity-50 ${
                         isManager
-                          ? 'bg-neutral-100 dark:bg-slate-800/90 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 cursor-not-allowed select-none'
+                          ? 'bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 cursor-not-allowed select-none'
                           : 'bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:ring-1 focus:ring-emerald-600'
                       }`}
                     />
@@ -1188,7 +1192,7 @@ export function SaleManualModal({
                                   </span>
                                 )}
                                 {w.isDefault && (
-                                  <span className="text-[9px] px-1 bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 rounded border border-amber-300 shrink-0">
+                                  <span className="text-[9px] px-1 bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 rounded border border-amber-300 shrink-0 font-normal">
                                     Default
                                   </span>
                                 )}
@@ -1212,8 +1216,9 @@ export function SaleManualModal({
                   type="text"
                   value={companyName}
                   readOnly
+                  tabIndex={-1}
                   placeholder="—"
-                  className="w-28 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none"
+                  className="w-28 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 font-medium select-none cursor-not-allowed focus:outline-none placeholder:text-neutral-400"
                 />
               </div>
 
@@ -1227,8 +1232,9 @@ export function SaleManualModal({
                     type="text"
                     value={productSaleRateMRP}
                     readOnly
+                    tabIndex={-1}
                     placeholder="0.00"
-                    className="w-24 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none"
+                    className="w-24 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-slate-700 font-bold select-none cursor-not-allowed focus:outline-none placeholder:text-neutral-400"
                   />
                   <span className="text-xs font-semibold">Tk</span>
                 </div>
@@ -1244,8 +1250,9 @@ export function SaleManualModal({
                     type="text"
                     value={dpRate}
                     readOnly
+                    tabIndex={-1}
                     placeholder="0.00"
-                    className="w-24 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none"
+                    className="w-24 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 font-medium select-none cursor-not-allowed focus:outline-none placeholder:text-neutral-400"
                   />
                   <span className="text-xs font-semibold">Tk</span>
                 </div>
@@ -1261,8 +1268,9 @@ export function SaleManualModal({
                     type="text"
                     value={commission}
                     readOnly
+                    tabIndex={-1}
                     placeholder="0"
-                    className="w-14 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 text-center focus:outline-none"
+                    className="w-14 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 text-center font-medium select-none cursor-not-allowed focus:outline-none placeholder:text-neutral-400"
                   />
                   <span className="text-xs font-semibold">%</span>
                 </div>
@@ -1278,8 +1286,9 @@ export function SaleManualModal({
                     type="text"
                     value={purchaseRate}
                     readOnly
+                    tabIndex={-1}
                     placeholder="0.00"
-                    className="w-24 h-6 px-2 bg-white/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none"
+                    className="w-24 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-slate-700 font-bold select-none cursor-not-allowed focus:outline-none placeholder:text-neutral-400"
                   />
                   <span className="text-xs font-semibold">Tk</span>
                 </div>
@@ -1352,8 +1361,9 @@ export function SaleManualModal({
                       <input
                         ref={customerInputRef}
                         type="text"
-                        value={customerSearchText}
+                        value={paymentMode === 'CASH' ? '0' : customerSearchText}
                         onChange={(e) => {
+                          if (paymentMode === 'CASH') return;
                           const val = e.target.value;
                           setCustomerSearchText(val);
                           setCustomerId(val);
@@ -1368,8 +1378,12 @@ export function SaleManualModal({
                             setCustomerSuccess(false);
                           }
                         }}
-                        onFocus={() => setIsCustomerDropdownOpen(true)}
-                        onClick={() => setIsCustomerDropdownOpen(true)}
+                        onFocus={() => {
+                          if (paymentMode !== 'CASH') setIsCustomerDropdownOpen(true);
+                        }}
+                        onClick={() => {
+                          if (paymentMode !== 'CASH') setIsCustomerDropdownOpen(true);
+                        }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
@@ -1377,9 +1391,13 @@ export function SaleManualModal({
                             setDebouncedCustomerId(customerSearchText.trim());
                           }
                         }}
-                        disabled={isSaving}
-                        placeholder="Search ID, Name, Phone..."
-                        className="w-full h-6 px-2 pr-12 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-75 truncate"
+                        disabled={isSaving || paymentMode === 'CASH'}
+                        placeholder={paymentMode === 'CASH' ? "0 (Cash Party)" : "Search ID, Name, Phone..."}
+                        className={`w-full h-6 px-2 pr-12 font-mono text-xs focus:outline-none truncate ${
+                          paymentMode === 'CASH'
+                            ? 'bg-neutral-200 dark:bg-slate-800 text-neutral-500 dark:text-neutral-400 border border-neutral-300 dark:border-slate-700 cursor-not-allowed select-none'
+                            : 'bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:ring-1 focus:ring-emerald-600'
+                        }`}
                       />
                       <div className="absolute right-1 flex items-center gap-0.5 text-neutral-500">
                         {isSearchingCustomer && (
@@ -1388,22 +1406,24 @@ export function SaleManualModal({
                         {!isSearchingCustomer && customerSuccess && (
                           <Check className="w-3.5 h-3.5 text-emerald-600 pointer-events-none" />
                         )}
-                        <button
-                          type="button"
-                          tabIndex={-1}
-                          onClick={() => setIsCustomerDropdownOpen((prev) => !prev)}
-                          className="hover:text-neutral-700 dark:hover:text-neutral-300 p-0.5 cursor-pointer"
-                        >
-                          <ChevronDown className="w-3.5 h-3.5" />
-                        </button>
+                        {paymentMode !== 'CASH' && (
+                          <button
+                            type="button"
+                            tabIndex={-1}
+                            onClick={() => setIsCustomerDropdownOpen((prev) => !prev)}
+                            className="hover:text-neutral-700 dark:hover:text-neutral-300 p-0.5 cursor-pointer"
+                          >
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setCustomerLookupOpen(true)}
-                      disabled={isSaving}
-                      title="Open Customer Directory to browse and select customers"
-                      className="h-6 px-2.5 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
+                      disabled={isSaving || paymentMode === 'CASH'}
+                      title={paymentMode === 'CASH' ? "Not available in Cash mode" : "Open Customer Directory to browse and select customers"}
+                      className="h-6 px-2.5 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 dark:disabled:text-slate-500 disabled:border-neutral-300 dark:disabled:border-slate-700 disabled:cursor-not-allowed disabled:shadow-none shrink-0 cursor-pointer"
                     >
                       View
                     </button>
@@ -1482,7 +1502,7 @@ export function SaleManualModal({
                   tabIndex={-1}
                   value={customerName || (paymentMode === 'CASH' && !selectedCustomer ? 'Cash Party' : '')}
                   placeholder={paymentMode === 'CASH' ? 'Cash Party' : 'Customer Name (auto)'}
-                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 font-medium select-none focus:outline-none cursor-not-allowed truncate"
+                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 font-medium select-none focus:outline-none cursor-not-allowed truncate placeholder:text-neutral-400"
                 />
               </div>
 
@@ -1497,7 +1517,7 @@ export function SaleManualModal({
                   tabIndex={-1}
                   value={customerAddress}
                   placeholder="Address (auto)"
-                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 font-medium select-none focus:outline-none cursor-not-allowed truncate"
+                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 font-medium select-none focus:outline-none cursor-not-allowed truncate placeholder:text-neutral-400"
                 />
               </div>
 
@@ -1512,7 +1532,7 @@ export function SaleManualModal({
                   tabIndex={-1}
                   value={customerPhone}
                   placeholder="Phone (auto)"
-                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 font-medium select-none focus:outline-none cursor-not-allowed truncate"
+                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 font-medium select-none focus:outline-none cursor-not-allowed truncate placeholder:text-neutral-400"
                 />
               </div>
 
@@ -1526,7 +1546,7 @@ export function SaleManualModal({
                   value={customerDues}
                   readOnly
                   tabIndex={-1}
-                  className="w-28 h-6 px-2 bg-neutral-100 dark:bg-slate-800/80 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none select-none cursor-not-allowed"
+                  className="w-28 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-slate-700 font-bold focus:outline-none select-none cursor-not-allowed placeholder:text-neutral-400"
                 />
               </div>
             </div>
@@ -1680,8 +1700,9 @@ export function SaleManualModal({
                 <input
                   type="text"
                   readOnly
+                  tabIndex={-1}
                   value={currentDues.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  className="w-32 h-6 px-2 bg-white/80 dark:bg-slate-800/80 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 text-right font-bold"
+                  className="w-32 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-red-600 dark:text-red-400 border border-neutral-300 dark:border-slate-700 text-right font-bold select-none cursor-not-allowed focus:outline-none"
                 />
               </div>
             </div>
@@ -1695,8 +1716,9 @@ export function SaleManualModal({
                 <input
                   type="text"
                   readOnly
+                  tabIndex={-1}
                   value={totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  className="w-36 h-6 px-2 bg-white/80 dark:bg-slate-800/80 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 text-right font-bold"
+                  className="w-36 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-300 dark:border-slate-700 text-right font-bold select-none cursor-not-allowed focus:outline-none"
                 />
               </div>
 
@@ -1739,8 +1761,9 @@ export function SaleManualModal({
                 <input
                   type="text"
                   readOnly
+                  tabIndex={-1}
                   value={netAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  className="w-36 h-6 px-2 bg-white/90 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 text-right font-bold"
+                  className="w-36 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-300 dark:border-slate-700 text-right font-bold select-none cursor-not-allowed focus:outline-none"
                 />
               </div>
             </div>
@@ -1752,8 +1775,9 @@ export function SaleManualModal({
                 <input
                   type="text"
                   readOnly
+                  tabIndex={-1}
                   value={totalPurchaseCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  className="w-36 h-6 px-2 bg-white/80 dark:bg-slate-800/80 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 text-right font-bold"
+                  className="w-36 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-slate-700 text-right font-bold select-none cursor-not-allowed focus:outline-none"
                   title="Total Purchase Cost"
                 />
               </div>
@@ -1763,8 +1787,9 @@ export function SaleManualModal({
                 <input
                   type="text"
                   readOnly
+                  tabIndex={-1}
                   value={totalProfit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  className="w-36 h-6 px-2 bg-white/90 dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 border border-neutral-400 dark:border-slate-600 text-right font-bold"
+                  className="w-36 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 border border-neutral-300 dark:border-slate-700 text-right font-bold select-none cursor-not-allowed focus:outline-none"
                   title="Net Profit"
                 />
               </div>
