@@ -64,9 +64,12 @@ export default function LoginPage() {
         <LanguageSwitcher />
       </div>
 
-      <Card className="w-full max-w-md shadow-md border-border">
+      <Card className="w-full max-w-md shadow-lg border border-neutral-200 dark:border-slate-800 overflow-hidden">
+        {/* Subtle Top Green Accent Bar */}
+        <div className="h-1.5 w-full bg-[#006400] dark:bg-emerald-600" />
+
         <CardHeader className="text-center space-y-1">
-          <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center mx-auto mb-2 font-bold text-xl shadow">
+          <div className="w-12 h-12 rounded-xl bg-[#006400] dark:bg-emerald-700 text-white flex items-center justify-center mx-auto mb-2 font-bold text-xl shadow-md border border-[#004d00] dark:border-emerald-800">
             I
           </div>
           <CardTitle className="text-2xl font-bold">{t('auth.signIn')}</CardTitle>
@@ -86,7 +89,7 @@ export default function LoginPage() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5 text-muted-foreground" /> {t('auth.email')}
+                <Mail className="w-3.5 h-3.5 text-[#006400] dark:text-emerald-400" /> {t('auth.email')}
               </label>
               <Input
                 type="email"
@@ -95,12 +98,13 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
+                className="focus-visible:ring-[#006400] dark:focus-visible:ring-emerald-500 focus-visible:border-[#006400]"
               />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-muted-foreground" /> {t('auth.password')}
+                <Lock className="w-3.5 h-3.5 text-[#006400] dark:text-emerald-400" /> {t('auth.password')}
               </label>
               <Input
                 type="password"
@@ -109,19 +113,24 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
+                className="focus-visible:ring-[#006400] dark:focus-visible:ring-emerald-500 focus-visible:border-[#006400]"
               />
             </div>
           </CardContent>
 
           <CardFooter className="flex flex-col gap-2.5 pt-2">
-            <Button type="submit" className="w-full h-10 font-semibold" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              className="w-full h-10 font-semibold bg-[#006400] hover:bg-[#004d00] text-white shadow-sm transition-colors cursor-pointer"
+              disabled={isSubmitting}
+            >
               {isSubmitting ? t('auth.signingIn') : t('auth.signIn')}
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={handleDemoLogin}
-              className="w-full h-10 border-dashed border-primary/50 text-primary hover:bg-primary/5 font-medium transition-colors"
+              className="w-full h-10 border-dashed border-[#006400]/40 dark:border-emerald-700/50 text-[#006400] dark:text-emerald-400 hover:bg-[#006400]/5 dark:hover:bg-emerald-950/30 font-medium transition-colors cursor-pointer"
             >
               Demo Login
             </Button>
