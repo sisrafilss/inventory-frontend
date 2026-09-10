@@ -183,8 +183,8 @@ export default function CategoriesPage() {
                     visibleCategories.map((cat, idx) => (
                       <tr
                         key={cat.id}
-                        onClick={() => setViewCategory(cat)}
-                        title="Click to view details"
+                        onDoubleClick={() => setViewCategory(cat)}
+                        title="Double-click to view details"
                         className={`transition-colors hover:bg-[#c6d8ea]/50 dark:hover:bg-slate-800/80 cursor-pointer ${
                           idx % 2 === 0
                             ? 'bg-white dark:bg-slate-900'

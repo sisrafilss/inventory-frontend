@@ -7,7 +7,8 @@ import { api } from '@/lib/api/client';
 import { Sale } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
 import { Dialog } from '@/components/ui/dialog';
-import { ShoppingCart, Search, Eye, Printer, Loader2, AlertCircle, Package, X } from 'lucide-react';
+import { ShoppingCart, Search, Eye, Printer, Loader2, AlertCircle, Package, X, Edit2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { InvoiceMemoModal } from '@/components/sales/invoice-memo-modal';
 import { SaleManualModal } from '@/components/sales/sale-manual-modal';
 import { SaleBarcodeModal } from '@/components/sales/sale-barcode-modal';
@@ -219,8 +220,8 @@ export default function SalesListPage() {
                             ? 'bg-white dark:bg-slate-900 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80'
                             : 'bg-[#f4f8fc] dark:bg-slate-900/50 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80'
                         }`}
-                        onClick={() => setSelectedSale(sale)}
-                        title="Click to view details"
+                        onDoubleClick={() => setSelectedSale(sale)}
+                        title="Double-click to view details"
                       >
                         <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono text-neutral-500">{idx + 1}</td>
                         <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-mono font-bold text-neutral-800 dark:text-neutral-100">{sale.referenceNumber}</td>
@@ -415,9 +416,17 @@ export default function SalesListPage() {
               <button
                 type="button"
                 onClick={() => setSelectedSale(null)}
-                className="w-24 h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 text-neutral-900 dark:text-neutral-100 border border-neutral-500 font-bold text-xs tracking-wider shadow-sm transition-colors cursor-pointer"
+                className="w-24 h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 text-neutral-900 dark:text-neutral-100 border border-neutral-500 font-bold text-[11px] uppercase tracking-wider shadow-sm transition-colors cursor-pointer"
               >
                 Close
+              </button>
+              <button
+                type="button"
+                onClick={() => toast.info('Sale editing is restricted in this version. Please cancel and recreate the sale.')}
+                className="h-7 px-4 bg-white dark:bg-slate-700 text-[#006400] dark:text-emerald-400 border border-neutral-400 dark:border-slate-600 font-bold text-[11px] uppercase tracking-wider hover:bg-emerald-50 dark:hover:bg-slate-600 transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+                Edit
               </button>
             </div>
           </div>

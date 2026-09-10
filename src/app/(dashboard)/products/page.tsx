@@ -706,8 +706,8 @@ export default function ProductsPage() {
                               ? 'bg-white dark:bg-slate-900 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80'
                               : 'bg-[#f4f8fc] dark:bg-slate-900/50 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80'
                           }`}
-                          onClick={() => setViewProduct(p)}
-                          title="Click to view details"
+                          onDoubleClick={() => setViewProduct(p)}
+                          title="Double-click to view details"
                         >
                           <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono text-neutral-500">{idx + 1}</td>
                           <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-mono font-bold text-neutral-800 dark:text-neutral-100">{p.sku}</td>
@@ -1169,14 +1169,28 @@ export default function ProductsPage() {
               </div>
             )}
 
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setViewProduct(null)}
-                className="w-24 h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 text-neutral-900 dark:text-neutral-100 border border-neutral-500 font-bold text-xs tracking-wider shadow-sm transition-colors cursor-pointer"
+                className="h-7 px-4 bg-white dark:bg-slate-800 hover:bg-neutral-100 text-neutral-900 dark:text-neutral-100 border border-neutral-500 font-bold text-[11px] uppercase tracking-wider shadow-sm transition-colors cursor-pointer"
               >
                 Close
               </button>
+              {canManage && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const prod = viewProduct;
+                    setViewProduct(null);
+                    handleOpenEdit(prod);
+                  }}
+                  className="h-7 px-4 bg-white dark:bg-slate-700 text-[#006400] dark:text-emerald-400 border border-neutral-400 dark:border-slate-600 font-bold text-[11px] uppercase tracking-wider hover:bg-emerald-50 dark:hover:bg-slate-600 transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                  Edit
+                </button>
+              )}
             </div>
           </div>
         )}
