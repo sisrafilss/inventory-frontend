@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'sonner';
 
 import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api/client';
@@ -70,7 +71,7 @@ export default function CategoriesPage() {
       setModalOpen(false);
       await fetchCategories();
     } catch (err: any) {
-      alert(err.message || 'Failed to save category.');
+      toast.error(err.message || 'Failed to save category.');
     } finally {
       setIsSaving(false);
     }

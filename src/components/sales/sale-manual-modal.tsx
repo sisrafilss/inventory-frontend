@@ -1,7 +1,9 @@
 'use client';
+import { toast } from 'sonner';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Button } from '@/components/ui/button';
 import {
   X,
@@ -820,13 +822,13 @@ export function SaleManualModal({
         setShowMemoModal(true);
         handleRefresh();
       } else {
-        alert('Sale saved successfully!');
+        toast.success('Sale saved successfully!');
         handleRefresh();
         onOpenChange(false);
         if (onSaveSuccess) onSaveSuccess();
       }
     } catch (err: any) {
-      alert(err?.response?.data?.message || err.message || 'Failed to save sale.');
+      toast.error(err?.response?.data?.message || err.message || 'Failed to save sale.');
     } finally {
       setIsSaving(false);
     }
@@ -1796,113 +1798,39 @@ export function SaleManualModal({
       </Dialog>
 
       {/* Save Confirmation Dialog */}
-      <Dialog
+      <ConfirmDialog
         open={showConfirmSave}
         onOpenChange={(isOpen) => !isSaving && setShowConfirmSave(isOpen)}
-        closeOnBackdropClick={!isSaving}
-        className="p-0 max-w-sm w-full border-2 border-[#800000] dark:border-rose-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 shadow-2xl overflow-hidden"
-      >
-        <div className="bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-white">
-            <HelpCircle className="w-4 h-4 text-lime-300" />
-            <span className="font-bold text-sm tracking-wide">Confirm Save</span>
-          </div>
-        </div>
-
-        <div className="p-4 space-y-4 text-neutral-900 dark:text-neutral-100">
-          <p className="text-xs font-bold">
-            Please confirm saving this sale invoice to the database.
-          </p>
-
-          <div className="bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 p-2 text-xs font-mono space-y-1">
-            <div className="flex justify-between">
-              <span className="text-neutral-600 dark:text-neutral-400">Invoice:</span>
-              <span className="font-bold text-neutral-900 dark:text-neutral-100">
-                {invoiceNumber || 'Auto-generated'}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-neutral-600 dark:text-neutral-400">Payment Mode:</span>
-              <span className="font-bold text-neutral-900 dark:text-neutral-100">{paymentMode}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-neutral-600 dark:text-neutral-400">Customer:</span>
-              <span className="font-bold text-neutral-900 dark:text-neutral-100 truncate max-w-[150px] text-right">
-                {customerName.trim() || (paymentMode === 'CASH' ? 'Cash Party' : 'Customer')}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-neutral-600 dark:text-neutral-400">Total Items:</span>
-              <span className="font-bold text-neutral-900 dark:text-neutral-100">{lineItems.length}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-neutral-600 dark:text-neutral-400">Net Amount:</span>
-              <span className="font-bold text-neutral-900 dark:text-neutral-100">৳{Number(netAmount).toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-neutral-600 dark:text-neutral-400">Paid Amount:</span>
-              <span className="font-bold text-emerald-700 dark:text-emerald-400">৳{Number(effectivePaid).toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-neutral-600 dark:text-neutral-400">Current Dues:</span>
-              <span className="font-bold text-red-600 dark:text-red-400">৳{Number(currentDues).toFixed(2)}</span>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              disabled={isSaving}
-              onClick={() => setShowConfirmSave(false)}
-              className="h-7 px-4 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold text-xs shadow-sm disabled:opacity-50 transition-colors"
-            >
-              No
-            </button>
-            <button
-              type="button"
-              onClick={handleExecuteSave}
-              disabled={isSaving}
-              className="h-7 px-6 bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-800 font-bold text-xs shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 transition-colors"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Yes'
-              )}
-            </button>
-          </div>
-        </div>
-      </Dialog>
+        title="Confirm Save"
+        description="Please confirm saving this sale invoice to the database."
+        onConfirm={handleExecuteSave}
+        confirmText="Yes"
+        cancelText="No"
+        variant="success"
+        isLoading={isSaving}
+        loadingText="Saving..."
+        details={[
+          { label: 'Invoice:', value: invoiceNumber || 'Auto-generated' },
+          { label: 'Payment Mode:', value: paymentMode },
+          { label: 'Customer:', value: customerName.trim() || (paymentMode === 'CASH' ? 'Cash Party' : 'Customer') },
+          { label: 'Total Items:', value: String(lineItems.length) },
+          { label: 'Net Amount:', value: `৳${Number(netAmount).toFixed(2)}` },
+          { label: 'Paid Amount:', value: `৳${Number(effectivePaid).toFixed(2)}`, color: 'text-emerald-700 dark:text-emerald-400' },
+          { label: 'Current Dues:', value: `৳${Number(currentDues).toFixed(2)}`, color: 'text-red-600 dark:text-red-400' },
+        ]}
+      />
 
       {/* Validation Notice Dialog */}
-      <Dialog
+      <ConfirmDialog
         open={!!validationWarning}
         onOpenChange={() => setValidationWarning(null)}
-        className="p-0 max-w-sm w-full border-2 border-[#800000] dark:border-rose-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 shadow-2xl overflow-hidden"
-      >
-        <div className="bg-[#800000] dark:bg-rose-950 py-1.5 px-4 border-b border-[#4d0000] dark:border-rose-900 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-white">
-            <AlertCircle className="w-4 h-4 text-rose-300" />
-            <span className="font-bold text-sm tracking-wide">Notice</span>
-          </div>
-        </div>
-
-        <div className="p-5 text-center space-y-4">
-          <p className="text-xs font-bold text-neutral-900 dark:text-neutral-100">{validationWarning}</p>
-          <div className="flex justify-center pt-2">
-            <button
-              type="button"
-              onClick={() => setValidationWarning(null)}
-              className="h-7 px-8 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold text-xs shadow-sm transition-colors"
-            >
-              OK
-            </button>
-          </div>
-        </div>
-      </Dialog>
+        title="Notice"
+        description={validationWarning}
+        onConfirm={() => setValidationWarning(null)}
+        confirmText="OK"
+        cancelText=""
+        variant="danger"
+      />
 
       {/* Memo Preview Modal */}
       {savedSaleForMemo && (

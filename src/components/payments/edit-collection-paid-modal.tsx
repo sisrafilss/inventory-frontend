@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'sonner';
 
 import React, { useState, useEffect } from 'react';
 import { Dialog } from '@/components/ui/dialog';
@@ -243,7 +244,7 @@ export function EditCollectionPaidModal({
           referenceNote,
           date,
         });
-        alert('Transaction updated and ledger balances recalculated successfully!');
+        toast.success('Transaction updated and ledger balances recalculated successfully!');
       } else {
         // Create new collection or payment
         if (reportType === 'SALES') {
@@ -254,7 +255,7 @@ export function EditCollectionPaidModal({
             referenceNote,
             date,
           });
-          alert('Customer collection recorded and customer due reduced successfully!');
+          toast.success('Customer collection recorded and customer due reduced successfully!');
         } else {
           await api.post('/payments/pay', {
             supplierId: partyId,
@@ -263,7 +264,7 @@ export function EditCollectionPaidModal({
             referenceNote,
             date,
           });
-          alert('Supplier payout recorded and supplier payable reduced successfully!');
+          toast.success('Supplier payout recorded and supplier payable reduced successfully!');
         }
       }
 
@@ -289,7 +290,7 @@ export function EditCollectionPaidModal({
     setIsSubmitting(true);
     try {
       await api.delete(`/payments/${editingPaymentId}`);
-      alert('Transaction deleted and balance successfully restored!');
+      toast.success('Transaction deleted and balance successfully restored!');
       onSuccess?.();
       onOpenChange(false);
     } catch (err: any) {

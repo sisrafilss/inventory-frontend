@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'sonner';
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '@/lib/api/client';
@@ -170,15 +171,15 @@ export default function WarehousesPage() {
   const handleTransferStock = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!transferForm.sourceWarehouseId || !transferForm.targetWarehouseId) {
-      alert('Please select both source and destination warehouses.');
+      toast.warning('Please select both source and destination warehouses.');
       return;
     }
     if (transferForm.sourceWarehouseId === transferForm.targetWarehouseId) {
-      alert('Source and destination warehouses cannot be the same.');
+      toast.warning('Source and destination warehouses cannot be the same.');
       return;
     }
     if (transferForm.quantity <= 0) {
-      alert('Transfer quantity must be greater than 0.');
+      toast.warning('Transfer quantity must be greater than 0.');
       return;
     }
     setIsTransferring(true);
@@ -194,7 +195,7 @@ export default function WarehousesPage() {
       setTransferModalOpen(false);
       await fetchWarehouses();
     } catch (err: any) {
-      alert(err.message || 'Failed to transfer stock.');
+      toast.error(err.message || 'Failed to transfer stock.');
     } finally {
       setIsTransferring(false);
     }

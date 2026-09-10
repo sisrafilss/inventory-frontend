@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'sonner';
 
 import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api/client';
@@ -67,7 +68,7 @@ export default function ExpensesPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title.trim() || form.amount <= 0) {
-      alert('Please provide a valid title and amount greater than 0.');
+      toast.warning('Please provide a valid title and amount greater than 0.');
       return;
     }
     setIsSaving(true);
@@ -87,7 +88,7 @@ export default function ExpensesPage() {
       });
       await fetchExpenses();
     } catch (err: any) {
-      alert(err.message || 'Failed to record expense.');
+      toast.error(err.message || 'Failed to record expense.');
     } finally {
       setIsSaving(false);
     }
@@ -99,7 +100,7 @@ export default function ExpensesPage() {
       await api.delete(`/expenses/${exp.id}`);
       await fetchExpenses();
     } catch (err: any) {
-      alert(err.message || 'Failed to delete expense.');
+      toast.error(err.message || 'Failed to delete expense.');
     }
   };
 

@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Package, Plus, Search, Edit2, AlertCircle, ChevronLeft, ChevronRight, Building2, HelpCircle, X, Loader2, Check, ShoppingCart, Tag } from 'lucide-react';
 import { PurchaseModal } from '@/components/purchases/purchase-modal';
 import { SaleRateModal } from '@/components/products/sale-rate-modal';
@@ -1047,61 +1048,18 @@ export default function ProductsPage() {
       </Dialog>
 
       {/* Save Confirmation Dialog (Exact workflow from video) */}
-      <Dialog
+      <ConfirmDialog
         open={showConfirmSave}
-        onOpenChange={(open) => {
-          if (!isSaving) setShowConfirmSave(open);
-        }}
-      >
-        <div className="p-0 max-w-sm w-full border-2 border-[#800000] dark:border-rose-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 shadow-2xl overflow-hidden relative mx-auto mt-20">
-          <div className="bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-white">
-              {isSaving ? (
-                <Loader2 className="w-4 h-4 animate-spin text-lime-300" />
-              ) : (
-                <HelpCircle className="w-4 h-4 text-lime-300" />
-              )}
-              <span className="font-bold text-sm tracking-wide">
-                {isSaving ? 'Saving Product...' : 'Confirm Save'}
-              </span>
-            </div>
-          </div>
-
-          <div className="p-5 text-center space-y-4">
-            <p className="text-xs font-bold text-neutral-900 dark:text-neutral-100">
-              {isSaving
-                ? 'Please wait, saving information to database...'
-                : 'Do you want to save the information?'}
-            </p>
-
-            <div className="flex justify-center gap-2 pt-2">
-              <button
-                type="button"
-                disabled={isSaving}
-                onClick={() => setShowConfirmSave(false)}
-                className="h-7 px-4 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold text-xs shadow-sm disabled:opacity-50 transition-colors"
-              >
-                No
-              </button>
-              <button
-                type="button"
-                onClick={executeSaveProduct}
-                disabled={isSaving}
-                className="h-7 px-6 bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-800 font-bold text-xs shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 transition-colors"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Yes'
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      </Dialog>
+        onOpenChange={(open) => { if (!isSaving) setShowConfirmSave(open); }}
+        title="Confirm Save"
+        description="Do you want to save the information?"
+        onConfirm={executeSaveProduct}
+        confirmText="Yes"
+        cancelText="No"
+        variant="success"
+        isLoading={isSaving}
+        loadingText="Saving..."
+      />
 
       {/* Purchase Dialog */}
       <PurchaseModal

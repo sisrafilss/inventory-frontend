@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'sonner';
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/context/auth-context';
@@ -105,7 +106,7 @@ export default function UsersPage() {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (createForm.role === Role.MANAGER && !createForm.warehouseId) {
-      alert('Please assign a warehouse for the Manager.');
+      toast.warning('Please assign a warehouse for the Manager.');
       return;
     }
     setIsCreating(true);
@@ -125,7 +126,7 @@ export default function UsersPage() {
       });
       await fetchUsers();
     } catch (err: any) {
-      alert(err.message || 'Failed to create user.');
+      toast.error(err.message || 'Failed to create user.');
     } finally {
       setIsCreating(false);
     }
@@ -146,7 +147,7 @@ export default function UsersPage() {
     e.preventDefault();
     if (!editingUser) return;
     if (editForm.role === Role.MANAGER && !editForm.warehouseId) {
-      alert('Please assign a warehouse for the Manager.');
+      toast.warning('Please assign a warehouse for the Manager.');
       return;
     }
     setIsEditing(true);
@@ -161,7 +162,7 @@ export default function UsersPage() {
       setEditingUser(null);
       await fetchUsers();
     } catch (err: any) {
-      alert(err.message || 'Failed to update user.');
+      toast.error(err.message || 'Failed to update user.');
     } finally {
       setIsEditing(false);
     }
@@ -175,7 +176,7 @@ export default function UsersPage() {
       await api.patch(`/users/${user.id}/status`, { status: nextStatus });
       await fetchUsers();
     } catch (err: any) {
-      alert(err.message || 'Failed to update user status.');
+      toast.error(err.message || 'Failed to update user status.');
     }
   };
 
@@ -184,11 +185,11 @@ export default function UsersPage() {
     setIsResetting(true);
     try {
       await api.post(`/users/${selectedUserForReset.id}/reset-password`, { newPassword });
-      alert(t('users.resetNotice'));
+      toast.info(t('users.resetNotice'));
       setSelectedUserForReset(null);
       setNewPassword('');
     } catch (err: any) {
-      alert(err.message || 'Failed to reset password.');
+      toast.error(err.message || 'Failed to reset password.');
     } finally {
       setIsResetting(false);
     }

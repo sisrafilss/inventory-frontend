@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'sonner';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog } from '@/components/ui/dialog';
@@ -363,7 +364,7 @@ export function SaleBarcodeModal({
   // Complete & Save Sale
   const handleSaveSale = async () => {
     if (items.length === 0) {
-      alert('Please scan or add at least one product before saving.');
+      toast.warning('Please scan or add at least one product before saving.');
       return;
     }
 
@@ -420,11 +421,11 @@ export function SaleBarcodeModal({
         setSavedSaleData(memoFormatted);
         setMemoModalOpen(true);
       } else {
-        alert(`Sale completed successfully! Invoice: ${created?.referenceNumber || 'Recorded'}`);
+        toast.success(`Sale completed successfully! Invoice: ${created?.referenceNumber || 'Recorded'}`);
         onOpenChange(false);
       }
     } catch (err: any) {
-      alert(err?.response?.data?.message || err.message || 'Failed to complete sale.');
+      toast.error(err?.response?.data?.message || err.message || 'Failed to complete sale.');
     } finally {
       setIsSaving(false);
     }

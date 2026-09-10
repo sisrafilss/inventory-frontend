@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'sonner';
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/context/auth-context';
@@ -158,7 +159,7 @@ export default function InventoryPage() {
         await fetchHistory();
       }
     } catch (err: any) {
-      alert(err.message || 'Failed to adjust stock.');
+      toast.error(err.message || 'Failed to adjust stock.');
     } finally {
       setIsAdjusting(false);
     }

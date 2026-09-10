@@ -1,7 +1,9 @@
 'use client';
+import { toast } from 'sonner';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Button } from '@/components/ui/button';
 import {
   X,
@@ -221,9 +223,9 @@ export function SaleRateModal({
 
       setShowConfirmSave(false);
       if (onSaveSuccess) onSaveSuccess();
-      alert(`Sale rate for "${updated.name}" updated successfully to ${rate.toFixed(2)}!`);
+      toast.success(`Sale rate for "${updated.name}" updated successfully to ${rate.toFixed(2)}!`);
     } catch (err: any) {
-      alert(err?.response?.data?.message || err.message || 'Failed to update sale rate.');
+      toast.error(err?.response?.data?.message || err.message || 'Failed to update sale rate.');
     } finally {
       setIsSaving(false);
     }
@@ -259,9 +261,9 @@ export function SaleRateModal({
 
       setShowConfirmDelete(false);
       if (onSaveSuccess) onSaveSuccess();
-      alert(`Sale rate for "${updated.name}" reset to 0.00.`);
+      toast.success(`Sale rate for "${updated.name}" reset to 0.00.`);
     } catch (err: any) {
-      alert(err?.response?.data?.message || err.message || 'Failed to reset sale rate.');
+      toast.error(err?.response?.data?.message || err.message || 'Failed to reset sale rate.');
     } finally {
       setIsSaving(false);
     }
@@ -567,135 +569,50 @@ export function SaleRateModal({
       </Dialog>
 
       {/* Save Confirmation Dialog */}
-      <Dialog
+      <ConfirmDialog
         open={showConfirmSave}
         onOpenChange={(isOpen) => !isSaving && setShowConfirmSave(isOpen)}
-        closeOnBackdropClick={!isSaving}
-        className="p-0 max-w-sm w-full border-2 border-[#800000] dark:border-rose-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 shadow-2xl overflow-hidden"
-      >
-        <div className="bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-white">
-            <HelpCircle className="w-4 h-4 text-lime-300" />
-            <span className="font-bold text-sm tracking-wide">Confirm Save</span>
-          </div>
-        </div>
-
-        <div className="p-4 space-y-4 text-neutral-900 dark:text-neutral-100">
-          <p className="text-xs font-bold">
-            Confirm updating the sale rate for this product in the catalog.
-          </p>
-
-          <div className="bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 p-2 text-xs font-mono space-y-1">
-            <div className="flex justify-between">
-              <span className="text-neutral-600 dark:text-neutral-400">Item Code:</span>
-              <span className="font-bold text-neutral-900 dark:text-neutral-100">{selectedProduct?.sku}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-neutral-600 dark:text-neutral-400">Product Name:</span>
-              <span className="font-bold text-neutral-900 dark:text-neutral-100 truncate max-w-[150px] text-right">{selectedProduct?.name}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-neutral-600 dark:text-neutral-400">Purchase Rate:</span>
-              <span className="font-bold text-neutral-900 dark:text-neutral-100">৳{Number(purchaseRate || 0).toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between border-t border-neutral-300 dark:border-slate-600 pt-1 mt-1">
-              <span className="text-neutral-600 dark:text-neutral-400">New Sale Rate:</span>
-              <span className="font-bold text-emerald-700 dark:text-emerald-400 text-sm">৳{Number(saleRate || 0).toFixed(2)}</span>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              disabled={isSaving}
-              onClick={() => setShowConfirmSave(false)}
-              className="h-7 px-4 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold text-xs shadow-sm disabled:opacity-50 transition-colors"
-            >
-              No
-            </button>
-            <button
-              type="button"
-              onClick={handleExecuteSave}
-              disabled={isSaving}
-              className="h-7 px-6 bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-800 font-bold text-xs shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 transition-colors"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Yes'
-              )}
-            </button>
-          </div>
-        </div>
-      </Dialog>
+        title="Confirm Save"
+        description="Confirm updating the sale rate for this product in the catalog."
+        onConfirm={handleExecuteSave}
+        confirmText="Yes"
+        cancelText="No"
+        variant="success"
+        isLoading={isSaving}
+        loadingText="Saving..."
+        details={[
+          { label: 'Item Code:', value: selectedProduct?.sku || '' },
+          { label: 'Product Name:', value: selectedProduct?.name || '' },
+          { label: 'Purchase Rate:', value: `৳${Number(purchaseRate || 0).toFixed(2)}` },
+          { label: 'New Sale Rate:', value: `৳${Number(saleRate || 0).toFixed(2)}`, color: 'text-emerald-700 dark:text-emerald-400' },
+        ]}
+      />
 
       {/* Delete / Reset Confirmation Dialog */}
-      <Dialog
+      <ConfirmDialog
         open={showConfirmDelete}
         onOpenChange={(isOpen) => !isSaving && setShowConfirmDelete(isOpen)}
-        closeOnBackdropClick={!isSaving}
-        className="p-0 max-w-sm w-full border-2 border-[#800000] dark:border-rose-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 shadow-2xl overflow-hidden"
-      >
-        <div className="bg-[#800000] dark:bg-rose-950 py-1.5 px-4 border-b border-[#4d0000] dark:border-rose-900 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-white">
-            <AlertCircle className="w-4 h-4 text-rose-300" />
-            <span className="font-bold text-sm tracking-wide">Reset Sale Rate?</span>
-          </div>
-        </div>
-
-        <div className="p-5 text-center space-y-4">
-          <p className="text-xs font-bold text-neutral-900 dark:text-neutral-100">
-            Are you sure you want to reset the sale rate for "{selectedProduct?.name}" to 0.00?
-          </p>
-
-          <div className="flex justify-center gap-2 pt-2">
-            <button
-              type="button"
-              disabled={isSaving}
-              onClick={() => setShowConfirmDelete(false)}
-              className="h-7 px-4 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold text-xs shadow-sm disabled:opacity-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleExecuteDelete}
-              disabled={isSaving}
-              className="h-7 px-6 bg-red-600 hover:bg-red-700 text-white border border-red-800 font-bold text-xs shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 transition-colors"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  Resetting...
-                </>
-              ) : (
-                'Yes, Reset'
-              )}
-            </button>
-          </div>
-        </div>
-      </Dialog>
+        title="Reset Sale Rate?"
+        description={`Are you sure you want to reset the sale rate for "${selectedProduct?.name}" to 0.00?`}
+        onConfirm={handleExecuteDelete}
+        confirmText="Yes, Reset"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isSaving}
+        loadingText="Resetting..."
+      />
 
       {/* Validation Warning Dialog */}
-      <Dialog
+      <ConfirmDialog
         open={!!validationWarning}
         onOpenChange={() => setValidationWarning(null)}
-        className="max-w-sm p-5 bg-white dark:bg-neutral-900 border border-border shadow-2xl rounded-lg"
-      >
-        <div className="text-center space-y-3">
-          <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />
-          <h3 className="text-sm font-bold text-foreground">Notice</h3>
-          <p className="text-xs text-muted-foreground">{validationWarning}</p>
-          <div className="pt-2 flex justify-center">
-            <Button size="sm" onClick={() => setValidationWarning(null)} className="px-6">
-              OK
-            </Button>
-          </div>
-        </div>
-      </Dialog>
+        title="Notice"
+        description={validationWarning}
+        onConfirm={() => setValidationWarning(null)}
+        confirmText="OK"
+        cancelText=""
+        variant="danger"
+      />
     </>
   );
 }
