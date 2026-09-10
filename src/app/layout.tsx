@@ -3,6 +3,7 @@ import './globals.css';
 import { AuthProvider } from '@/lib/context/auth-context';
 import { LanguageProvider } from '@/lib/context/language-context';
 import { ThemeProvider } from '@/lib/context/theme-context';
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: 'Inventory Management System',
@@ -39,6 +40,7 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthProvider>
             <LanguageProvider>{children}</LanguageProvider>
+<Toaster position="bottom-right" richColors closeButton />
           </AuthProvider>
         </ThemeProvider>
       </body>

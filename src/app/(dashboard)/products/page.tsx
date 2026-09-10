@@ -1,4 +1,5 @@
 'use client';
+import { toast } from "sonner";
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/context/auth-context';
@@ -386,11 +387,11 @@ export default function ProductsPage() {
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.sku.trim() || !form.name.trim()) {
-      alert('Item Code and Item Name are required.');
+      toast.error('Item Code and Item Name are required.');
       return;
     }
     if (codeExistsWarning) {
-      alert(`Cannot save: ${codeExistsWarning}. Please specify a unique Item Code.`);
+      toast.error(`Cannot save: ${codeExistsWarning}. Please specify a unique Item Code.`);
       return;
     }
     setShowConfirmSave(true);
@@ -438,8 +439,9 @@ export default function ProductsPage() {
       setShowConfirmSave(false);
       await fetchInitialModalProducts(savedProduct);
       fetchProducts();
+      toast.success('Product saved successfully to catalog!');
     } catch (err: any) {
-      alert(err.message || 'Failed to save product.');
+      toast.error(err.message || 'Failed to save product.');
     } finally {
       setIsSaving(false);
     }
@@ -447,7 +449,7 @@ export default function ProductsPage() {
 
   const handleDeleteProduct = async () => {
     if (!editingProduct) {
-      alert('Please select a product from the list below to delete.');
+      toast.error('Please select a product from the list below to delete.');
       return;
     }
     if (!confirm(`Are you sure you want to delete product "${editingProduct.name}" (${editingProduct.sku})?`)) {
@@ -459,8 +461,9 @@ export default function ProductsPage() {
       setEditingProduct(null);
       handleOpenCreate();
       await fetchProducts();
+      toast.success('Product deleted successfully.');
     } catch (err: any) {
-      alert(err.message || 'Failed to delete product.');
+      toast.error(err.message || 'Failed to delete product.');
     } finally {
       setIsSaving(false);
     }
@@ -1050,7 +1053,7 @@ export default function ProductsPage() {
           if (!isSaving) setShowConfirmSave(open);
         }}
       >
-        <DialogContent className="p-0 max-w-sm w-full border-2 border-[#800000] dark:border-rose-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 shadow-2xl overflow-hidden [&>button]:hidden">
+        <div className="p-0 max-w-sm w-full border-2 border-[#800000] dark:border-rose-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 shadow-2xl overflow-hidden relative mx-auto mt-20">
           <div className="bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-between">
             <div className="flex items-center gap-2 text-white">
               {isSaving ? (
@@ -1097,7 +1100,7 @@ export default function ProductsPage() {
               </button>
             </div>
           </div>
-        </DialogContent>
+        </div>
       </Dialog>
 
       {/* Purchase Dialog */}

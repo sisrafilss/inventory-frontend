@@ -1,4 +1,5 @@
 'use client';
+import { toast } from "sonner";
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog } from '@/components/ui/dialog';
@@ -640,10 +641,11 @@ export function PurchaseModal({
       setShowConfirmSave(false);
       handleRefresh();
       if (onSaveSuccess) onSaveSuccess();
-      alert('Purchase invoice saved successfully to database!');
+      toast.success('Purchase invoice saved successfully to database!');
       onOpenChange(false);
     } catch (err: any) {
-      alert(err?.response?.data?.message || err.message || 'Failed to save purchase invoice.');
+      console.error(err);
+      toast.error(err?.response?.data?.message || err.message || 'Failed to save purchase invoice.');
     } finally {
       setIsSaving(false);
     }
