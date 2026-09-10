@@ -87,9 +87,12 @@ export default function ProductsPage() {
     }
   };
 
+  const [loadingMore, setLoadingMore] = useState(false);
+
   const fetchProducts = async () => {
     try {
-      setLoading(true);
+      if (page === 1) setLoading(true);
+      else setLoadingMore(true);
       setError(null);
       const res = await api.get<Product[]>('/products', {
         page,
@@ -98,7 +101,11 @@ export default function ProductsPage() {
         companyId: companyFilter || undefined,
         stockStatus: stockFilter !== 'ALL' ? stockFilter : undefined,
       });
-      setProducts(res.data);
+      if (page === 1) {
+        setProducts(res.data);
+      } else {
+        setProducts(prev => [...prev, ...res.data]);
+      }
       if (res.meta) {
         setMeta(res.meta);
       }
@@ -108,6 +115,7 @@ export default function ProductsPage() {
       return [];
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -466,6 +474,13 @@ export default function ProductsPage() {
     }
   };
 
+  const handleTableScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 50 && !loading && !loadingMore && page < (meta.totalPages || 1)) {
+      setPage((p) => p + 1);
+    }
+  };
+
   const canManage = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
   return (
@@ -592,14 +607,14 @@ export default function ProductsPage() {
 
           {/* Desktop Spreadsheet Data Grid */}
           <div className="flex-1 min-h-[300px] flex flex-col border border-neutral-400 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shadow-inner">
-            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto flex flex-col">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto flex flex-col" onScroll={handleTableScroll}>
               <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
                 <thead className="sticky top-0 bg-[#eaf1f8] dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border-b border-neutral-400 dark:border-slate-700 font-bold select-none text-xs z-10">
                   <tr>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-10 text-center">SN</th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28">Product Code</th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[200px]">Item Name</th>
-                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32">Category</th>
+                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32">Company</th>
                     {canManage && <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28 text-right">Purchase Rate</th>}
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28 text-right">Selling Price</th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28 text-center">Available Stock</th>
@@ -608,7 +623,7 @@ export default function ProductsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
-                  {loading ? (
+                  {loading && page === 1 ? (
                     <tr>
                       <td colSpan={canManage ? 9 : 7} className="py-16 text-center text-neutral-500 font-medium">
                         <div className="flex items-center justify-center gap-2">
@@ -646,129 +661,98 @@ export default function ProductsPage() {
                       </td>
                     </tr>
                   ) : (
-                    products.map((p, idx) => (
-                      <tr
-                        key={p.id}
-                        className={`transition-colors cursor-pointer ${
-                          idx % 2 === 0
-                            ? 'bg-white dark:bg-slate-900 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80'
-                            : 'bg-[#f4f8fc] dark:bg-slate-900/50 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80'
-                        }`}
-                        onClick={() => setViewProduct(p)}
-                        title="Click to view details"
-                      >
-                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono text-neutral-500">{(page - 1) * limit + idx + 1}</td>
-                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-mono font-bold text-neutral-800 dark:text-neutral-100">{p.sku}</td>
-                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-semibold text-neutral-900 dark:text-neutral-100">
-                          {p.name}
-                          {p.description && p.description !== 'None' && (
-                            <div className="text-[10px] text-neutral-500 font-normal truncate max-w-xs">{p.description}</div>
-                          )}
-                        </td>
-                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-neutral-600 dark:text-neutral-400">{p.category?.name || '—'}</td>
-                        {canManage && (
-                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-right font-mono text-neutral-600 dark:text-neutral-400">
-                            {p.costPrice !== undefined ? `৳ ${Number(p.costPrice).toFixed(2)}` : '—'}
+                    <>
+                      {products.map((p, idx) => (
+                        <tr
+                          key={p.id}
+                          className={`transition-colors cursor-pointer ${
+                            idx % 2 === 0
+                              ? 'bg-white dark:bg-slate-900 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80'
+                              : 'bg-[#f4f8fc] dark:bg-slate-900/50 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80'
+                          }`}
+                          onClick={() => setViewProduct(p)}
+                          title="Click to view details"
+                        >
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono text-neutral-500">{idx + 1}</td>
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-mono font-bold text-neutral-800 dark:text-neutral-100">{p.sku}</td>
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-semibold text-neutral-900 dark:text-neutral-100">
+                            {p.name}
+                            {p.description && p.description !== 'None' && (
+                              <div className="text-[10px] text-neutral-500 font-normal truncate max-w-xs">{p.description}</div>
+                            )}
                           </td>
-                        )}
-                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-right font-mono font-bold text-neutral-900 dark:text-neutral-100">
-                          ৳ {Number(p.sellingPrice).toFixed(2)}
-                        </td>
-                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
-                          <span className={`font-bold text-sm ${
-                            p.quantity <= 0 ? 'text-rose-600' : p.quantity <= p.reorderLevel ? 'text-amber-600' : 'text-neutral-900 dark:text-neutral-100'
-                          }`}>
-                            {p.quantity}
-                          </span>
-                          <span className="text-[10px] text-neutral-400 ml-1">{p.unit}</span>
-                          {p.warehouseStocks && p.warehouseStocks.length > 0 && (
-                            <div className="flex flex-wrap gap-1 justify-center mt-0.5">
-                              {p.warehouseStocks.filter((ws) => ws.quantity > 0).map((ws) => (
-                                <span
-                                  key={ws.id}
-                                  className="text-[9px] px-1 py-0.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xs"
-                                  title={`${ws.warehouse?.name || 'Warehouse'}: ${ws.quantity} ${p.unit}`}
-                                >
-                                  {ws.warehouse?.name?.split(' ')[0] || 'WH'}: <strong>{ws.quantity}</strong>
-                                </span>
-                              ))}
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-neutral-600 dark:text-neutral-400">{p.company?.name || companies.find((c) => c.id === p.companyId)?.name || '—'}</td>
+                          {canManage && (
+                            <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-right font-mono text-neutral-600 dark:text-neutral-400">
+                              {p.costPrice !== undefined ? `৳ ${Number(p.costPrice).toFixed(2)}` : '—'}
+                            </td>
+                          )}
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-right font-mono font-bold text-neutral-900 dark:text-neutral-100">
+                            ৳ {Number(p.sellingPrice).toFixed(2)}
+                          </td>
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
+                            <span className={`font-bold text-sm ${
+                              p.quantity <= 0 ? 'text-rose-600' : p.quantity <= p.reorderLevel ? 'text-amber-600' : 'text-neutral-900 dark:text-neutral-100'
+                            }`}>
+                              {p.quantity}
+                            </span>
+                            <span className="text-[10px] text-neutral-400 ml-1">{p.unit}</span>
+                            {p.warehouseStocks && p.warehouseStocks.length > 0 && (
+                              <div className="flex flex-wrap gap-1 justify-center mt-0.5">
+                                {p.warehouseStocks.filter((ws) => ws.quantity > 0).map((ws) => (
+                                  <span
+                                    key={ws.id}
+                                    className="text-[9px] px-1 py-0.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xs"
+                                    title={`${ws.warehouse?.name || 'Warehouse'}: ${ws.quantity} ${p.unit}`}
+                                  >
+                                    {ws.warehouse?.name?.split(' ')[0] || 'WH'}: <strong>{ws.quantity}</strong>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
+                            <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-bold uppercase border ${
+                              p.stockStatus === 'IN_STOCK'
+                                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800'
+                                : p.stockStatus === 'LOW_STOCK'
+                                ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800'
+                                : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-800'
+                            }`}>
+                              {p.stockStatus === 'IN_STOCK' ? 'IN STOCK' : p.stockStatus === 'LOW_STOCK' ? 'LOW STOCK' : 'OUT OF STOCK'}
+                            </span>
+                          </td>
+                          {canManage && (
+                            <td className="px-3 py-1.5 text-center">
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); handleOpenEdit(p); }}
+                                className="h-6 px-2 bg-white dark:bg-slate-800 text-emerald-800 dark:text-emerald-300 border border-emerald-600 hover:bg-emerald-50 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer mx-auto"
+                              >
+                                <Edit2 className="w-3 h-3" />
+                                <span>Edit</span>
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                      {loadingMore && (
+                        <tr>
+                          <td colSpan={canManage ? 9 : 7} className="py-6 text-center text-neutral-500 font-medium">
+                            <div className="flex items-center justify-center gap-2">
+                              <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
+                              <span>Loading more products...</span>
                             </div>
-                          )}
-                        </td>
-                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
-                          <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-bold uppercase border ${
-                            p.stockStatus === 'IN_STOCK'
-                              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800'
-                              : p.stockStatus === 'LOW_STOCK'
-                              ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800'
-                              : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-800'
-                          }`}>
-                            {p.stockStatus === 'IN_STOCK' ? 'IN STOCK' : p.stockStatus === 'LOW_STOCK' ? 'LOW STOCK' : 'OUT OF STOCK'}
-                          </span>
-                        </td>
-                        {canManage && (
-                          <td className="px-3 py-1.5 text-center">
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); handleOpenEdit(p); }}
-                              className="h-6 px-2 bg-white dark:bg-slate-800 text-emerald-800 dark:text-emerald-300 border border-emerald-600 hover:bg-emerald-50 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer mx-auto"
-                            >
-                              <Edit2 className="w-3 h-3" />
-                              <span>Edit</span>
-                            </button>
                           </td>
-                        )}
-                      </tr>
-                    ))
+                        </tr>
+                      )}
+                    </>
                   )}
                 </tbody>
               </table>
             </div>
 
-            {/* Pagination Controls */}
-            {!loading && products.length > 0 && (
-              <div className="flex items-center justify-between gap-3 px-3 py-2 border-t border-neutral-300 dark:border-slate-700 bg-[#eaf1f8] dark:bg-slate-800 text-xs shrink-0">
-                <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
-                  <span>
-                    Showing <strong className="text-neutral-900 dark:text-neutral-100">{(page - 1) * limit + 1}</strong> to <strong className="text-neutral-900 dark:text-neutral-100">{Math.min(page * limit, meta.total)}</strong> of <strong className="text-neutral-900 dark:text-neutral-100">{meta.total}</strong>
-                  </span>
-                  <span className="hidden sm:inline text-neutral-400">•</span>
-                  <div className="hidden sm:flex items-center gap-1.5">
-                    <span>Per page:</span>
-                    <select
-                      value={limit}
-                      onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
-                      className="h-6 px-1.5 text-xs border border-neutral-400 dark:border-slate-600 bg-white dark:bg-slate-900 text-neutral-900 dark:text-neutral-100 rounded-xs focus:outline-none focus:ring-1 focus:ring-[#006400]"
-                    >
-                      <option value={20}>20</option>
-                      <option value={50}>50</option>
-                      <option value={100}>100</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-neutral-600 dark:text-neutral-400">
-                    Page <strong className="text-neutral-900 dark:text-neutral-100">{page}</strong> / <strong className="text-neutral-900 dark:text-neutral-100">{meta.totalPages || 1}</strong>
-                  </span>
-                  <button
-                    type="button"
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    className="h-6 w-6 flex items-center justify-center bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 rounded-xs hover:bg-neutral-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    disabled={page >= (meta.totalPages || 1)}
-                    onClick={() => setPage((p) => Math.min(meta.totalPages || 1, p + 1))}
-                    className="h-6 w-6 flex items-center justify-center bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 rounded-xs hover:bg-neutral-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            )}
+            {/* Pagination Controls Removed */}
           </div>
         </div>
       </div>
