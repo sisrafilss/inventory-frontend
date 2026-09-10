@@ -137,7 +137,7 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
     <aside className="w-56 bg-[#13281b] dark:bg-slate-950 text-slate-200 border-r border-[#0d1d14] flex flex-col h-full select-none shadow-lg">
       {/* Brand Header */}
       <div className="h-12 flex items-center justify-between px-3 bg-[#004d00] dark:bg-emerald-950 border-b border-[#003800] dark:border-emerald-900 shrink-0">
-        <AppLogo size="sm" />
+        <AppLogo size="sm" variant="dark" />
 
         {onCloseMobile && (
           <button

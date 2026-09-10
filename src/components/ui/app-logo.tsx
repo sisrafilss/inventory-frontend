@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 interface AppLogoProps {
   showText?: boolean;
   size?: 'sm' | 'md' | 'lg';
+  variant?: 'auto' | 'light' | 'dark';
   className?: string;
   textClassName?: string;
 }
@@ -13,13 +14,51 @@ interface AppLogoProps {
 export function AppLogo({
   showText = true,
   size = 'md',
+  variant = 'auto',
   className,
   textClassName,
 }: AppLogoProps) {
   const iconDimensions = {
     sm: 'w-7 h-7',
     md: 'w-8 h-8',
-    lg: 'w-12 h-12',
+    lg: 'w-11 h-11',
+  };
+
+  const titleSizes = {
+    sm: 'text-sm',
+    md: 'text-base',
+    lg: 'text-xl',
+  };
+
+  const subtitleSizes = {
+    sm: 'text-[10px]',
+    md: 'text-[10.5px]',
+    lg: 'text-xs',
+  };
+
+  // Text color styles based on variant
+  const getProColor = () => {
+    if (variant === 'dark') return 'text-white';
+    if (variant === 'light') return 'text-neutral-900';
+    return 'text-neutral-900 dark:text-white';
+  };
+
+  const getStockColor = () => {
+    if (variant === 'dark') return 'text-emerald-300';
+    if (variant === 'light') return 'text-[#006400]';
+    return 'text-[#006400] dark:text-emerald-400';
+  };
+
+  const getErpBadgeStyle = () => {
+    if (variant === 'dark') return 'bg-emerald-400 text-neutral-950';
+    if (variant === 'light') return 'bg-[#006400] text-white';
+    return 'bg-[#006400] text-white dark:bg-emerald-400 dark:text-neutral-950';
+  };
+
+  const getSubtitleColor = () => {
+    if (variant === 'dark') return 'text-emerald-200/80';
+    if (variant === 'light') return 'text-neutral-500 font-semibold';
+    return 'text-neutral-500 dark:text-neutral-400 font-semibold';
   };
 
   return (
@@ -58,17 +97,17 @@ export function AppLogo({
       </div>
 
       {showText && (
-        <div className={cn('flex flex-col', textClassName)}>
+        <div className={cn('flex flex-col text-left', textClassName)}>
           <div className="flex items-center gap-1.5 leading-none">
-            <span className="font-extrabold tracking-tight text-sm font-sans">
-              <span className="text-white">Pro</span>
-              <span className="text-emerald-300">Stock</span>
+            <span className={cn('font-extrabold tracking-tight font-sans', titleSizes[size])}>
+              <span className={getProColor()}>Pro</span>
+              <span className={getStockColor()}>Stock</span>
             </span>
-            <span className="bg-emerald-400 text-neutral-950 font-black text-[9px] px-1 py-0.2 rounded-xs font-mono">
+            <span className={cn('font-black px-1.5 py-0.5 rounded-xs font-mono text-[9px]', getErpBadgeStyle())}>
               ERP
             </span>
           </div>
-          <span className="text-[10px] text-emerald-200/80 font-medium tracking-wide mt-0.5 font-mono">
+          <span className={cn('tracking-wide mt-1 font-mono', subtitleSizes[size], getSubtitleColor())}>
             Inventory System
           </span>
         </div>

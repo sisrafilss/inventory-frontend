@@ -125,7 +125,8 @@ export const translations = {
     },
     dashboard: {
       welcomeBack: "Welcome back",
-      overviewSubtitle: "Operational dashboard & active queues for inventory system",
+      overviewSubtitle:
+        "Operational dashboard & active queues for inventory system",
       quickNewSale: "Quick New Sale",
       recentActivity: "Recent Activity",
       todaySales: "Today's Sales",
@@ -681,7 +682,8 @@ export const translations = {
     },
     dashboard: {
       welcomeBack: "স্বাগতম",
-      overviewSubtitle: "ইনভেন্টরি সিস্টেমের অপারেশনাল ড্যাশবোর্ড ও সক্রিয় তথ্য",
+      overviewSubtitle:
+        "ইনভেন্টরি সিস্টেমের অপারেশনাল ড্যাশবোর্ড ও সক্রিয় তথ্য",
       quickNewSale: "দ্রুত নতুন বিক্রয়",
       recentActivity: "সাম্প্রতিক কার্যক্রম",
       todaySales: "আজকের বিক্রয়",
