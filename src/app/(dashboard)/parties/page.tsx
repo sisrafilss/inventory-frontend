@@ -69,7 +69,7 @@ export default function PartiesPage() {
   const [paymentTargetParty, setPaymentTargetParty] = useState<{
     id: string;
     name: string;
-    phone?: string;
+    phone?: string | null;
     due: number;
   } | null>(null);
 
@@ -130,13 +130,14 @@ export default function PartiesPage() {
       if (!search.trim()) return true;
 
       const q = search.toLowerCase().trim();
+      const matchCode = s.code ? s.code.toLowerCase().includes(q) : false;
       const matchName = s.name.toLowerCase().includes(q);
       const matchCompany = s.companyName ? s.companyName.toLowerCase().includes(q) : false;
-      const matchPhone = s.phone.toLowerCase().includes(q);
+      const matchPhone = s.phone ? s.phone.toLowerCase().includes(q) : false;
       const matchAddress = s.address ? s.address.toLowerCase().includes(q) : false;
       const matchId = s.id.toLowerCase().includes(q);
 
-      return matchName || matchCompany || matchPhone || matchAddress || matchId;
+      return matchCode || matchName || matchCompany || matchPhone || matchAddress || matchId;
     });
   }, [suppliers, statusFilter, search]);
 
@@ -149,12 +150,13 @@ export default function PartiesPage() {
       if (!search.trim()) return true;
 
       const q = search.toLowerCase().trim();
+      const matchCode = c.code ? c.code.toLowerCase().includes(q) : false;
       const matchName = c.name.toLowerCase().includes(q);
-      const matchPhone = c.phone.toLowerCase().includes(q);
+      const matchPhone = c.phone ? c.phone.toLowerCase().includes(q) : false;
       const matchAddress = c.address ? c.address.toLowerCase().includes(q) : false;
       const matchId = c.id.toLowerCase().includes(q);
 
-      return matchName || matchPhone || matchAddress || matchId;
+      return matchCode || matchName || matchPhone || matchAddress || matchId;
     });
   }, [customers, statusFilter, search]);
 
@@ -476,7 +478,7 @@ export default function PartiesPage() {
               <div className="relative flex-1 sm:w-72">
                 <input
                   type="text"
-                  placeholder={`Search ${activeTab === 'suppliers' ? 'suppliers' : 'customers'} by name, phone, address...`}
+                  placeholder={`Search ${activeTab === 'suppliers' ? 'suppliers' : 'customers'} by code, name, phone...`}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full pl-7 pr-2 py-1 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400"
@@ -641,17 +643,14 @@ export default function PartiesPage() {
                       <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-12 text-center">
                         SN
                       </th>
-                      <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[180px]">
-                        Supplier Name
-                      </th>
-                      <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[160px]">
-                        Company / Agency
-                      </th>
-                      <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32 font-mono">
-                        Phone & Contact
+                      <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center font-mono">
+                        Code
                       </th>
                       <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[200px]">
-                        Address
+                        Supplier Name
+                      </th>
+                      <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-36 font-mono">
+                        Phone & Contact
                       </th>
                       <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28 text-right font-mono">
                         Opening Due
@@ -662,9 +661,6 @@ export default function PartiesPage() {
                       <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-20 text-center">
                         Status
                       </th>
-                      <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center font-mono">
-                        System ID
-                      </th>
                       <th className="px-3 py-1.5 w-28 text-center">
                         Action
                       </th>
@@ -673,7 +669,7 @@ export default function PartiesPage() {
                   <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
                     {loading ? (
                       <tr>
-                        <td colSpan={10} className="py-16 text-center text-neutral-500 font-medium">
+                        <td colSpan={8} className="py-16 text-center text-neutral-500 font-medium">
                           <div className="flex items-center justify-center gap-2">
                             <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
                             <span>Loading suppliers from database...</span>
@@ -682,7 +678,7 @@ export default function PartiesPage() {
                       </tr>
                     ) : error ? (
                       <tr>
-                        <td colSpan={10} className="py-12 text-center text-rose-600 font-medium">
+                        <td colSpan={8} className="py-12 text-center text-rose-600 font-medium">
                           <div className="flex items-center justify-center gap-2">
                             <AlertCircle className="w-4 h-4" />
                             <span>{error}</span>
@@ -691,7 +687,7 @@ export default function PartiesPage() {
                       </tr>
                     ) : filteredSuppliers.length === 0 ? (
                       <tr>
-                        <td colSpan={10} className="py-16 text-center text-neutral-500 font-medium">
+                        <td colSpan={8} className="py-16 text-center text-neutral-500 font-medium">
                           <div className="flex flex-col items-center justify-center gap-2">
                             <Truck className="w-8 h-8 text-neutral-400" />
                             <span>No suppliers found matching your filter criteria.</span>
@@ -728,6 +724,25 @@ export default function PartiesPage() {
                               {idx + 1}
                             </td>
 
+                            {/* Code */}
+                            <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono font-bold">
+                              {s.code ? (
+                                <span
+                                  className={`px-1.5 py-0.5 rounded text-[11px] font-mono font-bold ${
+                                    isSelected
+                                      ? 'bg-blue-800 text-white'
+                                      : 'bg-neutral-100 dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-slate-700'
+                                  }`}
+                                >
+                                  #{s.code}
+                                </span>
+                              ) : (
+                                <span className={isSelected ? 'text-blue-200' : 'text-neutral-400 font-normal italic'}>
+                                  --
+                                </span>
+                              )}
+                            </td>
+
                             {/* Supplier Name */}
                             <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-semibold">
                               <div className="flex items-center gap-1.5">
@@ -740,26 +755,12 @@ export default function PartiesPage() {
                               </div>
                             </td>
 
-                            {/* Company / Agency */}
-                            <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5">
-                              <span className={isSelected ? 'text-blue-100' : 'text-neutral-700 dark:text-neutral-300'}>
-                                {s.companyName || '--'}
-                              </span>
-                            </td>
-
                             {/* Phone & Contact */}
                             <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-mono">
                               <div className="flex items-center gap-1">
                                 <Phone className={`w-3 h-3 shrink-0 ${isSelected ? 'text-blue-200' : 'text-neutral-400'}`} />
-                                <span>{s.phone}</span>
+                                <span>{s.phone || '--'}</span>
                               </div>
-                            </td>
-
-                            {/* Address */}
-                            <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 truncate max-w-xs">
-                              <span className={isSelected ? 'text-blue-100' : 'text-neutral-600 dark:text-neutral-400'}>
-                                {s.address || '--'}
-                              </span>
                             </td>
 
                             {/* Opening Due */}
@@ -798,13 +799,6 @@ export default function PartiesPage() {
                                 }`}
                               >
                                 {s.isActive ? 'Active' : 'Inactive'}
-                              </span>
-                            </td>
-
-                            {/* System ID */}
-                            <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono text-[11px]">
-                              <span className={isSelected ? 'text-blue-200' : 'text-neutral-500'}>
-                                {s.id.slice(0, 8).toUpperCase()}
                               </span>
                             </td>
 
@@ -868,14 +862,14 @@ export default function PartiesPage() {
                       <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-12 text-center">
                         SN
                       </th>
+                      <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center font-mono">
+                        Code
+                      </th>
                       <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[200px]">
                         Customer Name
                       </th>
                       <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-36 font-mono">
                         Phone Number
-                      </th>
-                      <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[240px]">
-                        Address / Location
                       </th>
                       <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28 text-right font-mono">
                         Opening Due
@@ -886,9 +880,6 @@ export default function PartiesPage() {
                       <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-20 text-center">
                         Status
                       </th>
-                      <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center font-mono">
-                        System ID
-                      </th>
                       <th className="px-3 py-1.5 w-28 text-center">
                         Action
                       </th>
@@ -897,7 +888,7 @@ export default function PartiesPage() {
                   <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
                     {loading ? (
                       <tr>
-                        <td colSpan={9} className="py-16 text-center text-neutral-500 font-medium">
+                        <td colSpan={8} className="py-16 text-center text-neutral-500 font-medium">
                           <div className="flex items-center justify-center gap-2">
                             <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
                             <span>Loading customers from database...</span>
@@ -906,7 +897,7 @@ export default function PartiesPage() {
                       </tr>
                     ) : error ? (
                       <tr>
-                        <td colSpan={9} className="py-12 text-center text-rose-600 font-medium">
+                        <td colSpan={8} className="py-12 text-center text-rose-600 font-medium">
                           <div className="flex items-center justify-center gap-2">
                             <AlertCircle className="w-4 h-4" />
                             <span>{error}</span>
@@ -915,7 +906,7 @@ export default function PartiesPage() {
                       </tr>
                     ) : filteredCustomers.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="py-16 text-center text-neutral-500 font-medium">
+                        <td colSpan={8} className="py-16 text-center text-neutral-500 font-medium">
                           <div className="flex flex-col items-center justify-center gap-2">
                             <Users className="w-8 h-8 text-neutral-400" />
                             <span>No customers found matching your filter criteria.</span>
@@ -952,6 +943,25 @@ export default function PartiesPage() {
                               {idx + 1}
                             </td>
 
+                            {/* Code */}
+                            <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono font-bold">
+                              {c.code ? (
+                                <span
+                                  className={`px-1.5 py-0.5 rounded text-[11px] font-mono font-bold ${
+                                    isSelected
+                                      ? 'bg-blue-800 text-white'
+                                      : 'bg-neutral-100 dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-slate-700'
+                                  }`}
+                                >
+                                  #{c.code}
+                                </span>
+                              ) : (
+                                <span className={isSelected ? 'text-blue-200' : 'text-neutral-400 font-normal italic'}>
+                                  --
+                                </span>
+                              )}
+                            </td>
+
                             {/* Customer Name */}
                             <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-semibold">
                               <div className="flex items-center gap-1.5">
@@ -968,15 +978,8 @@ export default function PartiesPage() {
                             <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-mono">
                               <div className="flex items-center gap-1">
                                 <Phone className={`w-3 h-3 shrink-0 ${isSelected ? 'text-blue-200' : 'text-neutral-400'}`} />
-                                <span>{c.phone}</span>
+                                <span>{c.phone || '--'}</span>
                               </div>
-                            </td>
-
-                            {/* Address */}
-                            <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 truncate max-w-xs">
-                              <span className={isSelected ? 'text-blue-100' : 'text-neutral-600 dark:text-neutral-400'}>
-                                {c.address || '--'}
-                              </span>
                             </td>
 
                             {/* Opening Due */}
@@ -1015,13 +1018,6 @@ export default function PartiesPage() {
                                 }`}
                               >
                                 {c.isActive ? 'Active' : 'Inactive'}
-                              </span>
-                            </td>
-
-                            {/* System ID */}
-                            <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono text-[11px]">
-                              <span className={isSelected ? 'text-blue-200' : 'text-neutral-500'}>
-                                {c.id.slice(0, 8).toUpperCase()}
                               </span>
                             </td>
 
@@ -1111,11 +1107,11 @@ export default function PartiesPage() {
             <div className="flex items-center gap-3 text-neutral-700 dark:text-neutral-300">
               {activeTab === 'suppliers' && selectedSupplier ? (
                 <span className="bg-[#006400] text-white px-2 py-0.5 rounded-xs font-bold">
-                  Selected: {selectedSupplier.name} [Due: ৳{Number(selectedSupplier.currentDue || 0).toLocaleString()}]
+                  Selected: {selectedSupplier.code ? `[#${selectedSupplier.code}] ` : ''}{selectedSupplier.name} [Due: ৳{Number(selectedSupplier.currentDue || 0).toLocaleString()}]
                 </span>
               ) : activeTab === 'customers' && selectedCustomer ? (
                 <span className="bg-[#006400] text-white px-2 py-0.5 rounded-xs font-bold">
-                  Selected: {selectedCustomer.name} [Due: ৳{Number(selectedCustomer.currentDue || 0).toLocaleString()}]
+                  Selected: {selectedCustomer.code ? `[#${selectedCustomer.code}] ` : ''}{selectedCustomer.name} [Due: ৳{Number(selectedCustomer.currentDue || 0).toLocaleString()}]
                 </span>
               ) : (
                 <span className="italic text-neutral-600 dark:text-neutral-400">

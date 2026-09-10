@@ -38,12 +38,18 @@ export function CustomerModal({
   const { user } = useAuth();
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
 
+  const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [openingDue, setOpeningDue] = useState<number>(0);
   const [isActive, setIsActive] = useState(true);
+
+  // Real-time code duplicate check states
+  const [isCheckingCode, setIsCheckingCode] = useState(false);
+  const [codeWarning, setCodeWarning] = useState<string | null>(null);
+  const [codeAvailable, setCodeAvailable] = useState(false);
 
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -54,6 +60,7 @@ export function CustomerModal({
   useEffect(() => {
     if (open) {
       if (customer) {
+        setCode(customer.code || '');
         setName(customer.name || '');
         setPhone(customer.phone || '');
         setEmail(customer.email || '');
@@ -64,15 +71,72 @@ export function CustomerModal({
         resetForm();
       }
       setStatusMessage(null);
+      setCodeWarning(null);
+      setCodeAvailable(false);
       setTimeout(() => nameInputRef.current?.focus(), 80);
     } else {
       setStatusMessage(null);
+      setCodeWarning(null);
+      setCodeAvailable(false);
       setIsSaving(false);
       setIsDeleting(false);
     }
   }, [open, customer]);
 
+  // Real-time debounced check when a customer code is typed
+  useEffect(() => {
+    const trimmed = code.trim();
+    if (!trimmed) {
+      setCodeWarning(null);
+      setCodeAvailable(false);
+      setIsCheckingCode(false);
+      return;
+    }
+
+    if (customer && customer.code?.trim().toLowerCase() === trimmed.toLowerCase()) {
+      setCodeWarning(null);
+      setCodeAvailable(false);
+      setIsCheckingCode(false);
+      return;
+    }
+
+    let active = true;
+    setIsCheckingCode(true);
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.get<{
+          exists: boolean;
+          customer: { id: string; name: string; code: string } | null;
+        }>(
+          `/parties/customers/check-code/${encodeURIComponent(trimmed)}`,
+          customer?.id ? { excludeId: customer.id } : undefined
+        );
+        if (!active) return;
+        if (res.data?.exists) {
+          setCodeWarning(
+            `Code "${trimmed}" already exists (used by "${res.data.customer?.name}").`
+          );
+          setCodeAvailable(false);
+        } else {
+          setCodeWarning(null);
+          setCodeAvailable(true);
+        }
+      } catch {
+        // Silently ignore network check failure
+      } finally {
+        if (active) setIsCheckingCode(false);
+      }
+    }, 250);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [code, customer]);
+
   const resetForm = () => {
+    setCode('');
     setName('');
     setPhone('');
     setEmail('');
@@ -80,6 +144,8 @@ export function CustomerModal({
     setOpeningDue(0);
     setIsActive(true);
     setStatusMessage(null);
+    setCodeWarning(null);
+    setCodeAvailable(false);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -93,10 +159,9 @@ export function CustomerModal({
       return;
     }
 
-    const trimmedPhone = phone.trim();
-    if (!trimmedPhone) {
+    if (codeWarning) {
       setStatusMessage({
-        text: 'Phone number is required.',
+        text: codeWarning,
         isError: true,
       });
       return;
@@ -106,8 +171,9 @@ export function CustomerModal({
     setStatusMessage(null);
 
     const payload = {
+      code: code.trim() ? code.trim() : undefined,
       name: trimmedName,
-      phone: trimmedPhone,
+      phone: phone.trim() || undefined,
       email: email.trim() || undefined,
       address: address.trim() || undefined,
       openingDue: Number(openingDue) || 0,
@@ -248,6 +314,47 @@ export function CustomerModal({
 
         {/* Inner Card: Structured Desktop Grid Rows */}
         <div className="space-y-2.5 bg-[#dbe7f3] dark:bg-slate-800/60 p-3.5 rounded border border-[#b2c8dc] dark:border-slate-700 shadow-inner">
+          {/* Customer Code (Manual Input with Real-time Duplicate Check) */}
+          <div className="grid grid-cols-12 items-start gap-2">
+            <label className="col-span-4 text-right font-medium text-neutral-800 dark:text-neutral-200 pt-1">
+              Customer Code
+            </label>
+            <div className="col-span-8 space-y-1">
+              <div className="relative flex items-center">
+                <input
+                  type="text"
+                  placeholder="e.g. CUST-101, RET-01"
+                  value={code}
+                  onChange={(e) => {
+                    setCode(e.target.value.toUpperCase());
+                    setCodeWarning(null);
+                    setCodeAvailable(false);
+                  }}
+                  disabled={isSaving}
+                  className={`w-full px-2 py-1 pr-6 bg-white dark:bg-slate-900 border rounded-xs text-xs font-mono font-bold focus:outline-none ${
+                    codeWarning
+                      ? 'border-rose-500 text-rose-700 dark:text-rose-400 focus:ring-1 focus:ring-rose-500'
+                      : codeAvailable
+                      ? 'border-emerald-500 text-emerald-800 dark:text-emerald-300 focus:ring-1 focus:ring-emerald-500'
+                      : 'border-neutral-400 dark:border-slate-600 text-neutral-900 dark:text-neutral-100 focus:ring-1 focus:ring-[#006400]'
+                  }`}
+                />
+                {isCheckingCode && (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-neutral-500 absolute right-2" />
+                )}
+                {codeAvailable && !isCheckingCode && (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 absolute right-2" />
+                )}
+              </div>
+              {codeWarning && (
+                <div className="text-[11px] text-rose-600 dark:text-rose-400 flex items-center gap-1 font-medium">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  <span>{codeWarning}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Customer Name */}
           <div className="grid grid-cols-12 items-center gap-2">
             <label className="col-span-4 text-right font-medium text-neutral-800 dark:text-neutral-200">
@@ -270,12 +377,11 @@ export function CustomerModal({
           {/* Phone Number */}
           <div className="grid grid-cols-12 items-center gap-2">
             <label className="col-span-4 text-right font-medium text-neutral-800 dark:text-neutral-200">
-              Phone Number <span className="text-rose-600 font-bold">*</span>
+              Phone Number <span className="text-[10px] text-neutral-500 font-normal">(Optional)</span>
             </label>
             <div className="col-span-8">
               <input
                 type="text"
-                required
                 placeholder="01XXXXXXXXX"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}

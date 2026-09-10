@@ -21,7 +21,7 @@ export interface PartyPaymentModalProps {
   party: {
     id: string;
     name: string;
-    phone?: string;
+    phone?: string | null;
     due: number;
   } | null;
   onSuccess?: () => void;

@@ -315,6 +315,7 @@ export function PurchaseModal({
       ? suppliersList.filter((s) => {
           const q = supplierSearchText.toLowerCase();
           return (
+            (s.code && s.code.toLowerCase().includes(q)) ||
             s.name.toLowerCase().includes(q) ||
             (s.phone && s.phone.toLowerCase().includes(q)) ||
             s.id.toLowerCase().includes(q)
@@ -976,7 +977,14 @@ export function PurchaseModal({
                                 }`}
                               >
                                 <div className="truncate">
-                                  <div className="font-medium truncate">{s.name}</div>
+                                  <div className="font-medium truncate flex items-center gap-1">
+                                    {s.code && (
+                                      <span className="font-mono text-[10px] text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-1 py-0.2 rounded border border-emerald-200 dark:border-emerald-800">
+                                        #{s.code}
+                                      </span>
+                                    )}
+                                    <span className="truncate">{s.name}</span>
+                                  </div>
                                   {s.phone && <div className="text-[10px] text-neutral-500">{s.phone}</div>}
                                 </div>
                                 {isSelected && <Check className="w-3 h-3 text-emerald-600 shrink-0" />}

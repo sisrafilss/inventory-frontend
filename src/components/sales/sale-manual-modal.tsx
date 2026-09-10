@@ -410,7 +410,9 @@ export function SaleManualModal({
         selectedCustomer.id.toLowerCase().startsWith(code.toLowerCase()) ||
         (selectedCustomer.id.length > 12 &&
           selectedCustomer.id.slice(0, 8).toLowerCase() === code.toLowerCase()) ||
-        selectedCustomer.phone === code ||
+        (selectedCustomer.code &&
+          selectedCustomer.code.toLowerCase() === code.toLowerCase()) ||
+        (selectedCustomer.phone && selectedCustomer.phone === code) ||
         selectedCustomer.name.toLowerCase() === code.toLowerCase())
     ) {
       setIsSearchingCustomer(false);
@@ -655,8 +657,9 @@ export function SaleManualModal({
     ? customersList.filter((c) => {
         const query = customerSearchText.toLowerCase();
         return (
+          (c.code && c.code.toLowerCase().includes(query)) ||
           c.name.toLowerCase().includes(query) ||
-          c.phone.toLowerCase().includes(query) ||
+          (c.phone && c.phone.toLowerCase().includes(query)) ||
           c.id.toLowerCase().includes(query) ||
           (c.address && c.address.toLowerCase().includes(query))
         );

@@ -201,7 +201,7 @@ export default function CreateSalePage() {
     const selected = customers.find((c) => c.id === cId);
     if (selected) {
       setCustomerName(selected.name);
-      setCustomerPhone(selected.phone);
+      setCustomerPhone(selected.phone || '');
       setCustomerAddress(selected.address || '');
       setCustomerDues(Number(selected.currentDue || 0));
     } else {
@@ -552,7 +552,7 @@ export default function CreateSalePage() {
                   <option value="">— Select Customer from Ledger —</option>
                   {customers.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} ({c.phone})
+                      {c.code ? `[${c.code}] ` : ''}{c.name}{c.phone ? ` (${c.phone})` : ''}
                     </option>
                   ))}
                 </select>

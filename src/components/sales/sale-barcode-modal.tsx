@@ -706,7 +706,7 @@ export function SaleBarcodeModal({
                     <option value="">-- Select Customer --</option>
                     {customers.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.name} ({c.phone})
+                        {c.code ? `[${c.code}] ` : ''}{c.name}{c.phone ? ` (${c.phone})` : ''}
                       </option>
                     ))}
                   </select>

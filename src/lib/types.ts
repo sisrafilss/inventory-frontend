@@ -103,9 +103,10 @@ export interface Warehouse {
 
 export interface Supplier {
   id: string;
+  code?: string | null;
   name: string;
   companyName?: string | null;
-  phone: string;
+  phone?: string | null;
   email?: string | null;
   address?: string | null;
   openingDue: number;
@@ -121,8 +122,9 @@ export interface Supplier {
 
 export interface Customer {
   id: string;
+  code?: string | null;
   name: string;
-  phone: string;
+  phone?: string | null;
   email?: string | null;
   address?: string | null;
   openingDue: number;
