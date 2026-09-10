@@ -1459,86 +1459,84 @@ export function PurchaseModal({
         </div>
       </Dialog>
 
-      {/* Save Confirmation Dialog (matching Add Product modal style) */}
+      {/* Save Confirmation Dialog */}
       <Dialog
         open={showConfirmSave}
         onOpenChange={(isOpen) => !isSaving && setShowConfirmSave(isOpen)}
         closeOnBackdropClick={!isSaving}
-        className="max-w-md p-6 bg-white dark:bg-neutral-900 border border-border shadow-2xl rounded-lg"
+        className="p-0 max-w-sm w-full border-2 border-[#800000] dark:border-rose-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 shadow-2xl overflow-hidden"
       >
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-              <HelpCircle className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-foreground">Save Purchase Invoice?</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Please confirm saving this purchase invoice to the database.
-              </p>
-            </div>
+        <div className="bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-white">
+            <HelpCircle className="w-4 h-4 text-lime-300" />
+            <span className="font-bold text-sm tracking-wide">Confirm Save</span>
           </div>
+        </div>
 
-          <div className="bg-muted/40 p-3 rounded text-xs space-y-1.5 border border-border">
+        <div className="p-4 space-y-4 text-neutral-900 dark:text-neutral-100">
+          <p className="text-xs font-bold">
+            Please confirm saving this purchase invoice to the database.
+          </p>
+
+          <div className="bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 p-2 text-xs font-mono space-y-1">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Invoice:</span>
-              <span className="font-mono font-bold text-foreground">
+              <span className="text-neutral-600 dark:text-neutral-400">Invoice:</span>
+              <span className="font-bold text-neutral-900 dark:text-neutral-100">
                 {invoiceNumber || 'Auto-generated'}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Payment Mode:</span>
-              <span className="font-bold text-foreground">{paymentMode}</span>
+              <span className="text-neutral-600 dark:text-neutral-400">Payment Mode:</span>
+              <span className="font-bold text-neutral-900 dark:text-neutral-100">{paymentMode}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Party Name:</span>
-              <span className="font-bold text-foreground">
+              <span className="text-neutral-600 dark:text-neutral-400">Party Name:</span>
+              <span className="font-bold text-neutral-900 dark:text-neutral-100 truncate max-w-[150px] text-right">
                 {selectedSupplier?.name || supplierName || (paymentMode === 'CASH' ? 'Cash Party' : 'Supplier')}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Total Items:</span>
-              <span className="font-bold text-foreground">{lineItems.length}</span>
+              <span className="text-neutral-600 dark:text-neutral-400">Total Items:</span>
+              <span className="font-bold text-neutral-900 dark:text-neutral-100">{lineItems.length}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Total Amount:</span>
-              <span className="font-bold text-foreground">৳{totalAmount.toFixed(2)}</span>
+              <span className="text-neutral-600 dark:text-neutral-400">Total Amount:</span>
+              <span className="font-bold text-neutral-900 dark:text-neutral-100">৳{totalAmount.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Paid Amount:</span>
-              <span className="font-bold text-emerald-600">৳{effectivePaid.toFixed(2)}</span>
+              <span className="text-neutral-600 dark:text-neutral-400">Paid Amount:</span>
+              <span className="font-bold text-emerald-700 dark:text-emerald-400">৳{effectivePaid.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Current Dues:</span>
-              <span className="font-bold text-red-600">৳{currentDues.toFixed(2)}</span>
+              <span className="text-neutral-600 dark:text-neutral-400">Current Dues:</span>
+              <span className="font-bold text-red-600 dark:text-red-400">৳{currentDues.toFixed(2)}</span>
             </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button
-              variant="outline"
-              size="sm"
+            <button
+              type="button"
               disabled={isSaving}
               onClick={() => setShowConfirmSave(false)}
-              className="min-w-[80px]"
+              className="h-7 px-4 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold text-xs shadow-sm disabled:opacity-50 transition-colors"
             >
               No
-            </Button>
-            <Button
-              size="sm"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white min-w-[95px] flex items-center justify-center gap-1.5 font-semibold"
+            </button>
+            <button
+              type="button"
               onClick={handleExecuteSavePurchase}
               disabled={isSaving}
+              className="h-7 px-6 bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-800 font-bold text-xs shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 transition-colors"
             >
               {isSaving ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   Saving...
                 </>
               ) : (
                 'Yes'
               )}
-            </Button>
+            </button>
           </div>
         </div>
       </Dialog>
@@ -1547,16 +1545,25 @@ export function PurchaseModal({
       <Dialog
         open={!!validationWarning}
         onOpenChange={() => setValidationWarning(null)}
-        className="max-w-sm p-5 bg-white dark:bg-neutral-900 border border-border shadow-2xl rounded-lg"
+        className="p-0 max-w-sm w-full border-2 border-[#800000] dark:border-rose-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 shadow-2xl overflow-hidden"
       >
-        <div className="text-center space-y-3">
-          <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />
-          <h3 className="text-sm font-bold text-foreground">Notice</h3>
-          <p className="text-xs text-muted-foreground">{validationWarning}</p>
-          <div className="pt-2 flex justify-center">
-            <Button size="sm" onClick={() => setValidationWarning(null)} className="px-6">
+        <div className="bg-[#800000] dark:bg-rose-950 py-1.5 px-4 border-b border-[#4d0000] dark:border-rose-900 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-white">
+            <AlertCircle className="w-4 h-4 text-rose-300" />
+            <span className="font-bold text-sm tracking-wide">Notice</span>
+          </div>
+        </div>
+
+        <div className="p-5 text-center space-y-4">
+          <p className="text-xs font-bold text-neutral-900 dark:text-neutral-100">{validationWarning}</p>
+          <div className="flex justify-center pt-2">
+            <button
+              type="button"
+              onClick={() => setValidationWarning(null)}
+              className="h-7 px-8 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold text-xs shadow-sm transition-colors"
+            >
               OK
-            </Button>
+            </button>
           </div>
         </div>
       </Dialog>
