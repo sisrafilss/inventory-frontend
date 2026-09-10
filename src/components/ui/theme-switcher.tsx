@@ -24,7 +24,7 @@ export function ThemeSwitcher({
       variant={variant}
       size={size}
       onClick={toggleTheme}
-      className="gap-1.5 font-semibold text-xs h-8 px-2.5 shadow-sm border-input transition-colors"
+      className="font-bold text-xs h-7 w-7 p-0 shadow-xs border border-neutral-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-neutral-900 dark:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-center"
       title={isDark ? t('theme.switchToLight') : t('theme.switchToDark')}
       aria-label={isDark ? t('theme.switchToLight') : t('theme.switchToDark')}
     >
