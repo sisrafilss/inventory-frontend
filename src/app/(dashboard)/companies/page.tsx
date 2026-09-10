@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '@/lib/api/client';
 import { useAuth } from '@/lib/context/auth-context';
 import { Company } from '@/lib/types';
@@ -8,16 +8,13 @@ import {
   Building2,
   Calendar as CalendarIcon,
   Search,
-  Check,
   AlertCircle,
   Loader2,
   CheckCircle2,
   Edit2,
   Trash2,
   RotateCcw,
-  Save,
-  Maximize2,
-  Package,
+  Plus,
 } from 'lucide-react';
 import { CompanyModal } from '@/components/companies/company-modal';
 
@@ -41,33 +38,15 @@ export default function CompaniesPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
 
-  // Currently Selected Company for Editing (null = new entry mode)
+  // Selected Company in Table
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
 
-  // Form Fields
-  const [systemId, setSystemId] = useState('');
-  const [name, setName] = useState('');
-  const [code, setCode] = useState('');
-  const [description, setDescription] = useState('');
-  const [isActive, setIsActive] = useState(true);
+  // Company Modal State (Add / Edit)
+  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
+  const [modalCompany, setModalCompany] = useState<Company | null>(null);
 
-  // Auto-code suggestion & validation state
-  const [suggestedCode, setSuggestedCode] = useState('');
-  const [isCheckingCode, setIsCheckingCode] = useState(false);
-  const [codeWarning, setCodeWarning] = useState<string | null>(null);
-  const [codeAvailable, setCodeAvailable] = useState(false);
-
-  // Action status
-  const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  // Status Banner for notification
   const [statusBanner, setStatusBanner] = useState<{ text: string; isError: boolean } | null>(null);
-
-  // Modal State (for pop-out view)
-  const [modalOpen, setModalOpen] = useState(false);
-
-  // Refs
-  const nameInputRef = useRef<HTMLInputElement>(null);
-  const codeInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch Companies List
   const fetchCompanies = async () => {
@@ -76,6 +55,11 @@ export default function CompaniesPage() {
       setError(null);
       const res = await api.get<Company[]>('/companies', { search });
       setCompanies(res.data);
+      // Keep selected company in sync if it still exists
+      if (selectedCompany) {
+        const found = res.data.find((c) => c.id === selectedCompany.id);
+        setSelectedCompany(found || null);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load companies.');
     } finally {
@@ -83,236 +67,64 @@ export default function CompaniesPage() {
     }
   };
 
-  // Fetch Next Suggested 3-digit Code
-  const fetchSuggestedCode = async () => {
-    try {
-      const res = await api.get<{ code: string }>('/companies/next-code');
-      if (res.data?.code) {
-        setSuggestedCode(res.data.code);
-      }
-    } catch {
-      setSuggestedCode('');
-    }
-  };
-
   useEffect(() => {
     fetchCompanies();
-    fetchSuggestedCode();
   }, []);
 
-  // Real-time debounced duplicate check when 3-digit code is typed
-  useEffect(() => {
-    const trimmed = code.trim();
-    if (trimmed.length !== 3) {
-      setCodeWarning(null);
-      setCodeAvailable(false);
-      setIsCheckingCode(false);
-      return;
-    }
+  // Filtered Companies
+  const filteredCompanies = useMemo(() => {
+    return companies.filter((c) => {
+      if (statusFilter === 'ACTIVE' && !c.isActive) return false;
+      if (statusFilter === 'INACTIVE' && c.isActive) return false;
+      if (!search.trim()) return true;
 
-    if (selectedCompany && selectedCompany.code === trimmed) {
-      setCodeWarning(null);
-      setCodeAvailable(false);
-      return;
-    }
+      const q = search.toLowerCase().trim();
+      const matchName = c.name.toLowerCase().includes(q);
+      const matchCode = c.code ? c.code.toLowerCase().includes(q) : false;
+      const matchDesc = c.description ? c.description.toLowerCase().includes(q) : false;
+      const matchId = c.id.toLowerCase().includes(q);
 
-    let active = true;
-    setIsCheckingCode(true);
+      return matchName || matchCode || matchDesc || matchId;
+    });
+  }, [companies, statusFilter, search]);
 
-    const timer = setTimeout(async () => {
-      try {
-        const res = await api.get<{
-          exists: boolean;
-          company: { id: string; name: string; code: string } | null;
-        }>(
-          `/companies/check-code/${encodeURIComponent(trimmed)}`,
-          selectedCompany?.id ? { excludeId: selectedCompany.id } : undefined
-        );
-        if (!active) return;
-        if (res.data?.exists) {
-          setCodeWarning(
-            `Code "${trimmed}" already exists (used by "${res.data.company?.name}").`
-          );
-          setCodeAvailable(false);
-        } else {
-          setCodeWarning(null);
-          setCodeAvailable(true);
-        }
-      } catch {
-        // ignore
-      } finally {
-        if (active) setIsCheckingCode(false);
-      }
-    }, 250);
+  // Open Company Modal for Creation
+  const handleOpenCreateModal = () => {
+    setModalCompany(null);
+    setIsCompanyModalOpen(true);
+  };
 
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [code, selectedCompany]);
-
-  // Select a company from the data grid to edit
-  const handleSelectCompany = (comp: Company) => {
+  // Open Company Modal for Editing
+  const handleOpenEditModal = (comp: Company) => {
     setSelectedCompany(comp);
-    setSystemId(comp.id.length > 8 ? comp.id.slice(0, 8).toUpperCase() : comp.id.toUpperCase());
-    setName(comp.name || '');
-    setCode(comp.code || '');
-    setDescription(comp.description || '');
-    setIsActive(comp.isActive !== false);
-    setStatusBanner(null);
-    setCodeWarning(null);
-    setCodeAvailable(false);
-    setTimeout(() => nameInputRef.current?.focus(), 80);
+    setModalCompany(comp);
+    setIsCompanyModalOpen(true);
   };
 
-  // Reset form to blank (New Company mode)
-  const handleReset = () => {
-    setSelectedCompany(null);
-    setSystemId('');
-    setName('');
-    setCode('');
-    setDescription('');
-    setIsActive(true);
-    setStatusBanner(null);
-    setCodeWarning(null);
-    setCodeAvailable(false);
-    fetchSuggestedCode();
-    setTimeout(() => nameInputRef.current?.focus(), 80);
-  };
-
-  // Strict 3-digit numeric input handler (no letters, no leading zero)
-  const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value.replace(/\D/g, '');
-    if (val.startsWith('0')) {
-      val = val.replace(/^0+/, '');
-    }
-    val = val.slice(0, 3);
-    setCode(val);
-    setCodeWarning(null);
-    setCodeAvailable(false);
-  };
-
-  // Save / Update Company handler
-  const handleSave = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-
-    const trimmedName = name.trim();
-    if (!trimmedName || trimmedName.length < 2) {
-      setStatusBanner({
-        text: 'Company Name is required (at least 2 characters).',
-        isError: true,
-      });
-      nameInputRef.current?.focus();
-      return;
-    }
-
-    const trimmedCode = code.trim();
-    if (trimmedCode) {
-      if (!/^[1-9][0-9]{2}$/.test(trimmedCode)) {
-        setStatusBanner({
-          text: 'Company code must be a 3-digit number (100–999) without leading zero, or left blank to auto-generate.',
-          isError: true,
-        });
-        return;
-      }
-      if (codeWarning) {
-        setStatusBanner({
-          text: codeWarning,
-          isError: true,
-        });
-        return;
-      }
-    }
-
-    setIsSaving(true);
-    setStatusBanner(null);
-
-    const payload: {
-      name: string;
-      code?: string;
-      description?: string;
-      isActive: boolean;
-    } = {
-      name: trimmedName,
-      isActive,
-    };
-
-    if (trimmedCode) payload.code = trimmedCode;
-    if (description.trim()) payload.description = description.trim();
+  // Delete Company directly
+  const handleDeleteCompany = async (comp: Company) => {
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete company "${comp.name}"?\n\nIf this manufacturer is linked to existing products or past transactions, delete will be blocked to maintain data integrity.`
+    );
+    if (!confirmDelete) return;
 
     try {
-      if (selectedCompany) {
-        // Update existing company
-        const res = await api.patch<Company>(`/companies/${selectedCompany.id}`, payload);
-        setStatusBanner({
-          text: `Company "${res.data.name}" updated successfully!`,
-          isError: false,
-        });
-        setSelectedCompany(res.data);
-        await fetchCompanies();
-      } else {
-        // Create new company
-        const res = await api.post<Company>('/companies', payload);
-        setStatusBanner({
-          text: `Company "${res.data.name}" created successfully with code ${res.data.code}!`,
-          isError: false,
-        });
-        setSelectedCompany(res.data);
-        setSystemId(res.data.id.slice(0, 8).toUpperCase());
-        setCode(res.data.code || '');
-        await fetchCompanies();
-        fetchSuggestedCode();
-      }
-    } catch (err: any) {
+      await api.delete(`/companies/${comp.id}`);
       setStatusBanner({
-        text: err.message || 'Failed to save company record.',
-        isError: true,
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Delete Company handler
-  const handleDelete = async () => {
-    if (!selectedCompany) return;
-    const confirmMsg = `Are you sure you want to delete company "${selectedCompany.name}"? This action cannot be undone.`;
-    if (!window.confirm(confirmMsg)) return;
-
-    setIsDeleting(true);
-    setStatusBanner(null);
-
-    try {
-      await api.delete(`/companies/${selectedCompany.id}`);
-      setStatusBanner({
-        text: `Company "${selectedCompany.name}" deleted successfully.`,
+        text: `Company "${comp.name}" was successfully deleted.`,
         isError: false,
       });
-      handleReset();
+      if (selectedCompany?.id === comp.id) {
+        setSelectedCompany(null);
+      }
       await fetchCompanies();
     } catch (err: any) {
       setStatusBanner({
-        text: err.message || 'Failed to delete company. It may be linked to catalog products.',
+        text: err.message || 'Failed to delete company.',
         isError: true,
       });
-    } finally {
-      setIsDeleting(false);
     }
   };
-
-  // Filtered companies based on search and status
-  const filteredCompanies = companies.filter((c) => {
-    if (statusFilter === 'ACTIVE' && !c.isActive) return false;
-    if (statusFilter === 'INACTIVE' && c.isActive) return false;
-    if (!search.trim()) return true;
-    const q = search.toLowerCase().trim();
-    return (
-      c.name.toLowerCase().includes(q) ||
-      (c.code && c.code.toLowerCase().includes(q)) ||
-      (c.description && c.description.toLowerCase().includes(q)) ||
-      c.id.toLowerCase().includes(q)
-    );
-  });
 
   const activeCount = companies.filter((c) => c.isActive).length;
   const inactiveCount = companies.filter((c) => !c.isActive).length;
@@ -327,296 +139,102 @@ export default function CompaniesPage() {
             <span className="text-lg">🏢</span>
             <h1 className="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2 pointer-events-none">
               Company / Brand Management
-              <span className="text-[11px] font-mono font-normal text-emerald-200 uppercase tracking-widest hidden sm:inline">
-                [Manufacturer Registry]
+              <span className="text-[11px] font-mono font-normal text-emerald-200 uppercase tracking-widest hidden sm:inline border border-emerald-500/40 px-1.5 py-0.5 rounded-xs bg-emerald-900/30">
+                [MANUFACTURER REGISTRY]
               </span>
             </h1>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Live Date Box */}
-            <div className="hidden sm:flex items-center gap-1.5 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 px-2 py-0.5 font-mono text-xs shadow-xs">
-              <span className="font-bold text-neutral-800 dark:text-neutral-200">Date</span>
-              <span className="font-semibold text-neutral-900 dark:text-neutral-100">{currentDate}</span>
-              <CalendarIcon className="w-3.5 h-3.5 text-neutral-500 ml-0.5" />
+            <div className="hidden md:flex items-center gap-1.5 bg-[#004d00]/60 border border-emerald-600/40 px-2 py-0.5 rounded-xs text-[11px] font-mono text-emerald-100 shadow-inner">
+              <CalendarIcon className="w-3.5 h-3.5 text-emerald-300" />
+              <span>Date {currentDate}</span>
             </div>
 
-            {/* Pop-out Modal Trigger */}
+            {/* Add Company Modal Trigger Button */}
             <button
               type="button"
-              onClick={() => setModalOpen(true)}
-              title="Open Draggable Dialog Window"
-              className="h-6 px-2 bg-white/90 dark:bg-slate-800 hover:bg-white text-neutral-800 dark:text-neutral-100 text-xs font-semibold rounded-xs border border-neutral-400 flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+              onClick={handleOpenCreateModal}
+              className="px-3 py-1 text-xs font-bold bg-white text-[#006400] hover:bg-emerald-50 border border-white shadow-xs flex items-center gap-1.5 rounded-xs transition-colors cursor-pointer"
+              title="Add a new company / brand"
             >
-              <Maximize2 className="w-3 h-3 text-emerald-700 dark:text-emerald-400" />
-              <span className="hidden md:inline">Pop-out Dialog</span>
+              <Plus className="w-3.5 h-3.5 text-[#006400] stroke-[3]" />
+              <span>Add Company</span>
             </button>
           </div>
         </div>
 
-        {/* Master Form & Table Section */}
+        {/* Master Content Section: Expanded Table Area */}
         <div className="flex-1 min-h-0 flex flex-col p-2.5 sm:p-3 space-y-2 text-xs text-neutral-900 dark:text-neutral-100">
           {/* Status / Error Banner */}
           {statusBanner && (
             <div
-              className={`p-2 rounded-xs text-xs font-semibold border flex items-center justify-between ${
+              className={`p-2 rounded-xs border text-xs flex items-center justify-between shadow-xs shrink-0 ${
                 statusBanner.isError
-                  ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800'
-                  : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                  ? 'bg-rose-100 border-rose-400 text-rose-800 dark:bg-rose-950/50 dark:border-rose-800 dark:text-rose-200'
+                  : 'bg-emerald-100 border-emerald-400 text-emerald-900 dark:bg-emerald-950/50 dark:border-emerald-800 dark:text-emerald-200'
               }`}
             >
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 {statusBanner.isError ? (
-                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
                 ) : (
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 )}
-                <span>{statusBanner.text}</span>
+                <span className="font-semibold">{statusBanner.text}</span>
               </div>
               <button
                 type="button"
                 onClick={() => setStatusBanner(null)}
-                className="text-neutral-500 hover:text-neutral-900 text-xs ml-2 font-bold cursor-pointer"
+                className="text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 ml-2 font-bold cursor-pointer"
               >
                 ✕
               </button>
             </div>
           )}
 
-          {/* Form & Actions Split Layout */}
-          <form
-            onSubmit={handleSave}
-            className="flex flex-col md:flex-row justify-between gap-3 items-start bg-[#dbe7f3] dark:bg-slate-800/60 p-2.5 sm:p-3 rounded-xs border border-[#b2c8dc] dark:border-slate-700 shadow-inner shrink-0"
-          >
-            {/* Left Form Fields */}
-            <div className="space-y-2 flex-1 w-full max-w-2xl">
-              {/* Row 1: System ID & Brand Code */}
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
-                <label className="sm:col-span-3 text-left sm:text-right font-bold text-neutral-800 dark:text-neutral-200">
-                  System ID
-                </label>
-                <div className="sm:col-span-3">
-                  <input
-                    type="text"
-                    value={systemId}
-                    readOnly
-                    placeholder="Auto"
-                    className="w-full h-6 px-2 bg-neutral-200/90 dark:bg-slate-900 text-neutral-600 dark:text-neutral-400 border border-neutral-400 dark:border-slate-600 font-mono text-xs focus:outline-none cursor-not-allowed font-semibold"
-                  />
-                </div>
-
-                <label className="sm:col-span-2 text-left sm:text-right font-bold text-neutral-800 dark:text-neutral-200">
-                  Brand / Code
-                </label>
-                <div className="sm:col-span-4 flex items-center gap-1.5">
-                  <input
-                    ref={codeInputRef}
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={3}
-                    pattern="[1-9][0-9]{2}"
-                    value={code}
-                    onChange={handleCodeChange}
-                    onKeyDown={(e) => {
-                      if (['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(e.key)) return;
-                      if (e.key === '0' && code.length === 0) {
-                        e.preventDefault();
-                        return;
-                      }
-                      if (!/^\d$/.test(e.key)) {
-                        e.preventDefault();
-                      }
-                    }}
-                    placeholder={suggestedCode ? `Auto: ${suggestedCode}` : 'e.g. 101'}
-                    disabled={isSaving || isDeleting}
-                    className={`w-28 h-6 px-2 bg-white dark:bg-slate-900 text-neutral-900 dark:text-neutral-100 border rounded-xs font-mono font-bold text-xs focus:outline-none focus:ring-1 ${
-                      codeWarning
-                        ? 'border-rose-500 focus:ring-rose-500 text-rose-600'
-                        : codeAvailable
-                        ? 'border-emerald-500 focus:ring-emerald-500 text-emerald-700'
-                        : 'border-neutral-400 dark:border-slate-600 focus:ring-emerald-600'
-                    }`}
-                  />
-                  {isCheckingCode ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
-                  ) : codeAvailable ? (
-                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-0.5">
-                      <Check className="w-3.5 h-3.5" /> OK
-                    </span>
-                  ) : (
-                    <span className="text-[10px] text-neutral-500 dark:text-neutral-400">
-                      (Optional)
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Code Warning notice if any */}
-              {codeWarning && (
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-                  <div className="sm:col-span-3" />
-                  <div className="sm:col-span-9 text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 p-1 rounded-xs border border-rose-200">
-                    ⚠️ {codeWarning}
-                  </div>
-                </div>
-              )}
-
-              {/* Row 2: Company Name (Required) */}
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
-                <label className="sm:col-span-3 text-left sm:text-right font-bold text-neutral-900 dark:text-neutral-100">
-                  Company Name <span className="text-red-600">*</span>
-                </label>
-                <div className="sm:col-span-9">
-                  <input
-                    ref={nameInputRef}
-                    type="text"
-                    required
-                    placeholder="e.g. RFL Plastics, Kiam, Walton, ACI"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    disabled={isSaving || isDeleting}
-                    className="w-full h-6 px-2 bg-white dark:bg-slate-900 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 rounded-xs font-bold text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600"
-                  />
-                </div>
-              </div>
-
-              {/* Row 3: Description / Notes (Optional) */}
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-start">
-                <label className="sm:col-span-3 text-left sm:text-right font-bold text-neutral-800 dark:text-neutral-200 pt-0.5">
-                  Description
-                </label>
-                <div className="sm:col-span-9">
-                  <textarea
-                    rows={2}
-                    placeholder="Manufacturer origin, brand category, or notes (Optional)..."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    disabled={isSaving || isDeleting}
-                    className="w-full px-2 py-1 bg-white dark:bg-slate-900 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600 resize-none font-medium"
-                  />
-                </div>
-              </div>
-
-              {/* Row 4: Status (Active / Inactive) */}
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
-                <label className="sm:col-span-3 text-left sm:text-right font-bold text-neutral-800 dark:text-neutral-200">
-                  Status
-                </label>
-                <div className="sm:col-span-9 flex items-center gap-6">
-                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                    <input
-                      type="radio"
-                      name="pageCompStatus"
-                      checked={isActive === true}
-                      onChange={() => setIsActive(true)}
-                      disabled={isSaving || isDeleting}
-                      className="w-3.5 h-3.5 text-emerald-600 accent-emerald-600 cursor-pointer"
-                    />
-                    <span className="font-semibold text-emerald-800 dark:text-emerald-300 text-xs">
-                      Active Brand
-                    </span>
-                  </label>
-
-                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                    <input
-                      type="radio"
-                      name="pageCompStatus"
-                      checked={isActive === false}
-                      onChange={() => setIsActive(false)}
-                      disabled={isSaving || isDeleting}
-                      className="w-3.5 h-3.5 text-neutral-500 accent-neutral-600 cursor-pointer"
-                    />
-                    <span className="text-neutral-600 dark:text-neutral-400 font-medium text-xs">
-                      Inactive
-                    </span>
-                  </label>
-
-                  {selectedCompany && selectedCompany._count?.products !== undefined && (
-                    <span className="ml-auto text-[11px] text-neutral-600 dark:text-neutral-400 font-mono">
-                      Products: <strong className="text-neutral-900 dark:text-neutral-100">{selectedCompany._count.products}</strong>
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Right Action Buttons Stack (Matches Sale Rate Style) */}
-            <div className="flex flex-row md:flex-col gap-2 w-full md:w-32 justify-end shrink-0 pt-0.5">
-              <button
-                type="button"
-                onClick={handleReset}
-                disabled={isSaving || isDeleting}
-                className="w-full h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-xs transition-colors flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
-              >
-                <RotateCcw className="w-3 h-3 text-emerald-700 dark:text-emerald-400" />
-                <span>Refresh</span>
-              </button>
-
-              <button
-                type="submit"
-                disabled={
-                  isSaving ||
-                  isDeleting ||
-                  !name.trim() ||
-                  isCheckingCode ||
-                  Boolean(codeWarning) ||
-                  (code.trim().length > 0 && code.trim().length !== 3)
-                }
-                className="w-full h-7 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-neutral-900 dark:text-neutral-100 border-2 border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-xs transition-colors flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
-              >
-                {isSaving ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600" />
-                ) : (
-                  <Save className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
-                )}
-                <span>{selectedCompany ? 'Update' : 'Save'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={isSaving || isDeleting || !selectedCompany || !isAdmin}
-                title={!selectedCompany ? 'Select a company to delete' : undefined}
-                className="w-full h-7 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-xs transition-colors flex items-center justify-center gap-1 cursor-pointer disabled:opacity-40"
-              >
-                {isDeleting ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600" />
-                ) : (
-                  <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                )}
-                <span>Delete</span>
-              </button>
-            </div>
-          </form>
-
-          {/* Search & Filter Toolbar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-1 border-t border-[#a8c2dc] dark:border-slate-800 shrink-0">
+          {/* Search & Action Toolbar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 p-2 bg-[#dbe7f3] dark:bg-slate-800/60 rounded-xs border border-[#b2c8dc] dark:border-slate-700 shadow-inner shrink-0">
+            {/* Search Input */}
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className="font-bold text-neutral-800 dark:text-neutral-200 text-xs shrink-0">
                 Filter:
               </span>
-              <div className="relative flex-1 sm:w-72">
-                <Search className="w-3.5 h-3.5 text-neutral-500 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <div className="relative flex-1 sm:w-80">
                 <input
                   type="text"
-                  placeholder="Search by name, 3-digit code..."
+                  placeholder="Search by name, 3-digit code, or ID..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full h-6 pl-7 pr-2 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 text-neutral-900 dark:text-neutral-100 text-xs rounded-xs focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                  className="w-full pl-7 pr-2 py-1 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400"
                 />
+                <Search className="w-3.5 h-3.5 text-neutral-500 absolute left-2 top-1.5" />
               </div>
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="text-xs text-neutral-600 hover:text-neutral-900 dark:hover:text-neutral-200 underline cursor-pointer"
+                >
+                  Clear
+                </button>
+              )}
             </div>
 
-            <div className="flex items-center gap-2 text-xs w-full sm:w-auto justify-end">
-              <span className="font-semibold text-neutral-700 dark:text-neutral-300">Status:</span>
-              <div className="flex rounded-xs border border-neutral-400 dark:border-slate-600 overflow-hidden text-[11px] font-bold">
+            {/* Quick Status Filter Tabs & Table Actions */}
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] font-semibold text-neutral-700 dark:text-neutral-300 mr-1">
+                  Status:
+                </span>
                 <button
                   type="button"
                   onClick={() => setStatusFilter('ALL')}
-                  className={`px-2 py-0.5 ${
+                  className={`px-2 py-0.5 text-xs font-bold rounded-xs border transition-colors cursor-pointer ${
                     statusFilter === 'ALL'
-                      ? 'bg-neutral-800 text-white dark:bg-neutral-200 dark:text-neutral-900'
-                      : 'bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100'
+                      ? 'bg-[#004d00] text-white border-[#004d00]'
+                      : 'bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-slate-700 hover:bg-neutral-100'
                   }`}
                 >
                   All ({companies.length})
@@ -624,10 +242,10 @@ export default function CompaniesPage() {
                 <button
                   type="button"
                   onClick={() => setStatusFilter('ACTIVE')}
-                  className={`px-2 py-0.5 border-l border-neutral-400 dark:border-slate-600 ${
+                  className={`px-2 py-0.5 text-xs font-bold rounded-xs border transition-colors cursor-pointer ${
                     statusFilter === 'ACTIVE'
-                      ? 'bg-emerald-700 text-white'
-                      : 'bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100'
+                      ? 'bg-emerald-700 text-white border-emerald-700'
+                      : 'bg-white dark:bg-slate-800 text-emerald-800 dark:text-emerald-400 border-neutral-300 dark:border-slate-700 hover:bg-neutral-100'
                   }`}
                 >
                   Active ({activeCount})
@@ -635,163 +253,251 @@ export default function CompaniesPage() {
                 <button
                   type="button"
                   onClick={() => setStatusFilter('INACTIVE')}
-                  className={`px-2 py-0.5 border-l border-neutral-400 dark:border-slate-600 ${
+                  className={`px-2 py-0.5 text-xs font-bold rounded-xs border transition-colors cursor-pointer ${
                     statusFilter === 'INACTIVE'
-                      ? 'bg-rose-700 text-white'
-                      : 'bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100'
+                      ? 'bg-rose-700 text-white border-rose-700'
+                      : 'bg-white dark:bg-slate-800 text-rose-800 dark:text-rose-400 border-neutral-300 dark:border-slate-700 hover:bg-neutral-100'
                   }`}
                 >
                   Inactive ({inactiveCount})
                 </button>
               </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-1.5 pl-2 border-l border-neutral-300 dark:border-slate-700">
+                {selectedCompany && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditModal(selectedCompany)}
+                      className="h-6 px-2 bg-white dark:bg-slate-800 text-emerald-800 dark:text-emerald-300 border border-emerald-600 hover:bg-emerald-50 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                      title="Edit selected company"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                      <span>Edit</span>
+                    </button>
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCompany(selectedCompany)}
+                        className="h-6 px-2 bg-white dark:bg-slate-800 text-rose-700 dark:text-rose-400 border border-rose-500 hover:bg-rose-50 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                        title="Delete selected company"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>Delete</span>
+                      </button>
+                    )}
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  onClick={fetchCompanies}
+                  disabled={loading}
+                  className="h-6 px-2 bg-white dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-400 dark:border-slate-600 hover:bg-neutral-100 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                  title="Reload company list from database"
+                >
+                  <RotateCcw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+                  <span>Refresh</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Desktop Spreadsheet Data Grid */}
-          <div className="flex-1 min-h-[160px] flex flex-col border border-neutral-400 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shadow-inner">
+          {/* Desktop Spreadsheet Data Grid - Maximized Vertical Space */}
+          <div className="flex-1 min-h-[300px] flex flex-col border border-neutral-400 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shadow-inner">
             <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto flex flex-col">
               <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
-                <thead className="sticky top-0 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border-b border-neutral-400 dark:border-slate-700 font-bold select-none text-xs z-10">
+                <thead className="sticky top-0 bg-[#eaf1f8] dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border-b border-neutral-400 dark:border-slate-700 font-bold select-none text-xs z-10">
                   <tr>
-                    <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 w-12 text-center font-bold">
+                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-12 text-center">
                       SN
                     </th>
-                    <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 w-24 text-center font-bold">
+                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center">
                       Code
                     </th>
-                    <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 min-w-[200px] font-bold">
+                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[200px]">
                       Company / Brand Name
                     </th>
-                    <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 min-w-[220px] font-bold">
+                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[220px]">
                       Description
                     </th>
-                    <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 w-20 text-center font-bold">
+                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center">
                       Products
                     </th>
-                    <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 w-24 text-center font-bold">
+                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-20 text-center">
                       Status
                     </th>
-                    <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 w-24 font-mono text-neutral-600 font-bold">
+                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28 text-center font-mono">
                       System ID
                     </th>
-                    <th className="py-1 px-2 font-bold w-20 text-center">
+                    <th className="px-3 py-1.5 w-24 text-center">
                       Action
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-slate-900">
+                <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
                   {loading ? (
                     <tr>
-                      <td colSpan={8} className="py-8 text-center text-neutral-500 italic">
-                        <Loader2 className="w-4 h-4 animate-spin inline mr-2 text-emerald-600" />
-                        Loading company database...
+                      <td colSpan={8} className="py-16 text-center text-neutral-500 font-medium">
+                        <div className="flex items-center justify-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
+                          <span>Loading companies from database...</span>
+                        </div>
                       </td>
                     </tr>
                   ) : error ? (
                     <tr>
-                      <td colSpan={8} className="py-6 text-center text-red-600 font-bold">
-                        {error}
+                      <td colSpan={8} className="py-12 text-center text-rose-600 font-medium">
+                        <div className="flex items-center justify-center gap-2">
+                          <AlertCircle className="w-4 h-4" />
+                          <span>{error}</span>
+                        </div>
                       </td>
                     </tr>
                   ) : filteredCompanies.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-8 text-center text-neutral-500 italic">
-                        No companies found matching the filter criteria.
+                      <td colSpan={8} className="py-16 text-center text-neutral-500 font-medium">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <Building2 className="w-8 h-8 text-neutral-400" />
+                          <span>No companies found matching your filter criteria.</span>
+                          <button
+                            type="button"
+                            onClick={handleOpenCreateModal}
+                            className="mt-2 px-3 py-1 bg-[#006400] text-white rounded-xs font-bold text-xs flex items-center gap-1.5 shadow-xs hover:bg-emerald-800 transition-colors cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Create New Company</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ) : (
                     filteredCompanies.map((comp, idx) => {
                       const isSelected = selectedCompany?.id === comp.id;
-                      const isCyan = idx % 2 === 1;
-
                       return (
                         <tr
                           key={comp.id}
-                          onClick={() => handleSelectCompany(comp)}
-                          className={`cursor-pointer transition-colors border-b border-neutral-200 dark:border-slate-800 ${
+                          onClick={() => setSelectedCompany(comp)}
+                          onDoubleClick={() => handleOpenEditModal(comp)}
+                          className={`transition-colors ${
                             isSelected
-                              ? 'bg-[#0055ea] text-white font-semibold'
-                              : isCyan
-                              ? 'bg-[#e8f4fc] dark:bg-slate-800/80 hover:bg-[#d0ebff]'
-                              : 'bg-white dark:bg-slate-900 hover:bg-[#d0ebff]'
+                              ? 'bg-[#0056b3] text-white font-semibold cursor-pointer'
+                              : idx % 2 === 0
+                              ? 'bg-white dark:bg-slate-900 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80 cursor-pointer'
+                              : 'bg-[#f4f8fc] dark:bg-slate-900/50 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80 cursor-pointer'
                           }`}
                         >
-                          <td
-                            className={`py-1 px-2 border-r border-neutral-300 dark:border-slate-700 text-center font-bold ${
-                              isSelected ? 'text-white' : 'text-neutral-500'
-                            }`}
-                          >
+                          {/* SN */}
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono">
                             {idx + 1}
                           </td>
-                          <td
-                            className={`py-1 px-2 border-r border-neutral-300 dark:border-slate-700 text-center font-mono font-bold ${
-                              isSelected
-                                ? 'text-yellow-200'
-                                : 'text-emerald-700 dark:text-emerald-400'
-                            }`}
-                          >
-                            {comp.code ? `#${comp.code}` : '—'}
+
+                          {/* Code */}
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono font-bold">
+                            {comp.code ? (
+                              <span
+                                className={`px-1.5 py-0.5 rounded-xs ${
+                                  isSelected
+                                    ? 'bg-blue-800 text-white'
+                                    : 'bg-emerald-50 dark:bg-emerald-950/60 text-[#006400] dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                                }`}
+                              >
+                                #{comp.code}
+                              </span>
+                            ) : (
+                              <span className="text-neutral-400 font-normal">--</span>
+                            )}
                           </td>
-                          <td
-                            className={`py-1 px-2 border-r border-neutral-300 dark:border-slate-700 font-bold ${
-                              isSelected ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'
-                            }`}
-                          >
-                            {comp.name}
+
+                          {/* Company / Brand Name */}
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-semibold flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <Building2
+                                className={`w-3.5 h-3.5 shrink-0 ${
+                                  isSelected ? 'text-white' : 'text-emerald-700 dark:text-emerald-400'
+                                }`}
+                              />
+                              <span>{comp.name}</span>
+                            </div>
                           </td>
-                          <td
-                            className={`py-1 px-2 border-r border-neutral-300 dark:border-slate-700 truncate max-w-xs ${
-                              isSelected ? 'text-blue-100' : 'text-neutral-600 dark:text-neutral-400'
-                            }`}
-                          >
-                            {comp.description || '—'}
+
+                          {/* Description */}
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-neutral-600 dark:text-neutral-400 truncate max-w-xs">
+                            <span className={isSelected ? 'text-blue-100' : ''}>
+                              {comp.description || '--'}
+                            </span>
                           </td>
-                          <td
-                            className={`py-1 px-2 border-r border-neutral-300 dark:border-slate-700 text-center font-mono ${
-                              isSelected ? 'text-white' : 'text-neutral-800 dark:text-neutral-200'
-                            }`}
-                          >
-                            {comp._count?.products ?? 0}
-                          </td>
-                          <td className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 text-center">
+
+                          {/* Products Count */}
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
                             <span
-                              className={`px-1.5 py-0.2 rounded-xs font-bold text-[10px] ${
+                              className={`px-1.5 py-0.5 rounded-xs font-mono font-bold ${
                                 isSelected
-                                  ? comp.isActive
-                                    ? 'bg-emerald-400 text-neutral-900'
-                                    : 'bg-rose-400 text-neutral-900'
-                                  : comp.isActive
-                                  ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
-                                  : 'bg-neutral-200 dark:bg-slate-700 text-neutral-600 dark:text-neutral-400'
+                                  ? 'bg-blue-800 text-white'
+                                  : 'bg-neutral-100 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700'
+                              }`}
+                            >
+                              {comp._count?.products ?? 0}
+                            </span>
+                          </td>
+
+                          {/* Status */}
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
+                            <span
+                              className={`px-2 py-0.5 rounded-xs text-[10px] font-bold tracking-wider uppercase ${
+                                comp.isActive
+                                  ? isSelected
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                                  : isSelected
+                                  ? 'bg-rose-600 text-white'
+                                  : 'bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
                               }`}
                             >
                               {comp.isActive ? 'Active' : 'Inactive'}
                             </span>
                           </td>
-                          <td
-                            className={`py-1 px-2 border-r border-neutral-300 dark:border-slate-700 font-mono text-[11px] ${
-                              isSelected ? 'text-blue-100' : 'text-neutral-500'
-                            }`}
-                          >
-                            {comp.id.slice(0, 8).toUpperCase()}
+
+                          {/* System ID */}
+                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono text-[11px]">
+                            <span className={isSelected ? 'text-blue-200' : 'text-neutral-500'}>
+                              {comp.id.slice(0, 8).toUpperCase()}
+                            </span>
                           </td>
-                          <td className="py-1 px-2 text-center">
-                            <div className="flex items-center justify-center gap-1">
+
+                          {/* Action Buttons */}
+                          <td className="px-2 py-1 text-center">
+                            <div
+                              className="flex items-center justify-center gap-1.5"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <button
                                 type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleSelectCompany(comp);
-                                }}
-                                title="Edit in Form"
-                                className={`p-0.5 rounded cursor-pointer ${
+                                onClick={() => handleOpenEditModal(comp)}
+                                className={`p-1 rounded-xs border transition-colors cursor-pointer ${
                                   isSelected
-                                    ? 'text-white hover:bg-blue-700'
-                                    : 'text-emerald-700 dark:text-emerald-400 hover:bg-neutral-200'
+                                    ? 'bg-white text-blue-700 border-white hover:bg-blue-50'
+                                    : 'bg-white dark:bg-slate-800 text-[#006400] dark:text-emerald-400 border-neutral-300 dark:border-slate-700 hover:bg-emerald-50'
                                 }`}
+                                title="Edit company details"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
                               </button>
+                              {isAdmin && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCompany(comp)}
+                                  className={`p-1 rounded-xs border transition-colors cursor-pointer ${
+                                    isSelected
+                                      ? 'bg-white text-rose-700 border-white hover:bg-rose-50'
+                                      : 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 border-neutral-300 dark:border-slate-700 hover:bg-rose-50'
+                                  }`}
+                                  title="Delete company"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -804,45 +510,46 @@ export default function CompaniesPage() {
           </div>
 
           {/* Bottom Status / Summary Bar */}
-          <div className="bg-[#b0c8de] dark:bg-slate-800/90 px-3 py-1 border border-[#9fbcd6] dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono font-semibold text-neutral-800 dark:text-neutral-200 gap-1 shrink-0">
+          <div className="bg-[#b0c8de] dark:bg-slate-800/90 px-3 py-1.5 border border-[#9fbcd6] dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono font-semibold text-neutral-800 dark:text-neutral-200 gap-1 shrink-0">
             <div className="flex items-center gap-3">
               <span>
                 Total Records: <strong>{companies.length}</strong>
               </span>
               <span>•</span>
-              <span className="text-emerald-800 dark:text-emerald-300">
+              <span className="text-emerald-900 dark:text-emerald-300">
                 Active: <strong>{activeCount}</strong>
               </span>
               <span>•</span>
-              <span className="text-rose-800 dark:text-rose-300">
+              <span className="text-rose-900 dark:text-rose-400">
                 Inactive: <strong>{inactiveCount}</strong>
               </span>
             </div>
 
-            <div className="text-neutral-600 dark:text-neutral-400 text-[10px]">
+            <div className="flex items-center gap-3 text-neutral-700 dark:text-neutral-300">
               {selectedCompany ? (
-                <span>
-                  Selected: <strong>{selectedCompany.name}</strong> ({selectedCompany.code ? `#${selectedCompany.code}` : 'No code'})
+                <span className="bg-[#006400] text-white px-2 py-0.5 rounded-xs font-bold">
+                  Selected: {selectedCompany.name} {selectedCompany.code ? `[#${selectedCompany.code}]` : ''}
                 </span>
               ) : (
-                <span>Mode: Ready for New Brand Entry</span>
+                <span className="italic text-neutral-600 dark:text-neutral-400">
+                  Tip: Double-click a row or click Edit to modify details
+                </span>
               )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Standalone Draggable Company Modal (Available as Companion) */}
+      {/* Company Add / Edit Desktop Modal */}
       <CompanyModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        company={selectedCompany}
+        open={isCompanyModalOpen}
+        onOpenChange={setIsCompanyModalOpen}
+        company={modalCompany}
         onSuccess={() => {
           fetchCompanies();
-          fetchSuggestedCode();
         }}
         onDelete={() => {
-          handleReset();
+          setSelectedCompany(null);
           fetchCompanies();
         }}
       />
