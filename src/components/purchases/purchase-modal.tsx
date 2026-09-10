@@ -20,6 +20,7 @@ import { api } from '@/lib/api/client';
 import { useAuth } from '@/lib/context/auth-context';
 import { SupplierLookupModal } from '@/components/suppliers/supplier-lookup-modal';
 import { SupplierModal as AddSupplierModal } from '@/components/parties/supplier-modal';
+import { ProductLookupModal } from '@/components/products/product-lookup-modal';
 import { PremiumNumberInput } from '@/components/ui/number-input';
 
 export interface PurchaseLineItem {
@@ -97,6 +98,7 @@ export function PurchaseModal({
   const [itemCode, setItemCode] = useState(initialProductCode || '');
   const [debouncedCode, setDebouncedCode] = useState(initialProductCode || '');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [productLookupOpen, setProductLookupOpen] = useState(false);
   const [itemName, setItemName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [quantity, setQuantity] = useState<number | string>('');
@@ -310,6 +312,29 @@ export function PurchaseModal({
       setPurchaseRate('');
     }
   }, [dpRate, commission]);
+
+  // Handler for selecting product from ProductLookupModal
+  const handleSelectProductFromLookup = (p: Product) => {
+    setItemCode(p.sku);
+    setDebouncedCode(p.sku);
+    setSelectedProduct(p);
+    setItemName(p.name || '');
+    setCompanyName(p.company?.name || '');
+    setItemType(p.unit || 'Pieces');
+    const dp = p.dpRate ? Number(p.dpRate) : (p.costPrice ? Number(p.costPrice) : 0);
+    setDpRate(dp > 0 ? String(dp) : '');
+    const comm = p.commissionPercent ? Number(p.commissionPercent) : 0;
+    setCommission(comm > 0 ? String(comm) : '');
+    const pRate = p.costPrice ? Number(p.costPrice) : (dp > 0 ? dp : 0);
+    setPurchaseRate(pRate > 0 ? String(pRate) : '');
+    setQuantity('1');
+    setCodeSuccess(true);
+    setCodeWarning(null);
+    setBannerPrompt('Type Quantity . . .');
+    setActiveFocusedField('quantity');
+    setProductLookupOpen(false);
+    setTimeout(() => qtyInputRef.current?.focus(), 80);
+  };
 
   // Debounced Supplier Search (400ms)
   useEffect(() => {
@@ -738,8 +763,9 @@ export function PurchaseModal({
                     </div>
                     <button
                       type="button"
-                      onClick={() => setDebouncedCode(itemCode.trim())}
-                      disabled={isSaving || isSearchingProduct}
+                      onClick={() => setProductLookupOpen(true)}
+                      disabled={isSaving}
+                      title="Open Product Catalog to browse and select products"
                       className="h-6 px-3 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       View
@@ -1550,6 +1576,16 @@ export function PurchaseModal({
           </div>
         </div>
       </Dialog>
+
+      {/* Product Catalog Lookup Modal */}
+      <ProductLookupModal
+        open={productLookupOpen}
+        onOpenChange={setProductLookupOpen}
+        onSelectProduct={handleSelectProductFromLookup}
+        initialSearch={itemCode}
+        warehouseId={selectedWarehouseId || defaultWarehouseId}
+        title="Select Product for Purchase"
+      />
 
       {/* Supplier Directory Lookup Modal */}
       <SupplierLookupModal
