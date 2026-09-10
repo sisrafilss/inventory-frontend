@@ -26,6 +26,7 @@ export default function SalesListPage() {
 
   // Sale Details Modal
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+  const [highlightedSale, setHighlightedSale] = useState<Sale | null>(null);
 
   // Modals
   const [memoSale, setMemoSale] = useState<Sale | null>(null);
@@ -212,38 +213,43 @@ export default function SalesListPage() {
                   </tr>
                 ) : (
                   <>
-                    {sales.map((sale, idx) => (
+                    {sales.map((sale, idx) => {
+                      const isSelected = highlightedSale?.id === sale.id;
+                      return (
                       <tr
                         key={sale.id}
                         className={`transition-colors cursor-pointer ${
-                          idx % 2 === 0
-                            ? 'bg-white dark:bg-slate-900 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80'
-                            : 'bg-[#f4f8fc] dark:bg-slate-900/50 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80'
+                          isSelected
+                            ? 'bg-[#0056b3] text-white font-semibold'
+                            : idx % 2 === 0
+                            ? 'bg-white dark:bg-slate-900 hover:bg-[#c6d8ea]/50 dark:hover:bg-slate-800/80'
+                            : 'bg-[#f4f8fc] dark:bg-slate-900/50 hover:bg-[#c6d8ea]/50 dark:hover:bg-slate-800/80'
                         }`}
+                        onClick={() => setHighlightedSale(sale)}
                         onDoubleClick={() => setSelectedSale(sale)}
                         title="Double-click to view details"
                       >
-                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono text-neutral-500">{idx + 1}</td>
-                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-mono font-bold text-neutral-800 dark:text-neutral-100">{sale.referenceNumber}</td>
-                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-neutral-600 dark:text-neutral-400">{formatDate(sale.createdAt)}</td>
-                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-semibold text-neutral-900 dark:text-neutral-100">{sale.createdBy?.name || '—'}</td>
-                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-neutral-700 dark:text-neutral-300">
+                        <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono ${isSelected ? 'text-blue-200' : 'text-neutral-500'}`}>{idx + 1}</td>
+                        <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-mono font-bold ${isSelected ? 'text-white' : 'text-neutral-800 dark:text-neutral-100'}`}>{sale.referenceNumber}</td>
+                        <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 ${isSelected ? 'text-blue-100' : 'text-neutral-600 dark:text-neutral-400'}`}>{formatDate(sale.createdAt)}</td>
+                        <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-semibold ${isSelected ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'}`}>{sale.createdBy?.name || '—'}</td>
+                        <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 ${isSelected ? 'text-blue-100' : 'text-neutral-700 dark:text-neutral-300'}`}>
                           {sale.customerName ? (
                             <div className="flex flex-col">
-                              <span className="font-semibold text-neutral-900 dark:text-neutral-100">{sale.customerName}</span>
-                              {sale.customerPhone && <span className="text-[10px] text-neutral-500">{sale.customerPhone}</span>}
+                              <span className={`font-semibold ${isSelected ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'}`}>{sale.customerName}</span>
+                              {sale.customerPhone && <span className={`text-[10px] ${isSelected ? 'text-blue-200' : 'text-neutral-500'}`}>{sale.customerPhone}</span>}
                             </div>
                           ) : 'Walk-in Customer'}
                         </td>
-                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono text-neutral-700 dark:text-neutral-300">{sale.items?.length || 0}</td>
-                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-right font-mono font-bold text-neutral-900 dark:text-neutral-100">
+                        <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono ${isSelected ? 'text-blue-100' : 'text-neutral-700 dark:text-neutral-300'}`}>{sale.items?.length || 0}</td>
+                        <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-right font-mono font-bold ${isSelected ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'}`}>
                           ৳ {Number(sale.totalAmount).toFixed(2)}
                         </td>
                         <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
                           <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-bold uppercase border ${
                             sale.status === 'COMPLETED'
-                              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800'
-                              : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-800'
+                              ? (isSelected ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800')
+                              : (isSelected ? 'bg-rose-600 text-white border-rose-500' : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-800')
                           }`}>
                             {sale.status === 'COMPLETED' ? 'COMPLETED' : 'CANCELLED'}
                           </span>
@@ -253,14 +259,19 @@ export default function SalesListPage() {
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); setMemoSale(sale); setMemoOpen(true); }}
-                              className="h-6 px-2 bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-400 hover:bg-neutral-100 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                              className={`h-6 px-2 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer border ${
+                                isSelected
+                                  ? 'bg-white text-blue-700 border-white hover:bg-blue-50'
+                                  : 'bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border-neutral-400 hover:bg-neutral-100'
+                              }`}
                             >
                               <Printer className="w-3 h-3" /> Memo
                             </button>
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    );
+                  })}
                     {loadingMore && (
                       <tr>
                         <td colSpan={9} className="py-6 text-center text-neutral-500 font-medium">
@@ -291,8 +302,16 @@ export default function SalesListPage() {
                 Page: <strong>{page} / {meta.totalPages || 1}</strong>
               </span>
             </div>
-            <div className="text-neutral-600 dark:text-neutral-400 font-sans italic flex items-center gap-1.5">
-              <span>Tip: Click a row to view details, or click Memo to print receipt</span>
+            <div className="flex items-center gap-3 text-neutral-700 dark:text-neutral-300">
+              {highlightedSale ? (
+                <span className="bg-[#006400] text-white px-2 py-0.5 rounded-xs font-bold">
+                  Selected: {highlightedSale.referenceNumber}
+                </span>
+              ) : (
+                <span className="italic text-neutral-600 dark:text-neutral-400 font-sans">
+                  Tip: Double-click a row to view details
+                </span>
+              )}
             </div>
           </div>
         </div>

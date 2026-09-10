@@ -91,6 +91,8 @@ export default function ProductsPage() {
 
   const [loadingMore, setLoadingMore] = useState(false);
 
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
   const fetchProducts = async () => {
     try {
       if (page === 1) setLoading(true);
@@ -698,49 +700,58 @@ export default function ProductsPage() {
                     </tr>
                   ) : (
                     <>
-                      {products.map((p, idx) => (
+                      {products.map((p, idx) => {
+                        const isSelected = selectedProduct?.id === p.id;
+                        return (
                         <tr
                           key={p.id}
                           className={`transition-colors cursor-pointer ${
-                            idx % 2 === 0
-                              ? 'bg-white dark:bg-slate-900 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80'
-                              : 'bg-[#f4f8fc] dark:bg-slate-900/50 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80'
+                            isSelected
+                              ? 'bg-[#0056b3] text-white font-semibold'
+                              : idx % 2 === 0
+                              ? 'bg-white dark:bg-slate-900 hover:bg-[#c6d8ea]/50 dark:hover:bg-slate-800/80'
+                              : 'bg-[#f4f8fc] dark:bg-slate-900/50 hover:bg-[#c6d8ea]/50 dark:hover:bg-slate-800/80'
                           }`}
+                          onClick={() => setSelectedProduct(p)}
                           onDoubleClick={() => setViewProduct(p)}
                           title="Double-click to view details"
                         >
-                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono text-neutral-500">{idx + 1}</td>
-                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-mono font-bold text-neutral-800 dark:text-neutral-100">{p.sku}</td>
-                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-semibold text-neutral-900 dark:text-neutral-100">
+                          <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono ${isSelected ? 'text-blue-200' : 'text-neutral-500'}`}>{idx + 1}</td>
+                          <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-mono font-bold ${isSelected ? 'text-white' : 'text-neutral-800 dark:text-neutral-100'}`}>{p.sku}</td>
+                          <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-semibold ${isSelected ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'}`}>
                             {p.name}
                             {p.description && p.description !== 'None' && (
-                              <div className="text-[10px] text-neutral-500 font-normal truncate max-w-xs">{p.description}</div>
+                              <div className={`text-[10px] font-normal truncate max-w-xs ${isSelected ? 'text-blue-100' : 'text-neutral-500'}`}>{p.description}</div>
                             )}
                           </td>
-                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-neutral-600 dark:text-neutral-400">{p.company?.name || companies.find((c) => c.id === p.companyId)?.name || '—'}</td>
+                          <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 ${isSelected ? 'text-blue-100' : 'text-neutral-600 dark:text-neutral-400'}`}>{p.company?.name || companies.find((c) => c.id === p.companyId)?.name || '—'}</td>
                           {canManage && (
-                            <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-right font-mono text-neutral-600 dark:text-neutral-400">
+                            <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-right font-mono ${isSelected ? 'text-blue-100' : 'text-neutral-600 dark:text-neutral-400'}`}>
                               {p.costPrice !== undefined ? `৳ ${Number(p.costPrice).toFixed(2)}` : '—'}
                             </td>
                           )}
-                          <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-right font-mono font-bold text-neutral-900 dark:text-neutral-100">
+                          <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-right font-mono font-bold ${isSelected ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'}`}>
                             ৳ {Number(p.sellingPrice).toFixed(2)}
                           </td>
                           <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
                             <span className={`font-bold text-sm ${
-                              p.quantity <= 0 ? 'text-rose-600' : p.quantity <= p.reorderLevel ? 'text-amber-600' : 'text-neutral-900 dark:text-neutral-100'
+                              p.quantity <= 0
+                                ? (isSelected ? 'text-rose-300' : 'text-rose-600')
+                                : p.quantity <= p.reorderLevel
+                                ? (isSelected ? 'text-amber-300' : 'text-amber-600')
+                                : (isSelected ? 'text-white' : 'text-neutral-900 dark:text-neutral-100')
                             }`}>
                               {p.quantity}
                             </span>
-                            <span className="text-[10px] text-neutral-400 ml-1">{p.unit}</span>
+                            <span className={`text-[10px] ml-1 ${isSelected ? 'text-blue-200' : 'text-neutral-400'}`}>{p.unit}</span>
                           </td>
                           <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
                             <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-bold uppercase border ${
                               p.stockStatus === 'IN_STOCK'
-                                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800'
+                                ? (isSelected ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800')
                                 : p.stockStatus === 'LOW_STOCK'
-                                ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800'
-                                : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-800'
+                                ? (isSelected ? 'bg-amber-600 text-white border-amber-500' : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800')
+                                : (isSelected ? 'bg-rose-600 text-white border-rose-500' : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-800')
                             }`}>
                               {p.stockStatus === 'IN_STOCK' ? 'IN STOCK' : p.stockStatus === 'LOW_STOCK' ? 'LOW STOCK' : 'OUT OF STOCK'}
                             </span>
@@ -758,7 +769,8 @@ export default function ProductsPage() {
                             </td>
                           )}
                         </tr>
-                      ))}
+                      );
+                    })}
                       {loadingMore && (
                         <tr>
                           <td colSpan={canManage ? 9 : 7} className="py-6 text-center text-neutral-500 font-medium">
@@ -786,8 +798,16 @@ export default function ProductsPage() {
                   Page: <strong>{page} / {meta.totalPages || 1}</strong>
                 </span>
               </div>
-              <div className="text-neutral-600 dark:text-neutral-400 font-sans italic flex items-center gap-1.5">
-                <span>Tip: Click a row to view product details, or click Edit to modify</span>
+              <div className="flex items-center gap-3 text-neutral-700 dark:text-neutral-300">
+                {selectedProduct ? (
+                  <span className="bg-[#006400] text-white px-2 py-0.5 rounded-xs font-bold">
+                    Selected: {selectedProduct.name} {selectedProduct.sku ? `[#${selectedProduct.sku}]` : ''}
+                  </span>
+                ) : (
+                  <span className="italic text-neutral-600 dark:text-neutral-400 font-sans">
+                    Tip: Double-click a row to view product details
+                  </span>
+                )}
               </div>
             </div>
           </div>

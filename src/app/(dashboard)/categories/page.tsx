@@ -26,8 +26,9 @@ export default function CategoriesPage() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [modalCategory, setModalCategory] = useState<Category | null>(null);
 
-  // View Details Modal
+  // View Details Modal & Selection
   const [viewCategory, setViewCategory] = useState<Category | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
 
   const fetchCategories = async () => {
     try {
@@ -180,40 +181,53 @@ export default function CategoriesPage() {
                       </td>
                     </tr>
                   ) : (
-                    visibleCategories.map((cat, idx) => (
+                    visibleCategories.map((cat, idx) => {
+                      const isSelected = selectedCategory?.id === cat.id;
+                      return (
                       <tr
                         key={cat.id}
+                        onClick={() => setSelectedCategory(cat)}
                         onDoubleClick={() => setViewCategory(cat)}
                         title="Double-click to view details"
-                        className={`transition-colors hover:bg-[#c6d8ea]/50 dark:hover:bg-slate-800/80 cursor-pointer ${
-                          idx % 2 === 0
-                            ? 'bg-white dark:bg-slate-900'
-                            : 'bg-[#f4f8fc] dark:bg-slate-900/50'
+                        className={`transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#0056b3] text-white font-semibold'
+                            : idx % 2 === 0
+                            ? 'bg-white dark:bg-slate-900 hover:bg-[#c6d8ea]/50 dark:hover:bg-slate-800/80'
+                            : 'bg-[#f4f8fc] dark:bg-slate-900/50 hover:bg-[#c6d8ea]/50 dark:hover:bg-slate-800/80'
                         }`}
                       >
-                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono text-neutral-500">
+                        <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono ${isSelected ? 'text-blue-200' : 'text-neutral-500'}`}>
                           {idx + 1}
                         </td>
                         <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-semibold">
                           <div className="flex items-center gap-1.5">
-                            <Layers className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />
+                            <Layers className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-white' : 'text-emerald-700 dark:text-emerald-400'}`} />
                             <span>{cat.name}</span>
                           </div>
                         </td>
-                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-neutral-600 dark:text-neutral-400 truncate max-w-sm">
+                        <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 truncate max-w-sm ${isSelected ? 'text-blue-100' : 'text-neutral-600 dark:text-neutral-400'}`}>
                           {cat.description || '--'}
                         </td>
                         <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
-                          <span className="px-1.5 py-0.5 rounded-xs font-mono font-bold bg-neutral-100 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700">
+                          <span className={`px-1.5 py-0.5 rounded-xs font-mono font-bold border ${
+                            isSelected
+                              ? 'bg-blue-800 text-white border-blue-700'
+                              : 'bg-neutral-100 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-slate-700'
+                          }`}>
                             {cat._count?.products ?? 0}
                           </span>
                         </td>
                         <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
                           <span
-                            className={`px-2 py-0.5 rounded-xs text-[10px] font-bold tracking-wider uppercase ${
+                            className={`px-2 py-0.5 rounded-xs text-[10px] font-bold tracking-wider uppercase border ${
                               cat.isActive
-                                ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
-                                : 'bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
+                                ? isSelected
+                                  ? 'bg-emerald-600 text-white border-emerald-500'
+                                  : 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                                : isSelected
+                                ? 'bg-rose-600 text-white border-rose-500'
+                                : 'bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800'
                             }`}
                           >
                             {cat.isActive ? 'Active' : 'Inactive'}
@@ -223,15 +237,20 @@ export default function CategoriesPage() {
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); handleOpenEditModal(cat); }}
-                            className="p-1 rounded-xs border bg-white dark:bg-slate-800 text-[#006400] dark:text-emerald-400 border-neutral-300 dark:border-slate-700 hover:bg-emerald-50 transition-colors cursor-pointer"
+                            className={`p-1 rounded-xs border transition-colors cursor-pointer ${
+                              isSelected
+                                ? 'bg-white text-blue-700 border-white hover:bg-blue-50'
+                                : 'bg-white dark:bg-slate-800 text-[#006400] dark:text-emerald-400 border-neutral-300 dark:border-slate-700 hover:bg-emerald-50'
+                            }`}
                             title="Edit Category"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                         </td>
                       </tr>
-                    ))
-                  )}
+                    );
+                  })
+                )}
                 </tbody>
               </table>
             </div>
@@ -253,8 +272,16 @@ export default function CategoriesPage() {
               </span>
             </div>
             
-            <div className="text-neutral-600 dark:text-neutral-400 italic font-sans">
-              Tip: Categories are used to group products logically
+            <div className="flex items-center gap-3 text-neutral-700 dark:text-neutral-300">
+              {selectedCategory ? (
+                <span className="bg-[#006400] text-white px-2 py-0.5 rounded-xs font-bold">
+                  Selected: {selectedCategory.name}
+                </span>
+              ) : (
+                <span className="italic text-neutral-600 dark:text-neutral-400 font-sans">
+                  Tip: Double-click a row to view details
+                </span>
+              )}
             </div>
           </div>
         </div>
