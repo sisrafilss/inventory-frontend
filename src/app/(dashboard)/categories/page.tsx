@@ -1,36 +1,36 @@
 'use client';
-import { toast } from 'sonner';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '@/lib/api/client';
 import { useLanguage } from '@/lib/context/language-context';
 import { Category } from '@/lib/types';
-import { formatDate } from '@/lib/utils';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Layers, Plus, Search, Edit2 } from 'lucide-react';
+import { Layers, Plus, Edit2, Search } from 'lucide-react';
+import { CategoryModal } from '@/components/categories/category-modal';
 
 export default function CategoriesPage() {
   const { t } = useLanguage();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Filters
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL', 'ACTIVE', 'INACTIVE'
+  
+  // Virtual Pagination
+  const [page, setPage] = useState(1);
+  const limit = 30;
 
   // Create / Edit Modal
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [form, setForm] = useState({ name: '', description: '', isActive: true });
-  const [isSaving, setIsSaving] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [modalCategory, setModalCategory] = useState<Category | null>(null);
 
   const fetchCategories = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get<Category[]>('/categories', { search });
+      // Backend does not natively paginate categories currently, it returns all
+      const res = await api.get<Category[]>('/categories');
       setCategories(res.data);
     } catch (err: any) {
       setError(err.message || 'Failed to load categories.');
@@ -43,198 +43,223 @@ export default function CategoriesPage() {
     fetchCategories();
   }, []);
 
-  const handleOpenCreate = () => {
-    setEditingCategory(null);
-    setForm({ name: '', description: '', isActive: true });
-    setModalOpen(true);
-  };
+  // Filter Categories
+  const filteredCategories = useMemo(() => {
+    return categories.filter((cat) => {
+      if (statusFilter === 'ACTIVE' && !cat.isActive) return false;
+      if (statusFilter === 'INACTIVE' && cat.isActive) return false;
+      if (!search.trim()) return true;
 
-  const handleOpenEdit = (cat: Category) => {
-    setEditingCategory(cat);
-    setForm({
-      name: cat.name,
-      description: cat.description || '',
-      isActive: cat.isActive,
+      const q = search.toLowerCase().trim();
+      const matchName = cat.name.toLowerCase().includes(q);
+      const matchDesc = cat.description?.toLowerCase().includes(q) || false;
+      return matchName || matchDesc;
     });
-    setModalOpen(true);
-  };
+  }, [categories, statusFilter, search]);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-    try {
-      if (editingCategory) {
-        await api.patch(`/categories/${editingCategory.id}`, form);
-      } else {
-        await api.post('/categories', form);
-      }
-      setModalOpen(false);
-      await fetchCategories();
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to save category.');
-    } finally {
-      setIsSaving(false);
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter]);
+
+  const handleTableScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 50 && page * limit < filteredCategories.length) {
+      setPage((p) => p + 1);
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Layers className="w-6 h-6 text-primary" /> {t('categories.title')}
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {t('categories.subtitle')}
-          </p>
-        </div>
+  const visibleCategories = filteredCategories.slice(0, page * limit);
+  const activeCount = categories.filter((c) => c.isActive).length;
+  const inactiveCount = categories.length - activeCount;
 
-        <Button onClick={handleOpenCreate} className="gap-2">
-          <Plus className="w-4 h-4" /> {t('categories.addCategory')}
-        </Button>
+  const handleOpenCreateModal = () => {
+    setModalCategory(null);
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleOpenEditModal = (cat: Category) => {
+    setModalCategory(cat);
+    setIsCategoryModalOpen(true);
+  };
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden bg-neutral-100 dark:bg-slate-950 font-sans">
+      {/* Top Header Banner */}
+      <div className="bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-between shrink-0 select-none">
+        <div className="flex items-center gap-2">
+          <Layers className="w-5 h-5 text-emerald-300" />
+          <h1 className="text-sm font-bold text-white tracking-wide uppercase">
+            Product Categories
+          </h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleOpenCreateModal}
+            className="h-6 px-3 bg-[#e6f2ff] text-[#006400] font-bold text-[11px] uppercase tracking-wider rounded-none hover:bg-white transition-colors border border-transparent hover:border-[#006400] flex items-center gap-1 shadow-sm"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add Category
+          </button>
+        </div>
       </div>
 
-      {/* Search */}
-      <Card className="p-4">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            fetchCategories();
-          }}
-          className="flex gap-2"
-        >
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
-            <Input
-              placeholder={t('categories.searchPlaceholder')}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 text-xs h-9"
-            />
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-2 sm:p-3 gap-3">
+        {/* Filter Bar */}
+        <div className="bg-[#c6d8ea] dark:bg-slate-800/80 p-2 border border-[#9fbcd6] dark:border-slate-700 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-64">
+              <Search className="w-4 h-4 absolute left-2 top-1 text-neutral-500" />
+              <input
+                type="text"
+                placeholder="Search categories..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full h-6 pl-8 pr-2 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-[#006400]"
+              />
+            </div>
+            
+            <div className="flex items-center gap-1.5 ml-2 border-l border-neutral-400 dark:border-slate-600 pl-2">
+              <span className="text-[11px] font-semibold text-neutral-700 dark:text-neutral-300">Status:</span>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="h-6 px-1.5 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-[#006400]"
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="ACTIVE">Active Only</option>
+                <option value="INACTIVE">Inactive Only</option>
+              </select>
+            </div>
           </div>
-          <Button type="submit" size="sm" variant="secondary" className="text-xs">
-            {t('common.search')}
-          </Button>
-        </form>
-      </Card>
+          
+          <div className="text-[11px] text-neutral-600 dark:text-neutral-400 font-semibold px-2">
+             Press <kbd className="bg-white dark:bg-slate-700 px-1 border border-neutral-300 dark:border-slate-600 rounded">F5</kbd> to refresh
+          </div>
+        </div>
 
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="p-12 text-center text-xs text-muted-foreground">{t('common.loading')}</div>
-          ) : error ? (
-            <div className="p-6 text-center text-xs text-destructive">{error}</div>
-          ) : categories.length === 0 ? (
-            <div className="p-12 text-center text-xs text-muted-foreground">{t('categories.noCategories')}</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs min-w-[550px]">
-                <thead className="bg-muted/30 border-b text-muted-foreground">
-                  <tr className="text-left font-semibold">
-                    <th className="p-3">{t('categories.categoryName')}</th>
-                    <th className="p-3">{t('products.description')}</th>
-                    <th className="p-3">{t('categories.assignedProducts')}</th>
-                    <th className="p-3">{t('common.status')}</th>
-                    <th className="p-3">{t('users.created')}</th>
-                    <th className="p-3 text-right">{t('common.actions')}</th>
+        {/* Categories Table Container */}
+        <div className="flex-1 flex flex-col border border-[#800000] dark:border-rose-900/50 bg-[#eaf1f8] dark:bg-slate-900 overflow-hidden shadow-md">
+          
+          {/* Error Message */}
+          {error && (
+            <div className="bg-rose-100 text-rose-800 p-2 text-xs font-bold text-center border-b border-rose-200">
+              {error}
+            </div>
+          )}
+
+          {/* Desktop Spreadsheet Data Grid */}
+          <div className="flex-1 min-h-[300px] flex flex-col border-b border-neutral-400 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shadow-inner">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto flex flex-col" onScroll={handleTableScroll}>
+              <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
+                <thead className="sticky top-0 bg-[#eaf1f8] dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border-b border-neutral-400 dark:border-slate-700 font-bold select-none text-xs z-10">
+                  <tr>
+                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-12 text-center">SN</th>
+                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-64">Category Name</th>
+                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5">Description</th>
+                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32 text-center">Products Count</th>
+                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center">Status</th>
+                    <th className="px-3 py-1.5 w-16 text-center">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
-                  {categories.map((cat) => (
-                    <tr key={cat.id} className="hover:bg-muted/40">
-                      <td className="p-3 font-semibold text-foreground">{cat.name}</td>
-                      <td className="p-3 text-muted-foreground">{cat.description || '—'}</td>
-                      <td className="p-3 font-medium">
-                        {cat._count?.products || 0}
-                      </td>
-                      <td className="p-3">
-                        <Badge
-                          variant={cat.isActive ? 'success' : 'secondary'}
-                          className="text-[10px] uppercase font-bold"
-                        >
-                          {cat.isActive ? t('statuses.ACTIVE') : t('statuses.INACTIVE')}
-                        </Badge>
-                      </td>
-                      <td className="p-3 text-muted-foreground">{cat.createdAt ? formatDate(cat.createdAt) : '—'}</td>
-                      <td className="p-3 text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs"
-                          onClick={() => handleOpenEdit(cat)}
-                        >
-                          <Edit2 className="w-3 h-3 mr-1" /> {t('common.edit')}
-                        </Button>
+                <tbody className="text-neutral-800 dark:text-neutral-200">
+                  {loading && visibleCategories.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-neutral-500 font-medium">
+                        Loading categories...
                       </td>
                     </tr>
-                  ))}
+                  ) : visibleCategories.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-neutral-500 font-medium">
+                        No categories found matching criteria.
+                      </td>
+                    </tr>
+                  ) : (
+                    visibleCategories.map((cat, idx) => (
+                      <tr
+                        key={cat.id}
+                        className={`transition-colors hover:bg-[#c6d8ea]/50 dark:hover:bg-slate-800/80 cursor-default ${
+                          idx % 2 === 0
+                            ? 'bg-white dark:bg-slate-900'
+                            : 'bg-[#f4f8fc] dark:bg-slate-900/50'
+                        }`}
+                      >
+                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono text-neutral-500">
+                          {idx + 1}
+                        </td>
+                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-semibold">
+                          <div className="flex items-center gap-1.5">
+                            <Layers className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />
+                            <span>{cat.name}</span>
+                          </div>
+                        </td>
+                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-neutral-600 dark:text-neutral-400 truncate max-w-sm">
+                          {cat.description || '--'}
+                        </td>
+                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
+                          <span className="px-1.5 py-0.5 rounded-xs font-mono font-bold bg-neutral-100 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700">
+                            {cat._count?.products ?? 0}
+                          </span>
+                        </td>
+                        <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
+                          <span
+                            className={`px-2 py-0.5 rounded-xs text-[10px] font-bold tracking-wider uppercase ${
+                              cat.isActive
+                                ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                                : 'bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
+                            }`}
+                          >
+                            {cat.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td className="px-2 py-1 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditModal(cat)}
+                            className="p-1 rounded-xs border bg-white dark:bg-slate-800 text-[#006400] dark:text-emerald-400 border-neutral-300 dark:border-slate-700 hover:bg-emerald-50 transition-colors cursor-pointer"
+                            title="Edit Category"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Create / Edit Dialog */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogHeader>
-          <DialogTitle>{editingCategory ? t('categories.editCategory') : t('categories.addCategory')}</DialogTitle>
-          <DialogDescription>
-            {editingCategory
-              ? t('categories.subtitle')
-              : t('categories.addCategory')}
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSave} className="space-y-3.5">
-          <div className="space-y-1">
-            <label className="text-xs font-semibold">{t('categories.categoryName')} *</label>
-            <Input
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              required
-            />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-semibold">{t('products.description')}</label>
-            <Input
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="e.g. Beverages, Electronics"
-            />
+          {/* Bottom Status / Summary Bar */}
+          <div className="bg-[#b0c8de] dark:bg-slate-800/90 px-3 py-1.5 border-t border-[#9fbcd6] dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono font-semibold text-neutral-800 dark:text-neutral-200 gap-1 shrink-0">
+            <div className="flex items-center gap-3">
+              <span className="text-blue-900 dark:text-blue-300">
+                Loaded <strong>{visibleCategories.length}</strong> total of <strong>{filteredCategories.length}</strong>
+              </span>
+              <span>•</span>
+              <span className="text-emerald-900 dark:text-emerald-300">
+                Active: <strong>{activeCount}</strong>
+              </span>
+              <span>•</span>
+              <span className="text-rose-900 dark:text-rose-400">
+                Inactive: <strong>{inactiveCount}</strong>
+              </span>
+            </div>
+            
+            <div className="text-neutral-600 dark:text-neutral-400 italic font-sans">
+              Tip: Categories are used to group products logically
+            </div>
           </div>
+        </div>
+      </div>
 
-          <div className="flex items-center gap-2 pt-2">
-            <input
-              type="checkbox"
-              id="isActive"
-              checked={form.isActive}
-              onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-              className="rounded border-input text-primary"
-            />
-            <label htmlFor="isActive" className="text-xs font-medium cursor-pointer">
-              {t('categories.activeCategory')}
-            </label>
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setModalOpen(false)}
-              disabled={isSaving}
-            >
-              {t('common.cancel')}
-            </Button>
-            <Button type="submit" size="sm" disabled={isSaving}>
-              {isSaving ? t('common.submitting') : t('categories.saveCategory')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </Dialog>
+      <CategoryModal
+        open={isCategoryModalOpen}
+        onOpenChange={setIsCategoryModalOpen}
+        category={modalCategory}
+        onSuccess={() => fetchCategories()}
+      />
     </div>
   );
 }
