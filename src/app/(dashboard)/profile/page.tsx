@@ -2,38 +2,29 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/lib/context/auth-context';
-import { useLanguage } from '@/lib/context/language-context';
 import { api } from '@/lib/api/client';
 import { formatDate } from '@/lib/utils';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { User, KeyRound, Lock, CheckCircle2, AlertCircle, Shield } from 'lucide-react';
+import { toast } from 'sonner';
+import { User, KeyRound, CheckCircle2, AlertTriangle, Shield, Save, Loader2, Info } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth();
-  const { t } = useLanguage();
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setSuccess(false);
 
     if (newPassword !== confirmPassword) {
-      setError(t('auth.passwordsDoNotMatch'));
+      toast.error('Passwords do not match.');
       return;
     }
 
     if (newPassword.length < 6) {
-      setError(t('auth.passwordLengthError'));
+      toast.error('Password must be at least 6 characters.');
       return;
     }
 
@@ -44,13 +35,13 @@ export default function ProfilePage() {
         newPassword,
       });
 
-      setSuccess(true);
+      toast.success('Password updated successfully!');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       await refreshUser();
     } catch (err: any) {
-      setError(err.message || t('profile.updatePassword'));
+      toast.error(err.message || 'Failed to update password');
     } finally {
       setIsUpdating(false);
     }
@@ -59,146 +50,134 @@ export default function ProfilePage() {
   if (!user) return null;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-          <User className="w-6 h-6 text-primary" /> {t('profile.title')}
-        </h2>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          {t('profile.subtitle')}
-        </p>
-      </div>
+    <div className="w-full h-full flex-1 min-h-0 flex flex-col items-center py-6 overflow-auto custom-scrollbar">
+      <div className="w-full max-w-4xl flex flex-col border border-[#004d00] dark:border-emerald-900 rounded-xs bg-[#c6d8ea] dark:bg-slate-900 shadow-sm overflow-hidden select-none">
+        
+        {/* Dark Green Banner Header */}
+        <div className="bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 border-b border-[#004d00] dark:border-emerald-900 flex flex-wrap items-center justify-between shrink-0 gap-2">
+          <div className="flex items-center gap-2 text-white">
+            <User className="w-5 h-5 text-emerald-200" />
+            <h1 className="text-lg font-bold tracking-wide">My Profile & Security</h1>
+          </div>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Profile Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base font-bold">{t('profile.accountInfo')}</CardTitle>
-            <CardDescription className="text-xs">{t('profile.accountInfoDesc')}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 text-xs">
-            <div className="flex items-center gap-3 pb-3 border-b">
-              <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-lg uppercase">
-                {user.name?.slice(0, 2) || 'U'}
-              </div>
-              <div>
-                <h3 className="font-bold text-sm text-foreground">{user.name}</h3>
-                <p className="text-muted-foreground">{user.email}</p>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-0 divide-y md:divide-y-0 md:divide-x divide-[#9fbcd6] dark:divide-slate-700 bg-white dark:bg-slate-950 flex-1">
+          
+          {/* Profile Details Panel */}
+          <div className="p-4 bg-[#f4f8fc] dark:bg-slate-900/50">
+            <div className="flex items-center gap-2 border-b border-neutral-300 dark:border-slate-700 pb-2 mb-4">
+              <Info className="w-4 h-4 text-[#0056b3]" />
+              <h3 className="text-sm font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Account Information</h3>
             </div>
-
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div>
-                <span className="text-muted-foreground block text-[10px]">{t('users.role')}</span>
-                <Badge variant="default" className="text-[10px] uppercase font-bold mt-0.5">
-                  <Shield className="w-3 h-3 mr-1 inline" />
-                  {user.role === 'SUPER_ADMIN'
-                    ? t('roles.SUPER_ADMIN')
-                    : user.role === 'ADMIN'
-                    ? t('roles.ADMIN')
-                    : t('roles.MANAGER')}
-                </Badge>
+            
+            <div className="flex items-center gap-4 pb-4">
+              <div className="w-16 h-16 bg-white dark:bg-slate-800 border-2 border-[#004d00] dark:border-emerald-800 text-[#006400] dark:text-emerald-400 flex items-center justify-center font-bold text-2xl uppercase shadow-sm">
+                {user.name?.slice(0, 2) || 'US'}
               </div>
-
-              <div>
-                <span className="text-muted-foreground block text-[10px]">{t('users.status')}</span>
-                <Badge variant="success" className="text-[10px] uppercase font-bold mt-0.5">
-                  {user.status === 'ACTIVE'
-                    ? t('statuses.active')
-                    : user.status === 'PENDING'
-                    ? t('statuses.pending')
-                    : t('statuses.inactive')}
-                </Badge>
-              </div>
-
-              <div>
-                <span className="text-muted-foreground block text-[10px]">{t('users.phone')}</span>
-                <span className="font-medium text-foreground">{user.phone || '—'}</span>
-              </div>
-
-              <div>
-                <span className="text-muted-foreground block text-[10px]">{t('users.address')}</span>
-                <span className="font-medium text-foreground">{user.address || '—'}</span>
-              </div>
-
-              <div className="col-span-2">
-                <span className="text-muted-foreground block text-[10px]">{t('profile.lastLogin')}</span>
-                <span className="font-medium text-foreground">
-                  {user.lastLoginAt ? formatDate(user.lastLoginAt) : t('profile.activeSession')}
+              <div className="flex flex-col">
+                <span className="text-lg font-bold text-neutral-900 dark:text-neutral-100 leading-tight">{user.name}</span>
+                <span className="text-xs text-neutral-600 dark:text-neutral-400 font-mono mt-0.5">{user.email}</span>
+                <span className="inline-flex items-center gap-1 mt-1.5 bg-[#0056b3] text-white px-2 py-0.5 rounded-xs text-[10px] font-bold uppercase w-fit">
+                  <Shield className="w-3 h-3" />
+                  {user.role.replace('_', ' ')}
                 </span>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Change Password Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base font-bold flex items-center gap-2">
-              <KeyRound className="w-4 h-4 text-primary" /> {t('profile.updatePassword')}
-            </CardTitle>
-            <CardDescription className="text-xs">
-              {t('profile.updatePasswordDesc')}
-            </CardDescription>
-          </CardHeader>
-          <form onSubmit={handlePasswordChange}>
-            <CardContent className="space-y-3 text-xs">
-              {error && (
-                <div className="p-2.5 bg-destructive/15 border border-destructive/30 rounded-lg flex items-start gap-2 text-destructive font-medium">
-                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
+            <table className="w-full text-xs text-left border-collapse border border-neutral-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+              <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
+                <tr>
+                  <th className="p-2 border-r border-neutral-300 dark:border-slate-700 bg-neutral-100 dark:bg-slate-800 w-32 font-bold text-neutral-700 dark:text-neutral-300">Status</th>
+                  <td className="p-2 font-mono font-semibold text-emerald-700 dark:text-emerald-400">
+                    {user.status}
+                  </td>
+                </tr>
+                <tr>
+                  <th className="p-2 border-r border-neutral-300 dark:border-slate-700 bg-neutral-100 dark:bg-slate-800 font-bold text-neutral-700 dark:text-neutral-300">Phone</th>
+                  <td className="p-2 font-mono font-semibold">{user.phone || '—'}</td>
+                </tr>
+                <tr>
+                  <th className="p-2 border-r border-neutral-300 dark:border-slate-700 bg-neutral-100 dark:bg-slate-800 font-bold text-neutral-700 dark:text-neutral-300">Address</th>
+                  <td className="p-2">{user.address || '—'}</td>
+                </tr>
+                <tr>
+                  <th className="p-2 border-r border-neutral-300 dark:border-slate-700 bg-neutral-100 dark:bg-slate-800 font-bold text-neutral-700 dark:text-neutral-300">Last Login</th>
+                  <td className="p-2 font-mono">{user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Current Session'}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
-              {success && (
-                <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-2 text-emerald-800 font-medium">
-                  <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
-                  <span>Password updated successfully!</span>
-                </div>
-              )}
+          {/* Change Password Panel */}
+          <div className="p-4 bg-white dark:bg-slate-950">
+            <div className="flex items-center gap-2 border-b border-neutral-300 dark:border-slate-700 pb-2 mb-4">
+              <KeyRound className="w-4 h-4 text-rose-700" />
+              <h3 className="text-sm font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Change Password</h3>
+            </div>
+            
+            <form onSubmit={handlePasswordChange} className="space-y-4">
+              <div className="bg-[#fffdf0] dark:bg-amber-950/20 border border-amber-300 dark:border-amber-700 p-2.5 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2 shadow-sm rounded-xs">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+                <p>Ensure your new password is strong. It should be at least 6 characters long.</p>
+              </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-foreground">{t('auth.currentPassword')}</label>
-                <Input
+                <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
+                  Current Password <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  required
                   type="password"
-                  placeholder="••••••••"
+                  placeholder="Enter current password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  required
+                  className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-foreground">{t('auth.newPassword')}</label>
-                <Input
+                <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
+                  New Password <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  required
                   type="password"
                   placeholder="Min. 6 characters"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  required
+                  className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-foreground">{t('auth.confirmNewPassword')}</label>
-                <Input
+                <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
+                  Confirm New Password <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  required
                   type="password"
                   placeholder="Repeat new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
+                  className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
                 />
               </div>
-            </CardContent>
-            <CardFooter className="pt-2">
-              <Button type="submit" size="sm" className="w-full font-semibold" disabled={isUpdating}>
-                {isUpdating ? '...' : t('profile.changePasswordBtn')}
-              </Button>
-            </CardFooter>
-          </form>
-        </Card>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isUpdating || !currentPassword || !newPassword || !confirmPassword}
+                  className="w-full h-9 bg-rose-700 hover:bg-rose-800 text-white border border-rose-900 font-bold text-[11px] uppercase tracking-wider shadow-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:bg-neutral-500 disabled:border-neutral-600"
+                >
+                  {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {isUpdating ? 'Updating...' : 'Update Password'}
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-
