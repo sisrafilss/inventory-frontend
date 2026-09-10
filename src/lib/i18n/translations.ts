@@ -3,8 +3,8 @@ export type Language = "en" | "bn";
 export const translations = {
   en: {
     common: {
-      appName: "Inventory Pro",
-      appSubtitle: "Management MVP",
+      appName: "ProStock ERP",
+      appSubtitle: "Inventory & Accounts Solution",
       search: "Search",
       filter: "Filter",
       save: "Save",
@@ -558,8 +558,8 @@ export const translations = {
   },
   bn: {
     common: {
-      appName: "ইনভেন্টরি প্রো",
-      appSubtitle: "ব্যবস্থাপনা সিস্টেম",
+      appName: "প্রোস্টক ইআরপি",
+      appSubtitle: "ইনভেন্টরি ও হিসাব সলিউশন",
       search: "অনুসন্ধান",
       filter: "ফিল্টার",
       save: "সংরক্ষণ করুন",

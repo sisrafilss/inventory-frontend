@@ -546,11 +546,20 @@ export default function DashboardPage() {
 
           <div className="flex items-center gap-3">
             <span>
-              CURRENCY: <span className="font-bold">BDT (৳)</span>
+              DEV: <span className="font-bold text-neutral-900 dark:text-neutral-100">ISRAFIL HOSSEN</span>
             </span>
             <span>•</span>
-            <span className="text-neutral-500 hidden sm:inline">
-              CLASSIC ERP UI SYSTEM
+            <a
+              href="https://wa.me/8801521410415"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-emerald-700 dark:text-emerald-400 hover:underline font-bold"
+            >
+              WA: 01521410415
+            </a>
+            <span>•</span>
+            <span>
+              CURRENCY: <span className="font-bold">BDT (৳)</span>
             </span>
           </div>
         </div>

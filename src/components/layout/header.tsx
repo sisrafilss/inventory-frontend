@@ -6,7 +6,8 @@ import { useLanguage } from '@/lib/context/language-context';
 import { Badge } from '../ui/badge';
 import { LanguageSwitcher } from '../ui/language-switcher';
 import { ThemeSwitcher } from '../ui/theme-switcher';
-import { Menu, LogOut, Shield, Building2 } from 'lucide-react';
+import { Menu, LogOut, Shield, Phone } from 'lucide-react';
+import { AppLogo } from '@/components/ui/app-logo';
 
 interface HeaderProps {
   onOpenMobileMenu: () => void;
@@ -31,8 +32,8 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
         </button>
 
         <div className="flex items-center gap-2">
-          <span className="text-base font-bold text-white tracking-wide flex items-center gap-1.5">
-            <Building2 className="w-4 h-4 text-emerald-300" />
+          <AppLogo size="sm" showText={false} />
+          <span className="text-sm sm:text-base font-bold text-white tracking-wide flex items-center gap-1.5">
             <span className="hidden sm:inline">{t('common.appName')} — {t('common.appSubtitle')}</span>
             <span className="sm:hidden">{t('common.appName')}</span>
           </span>
@@ -41,6 +42,20 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
 
       {/* Right: Controls & User Status */}
       <div className="flex items-center gap-1.5 sm:gap-2">
+        {/* Developer WhatsApp Chip */}
+        <a
+          href="https://wa.me/8801521410415"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hidden md:flex items-center gap-1.5 px-2 py-0.5 rounded-xs bg-[#003800] hover:bg-[#002800] border border-emerald-600/50 text-emerald-200 hover:text-white text-[10.5px] font-mono transition-colors shadow-xs"
+          title="Contact Developer Israfil Hossen on WhatsApp"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-neutral-300">Dev:</span>
+          <span className="font-bold text-white">Israfil Hossen</span>
+          <span className="text-emerald-400 font-bold">(01521410415)</span>
+        </a>
+
         {/* Theme Switcher Button */}
         <ThemeSwitcher size="sm" />
 

@@ -12,7 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { ThemeSwitcher } from '@/components/ui/theme-switcher';
-import { Lock, Mail, AlertCircle } from 'lucide-react';
+import { Lock, Mail, AlertCircle, Phone } from 'lucide-react';
+import { AppLogo } from '@/components/ui/app-logo';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -69,9 +70,7 @@ export default function LoginPage() {
         <div className="h-1.5 w-full bg-[#006400] dark:bg-emerald-600" />
 
         <CardHeader className="text-center space-y-1">
-          <div className="w-12 h-12 rounded-xl bg-[#006400] dark:bg-emerald-700 text-white flex items-center justify-center mx-auto mb-2 font-bold text-xl shadow-md border border-[#004d00] dark:border-emerald-800">
-            I
-          </div>
+          <AppLogo size="lg" className="justify-center mb-1" />
           <CardTitle className="text-2xl font-bold">{t('auth.signIn')}</CardTitle>
           <CardDescription>
             {t('auth.signInDesc')}
@@ -137,6 +136,22 @@ export default function LoginPage() {
           </CardFooter>
         </form>
       </Card>
+
+      {/* Developer & Contact Credit Footer */}
+      <div className="mt-6 text-center space-y-1 select-none">
+        <p className="text-xs font-semibold text-neutral-600 dark:text-neutral-400">
+          Developed by <span className="font-bold text-neutral-900 dark:text-neutral-100">Israfil Hossen</span>
+        </p>
+        <a
+          href="https://wa.me/8801521410415"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#006400] dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-mono transition-colors"
+        >
+          <Phone className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+          <span>Contact: 01521410415 (WhatsApp)</span>
+        </a>
+      </div>
     </div>
   );
 }

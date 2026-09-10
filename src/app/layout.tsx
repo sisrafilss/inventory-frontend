@@ -6,8 +6,13 @@ import { ThemeProvider } from '@/lib/context/theme-context';
 import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
-  title: 'Inventory Management System',
-  description: 'Production-minded MVP Inventory and Sales Management Application',
+  title: 'ProStock ERP — Inventory & Distribution Management System',
+  description: 'Enterprise Inventory, Warehouse & Sales Management System. Developed by Israfil Hossen.',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 };
 
 const themeScript = `

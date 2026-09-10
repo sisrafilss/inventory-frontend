@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="gradBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#006400"/>
+      <stop offset="100%" stop-color="#003800"/>
+    </linearGradient>
+    <linearGradient id="topFacet" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+    <linearGradient id="leftFacet" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+    <linearGradient id="rightFacet" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#065f46"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#gradBg)"/>
+  <rect x="1" y="1" width="62" height="62" rx="13" fill="none" stroke="#34d399" stroke-width="2" stroke-opacity="0.4"/>
+  <polygon points="32,13 50,22 32,31 14,22" fill="url(#topFacet)"/>
+  <polygon points="14,22 32,31 32,50 14,41" fill="url(#leftFacet)"/>
+  <polygon points="32,31 50,22 50,41 32,50" fill="url(#rightFacet)"/>
+  <line x1="32" y1="31" x2="32" y2="50" stroke="#003800" stroke-width="1.5" stroke-opacity="0.6"/>
+  <line x1="32" y1="31" x2="50" y2="22" stroke="#003800" stroke-width="1" stroke-opacity="0.3"/>
+  <line x1="32" y1="31" x2="14" y2="22" stroke="#003800" stroke-width="1" stroke-opacity="0.3"/>
+  <path d="M27,22 L34,17 L36,24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
