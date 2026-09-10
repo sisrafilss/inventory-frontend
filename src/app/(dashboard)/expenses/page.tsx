@@ -1,15 +1,13 @@
 'use client';
+import React, { useEffect, useState, useMemo } from 'react';
 import { toast } from 'sonner';
-
-import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api/client';
 import { Expense } from '@/lib/types';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Receipt, Plus, Search, Calendar, DollarSign, Tag, Trash2 } from 'lucide-react';
+import { formatDate } from '@/lib/utils';
+import { Dialog } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Receipt, Plus, Search, Calendar, DollarSign, Tag, Trash2, Edit2, Loader2, AlertCircle, X, HelpCircle } from 'lucide-react';
+import { useAuth } from '@/lib/context/auth-context';
 
 const CATEGORIES = [
   { value: 'ALL', label: 'All Categories' },
@@ -24,328 +22,660 @@ const CATEGORIES = [
 ];
 
 export default function ExpensesPage() {
+  const { user } = useAuth();
+  const canManage = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'MANAGER';
+
+  // Data & Pagination
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(30);
+  const [meta, setMeta] = useState({ total: 0, totalPages: 1, totalAmount: 0 });
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // Filters
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  // Add modal
-  const [modalOpen, setModalOpen] = useState(false);
+  // Selection & View Modal
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+  const [viewExpense, setViewExpense] = useState<Expense | null>(null);
+
+  // Add / Edit Modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [form, setForm] = useState({
     title: '',
     category: 'UTILITY',
-    amount: 0,
+    amount: '' as number | string,
     date: new Date().toISOString().split('T')[0],
     note: '',
   });
+
   const [isSaving, setIsSaving] = useState(false);
+  const [showConfirmSave, setShowConfirmSave] = useState(false);
+  
+  // Delete
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
+
+  // Debounce search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [selectedCategory, startDate, endDate]);
 
   const fetchExpenses = async () => {
     try {
-      setLoading(true);
+      if (page === 1) setLoading(true);
+      else setLoadingMore(true);
+      
+      setError(null);
       const res = await api.get<Expense[]>('/expenses', {
-        search,
+        page,
+        limit,
+        search: debouncedSearch || undefined,
         category: selectedCategory !== 'ALL' ? selectedCategory : undefined,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
       });
-      setExpenses(res.data);
-    } catch (err) {
-      console.error('Failed to load expenses:', err);
+      
+      if (page === 1) {
+        setExpenses(res.data);
+      } else {
+        setExpenses((prev) => [...prev, ...res.data]);
+      }
+      
+      if (res.meta) {
+        setMeta({
+          total: res.meta.total || 0,
+          totalPages: res.meta.totalPages || 1,
+          totalAmount: (res.meta as any).totalAmount || 0,
+        });
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load expenses.');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
     fetchExpenses();
-  }, [selectedCategory]);
+  }, [page, limit, debouncedSearch, selectedCategory, startDate, endDate]);
 
-  const totalExpenseAmount = expenses.reduce((acc, e) => acc + Number(e.amount), 0);
+  const handleTableScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 50 && !loading && !loadingMore && page < meta.totalPages) {
+      setPage((p) => p + 1);
+    }
+  };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleOpenAdd = () => {
+    setEditingExpense(null);
+    setForm({
+      title: '',
+      category: 'UTILITY',
+      amount: '',
+      date: new Date().toISOString().split('T')[0],
+      note: '',
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (exp: Expense) => {
+    setEditingExpense(exp);
+    setForm({
+      title: exp.title,
+      category: exp.category,
+      amount: Number(exp.amount),
+      date: new Date(exp.date).toISOString().split('T')[0],
+      note: exp.note || '',
+    });
+    setIsModalOpen(true);
+  };
+
+  const validateAndConfirm = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title.trim() || form.amount <= 0) {
-      toast.warning('Please provide a valid title and amount greater than 0.');
+    if (!form.title || !form.amount || Number(form.amount) <= 0) {
+      toast.error('Please enter a valid title and amount.');
       return;
     }
+    setShowConfirmSave(true);
+  };
+
+  const executeSave = async () => {
+    setShowConfirmSave(false);
     setIsSaving(true);
     try {
-      await api.post('/expenses', {
+      const payload = {
         ...form,
         amount: Number(form.amount),
         date: form.date ? new Date(form.date).toISOString() : undefined,
-      });
-      setModalOpen(false);
-      setForm({
-        title: '',
-        category: 'UTILITY',
-        amount: 0,
-        date: new Date().toISOString().split('T')[0],
-        note: '',
-      });
-      await fetchExpenses();
+      };
+
+      if (editingExpense) {
+        await api.patch(`/expenses/${editingExpense.id}`, payload);
+        toast.success('Expense updated successfully.');
+      } else {
+        await api.post('/expenses', payload);
+        toast.success('Expense recorded successfully.');
+      }
+      setIsModalOpen(false);
+      if (page === 1) fetchExpenses();
+      else setPage(1);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to record expense.');
+      toast.error(err.message || 'Failed to save expense.');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDelete = async (exp: Expense) => {
-    if (!confirm(`Are you sure you want to delete expense "${exp.title}"?`)) return;
+  const executeDelete = async () => {
+    if (!expenseToDelete) return;
+    setIsDeleting(true);
     try {
-      await api.delete(`/expenses/${exp.id}`);
-      await fetchExpenses();
+      await api.delete(`/expenses/${expenseToDelete.id}`);
+      toast.success('Expense deleted successfully.');
+      setExpenseToDelete(null);
+      if (page === 1) fetchExpenses();
+      else setPage(1);
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete expense.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
+  const getCategoryLabel = (val: string) => CATEGORIES.find(c => c.value === val)?.label || val;
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Receipt className="w-6 h-6 text-primary" /> Daily Costs & Expenses
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Log daily operating costs (rent, electric bills, salaries, entertainment) for exact net profit calculation
-          </p>
+    <div className="w-full h-full flex-1 min-h-0 flex flex-col">
+      <div className="w-full flex-1 min-h-0 flex flex-col border border-[#004d00] dark:border-emerald-900 rounded-xs bg-[#c6d8ea] dark:bg-slate-900 shadow-sm overflow-hidden select-none">
+        
+        {/* Dark Green Banner Header */}
+        <div className="bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2 text-white">
+            <Receipt className="w-5 h-5 text-emerald-200" />
+            <h1 className="text-lg font-bold tracking-wide">Daily Costs & Expenses</h1>
+          </div>
+          {canManage && (
+            <button
+              type="button"
+              onClick={handleOpenAdd}
+              className="px-2.5 py-1 text-xs font-bold bg-white text-[#006400] border border-[#004d00] shadow-xs flex items-center gap-1.5 rounded-xs hover:bg-emerald-50 transition-colors cursor-pointer uppercase tracking-wider"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[3]" />
+              <span>Add Expense</span>
+            </button>
+          )}
         </div>
 
-        <Button onClick={() => setModalOpen(true)} className="gap-2">
-          <Plus className="w-4 h-4" /> Add Daily Cost
-        </Button>
-      </div>
-
-      {/* Summary KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card className="p-4 border-l-4 border-l-rose-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Total Period Expenses</p>
-              <h3 className="text-2xl font-bold text-rose-600 mt-1">৳{totalExpenseAmount.toLocaleString()}</h3>
-            </div>
-            <div className="p-3 bg-rose-100 dark:bg-rose-950/40 rounded-full text-rose-600">
-              <DollarSign className="w-5 h-5" />
+        {/* Gray Filter Bar */}
+        <div className="bg-[#eaf1f8] dark:bg-slate-800/80 p-2 border-b border-neutral-300 dark:border-slate-700 shrink-0 flex flex-wrap gap-2 items-center text-sm">
+          <div className="flex items-center gap-1.5 flex-1 min-w-[200px]">
+            <label className="font-semibold text-neutral-700 dark:text-neutral-300 whitespace-nowrap text-xs uppercase tracking-wider">Search:</label>
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
+              <input
+                type="text"
+                placeholder="By title, note..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full h-7 pl-7 pr-2 text-xs border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-emerald-600 text-neutral-900 dark:text-neutral-100"
+              />
             </div>
           </div>
-        </Card>
-
-        <Card className="p-4 border-l-4 border-l-blue-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Total Expense Entries</p>
-              <h3 className="text-2xl font-bold text-foreground mt-1">{expenses.length} Records</h3>
-            </div>
-            <div className="p-3 bg-blue-100 dark:bg-blue-950/40 rounded-full text-blue-600">
-              <Tag className="w-5 h-5" />
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Filter Bar */}
-      <Card className="p-4">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            fetchExpenses();
-          }}
-          className="flex flex-col sm:flex-row gap-3"
-        >
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search expenses by title or note..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
+          
+          <div className="flex items-center gap-1.5">
+            <label className="font-semibold text-neutral-700 dark:text-neutral-300 text-xs uppercase tracking-wider">Category:</label>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="h-7 px-1.5 text-xs border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-emerald-600"
+            >
+              {CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
           </div>
 
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            {CATEGORIES.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-
-          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
-            <Input
+          <div className="flex items-center gap-1.5">
+            <label className="font-semibold text-neutral-700 dark:text-neutral-300 text-xs uppercase tracking-wider">Date:</label>
+            <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full sm:w-36"
+              className="h-7 px-1.5 text-xs border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-emerald-600"
             />
-            <span className="text-muted-foreground text-xs">to</span>
-            <Input
+            <span className="text-neutral-500 font-bold">-</span>
+            <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full sm:w-36"
+              className="h-7 px-1.5 text-xs border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-emerald-600"
             />
           </div>
+          
+          <button
+            type="button"
+            onClick={() => {
+              setSearch('');
+              setSelectedCategory('ALL');
+              setStartDate('');
+              setEndDate('');
+            }}
+            className="h-7 px-3 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 text-neutral-700 dark:text-neutral-300 font-bold text-xs rounded-xs hover:bg-neutral-50 transition-colors shadow-sm"
+          >
+            Reset
+          </button>
+        </div>
 
-          <Button type="submit" variant="secondary" className="w-full sm:w-auto">
-            Filter
-          </Button>
-        </form>
-      </Card>
-
-      {/* Expenses Table */}
-      {loading ? (
-        <div className="p-12 text-center text-muted-foreground">Loading expenses...</div>
-      ) : (
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm min-w-[620px]">
-              <thead className="bg-muted/50 border-b border-border text-xs text-muted-foreground uppercase font-semibold">
+        {/* Data Table */}
+        <div 
+          className="flex-1 min-h-0 overflow-auto bg-white dark:bg-slate-950 relative custom-scrollbar"
+          onScroll={handleTableScroll}
+        >
+          <table className="w-full text-xs text-left min-w-[700px] border-collapse relative">
+            <thead className="sticky top-0 bg-[#eaf1f8] dark:bg-slate-900 shadow-[0_1px_0_#9fbcd6] dark:shadow-[0_1px_0_#334155] z-10 text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
+              <tr>
+                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-10 text-center">SN</th>
+                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24">Date</th>
+                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[180px]">Expense Title</th>
+                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-40">Category</th>
+                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[160px]">Note / Ref</th>
+                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28 text-right">Amount</th>
+                {canManage && <th className="px-3 py-1.5 w-20 text-center">Action</th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
+              {loading && page === 1 ? (
                 <tr>
-                  <th className="p-3.5">Date</th>
-                  <th className="p-3.5">Expense Title</th>
-                  <th className="p-3.5">Category</th>
-                  <th className="p-3.5">Note / Details</th>
-                  <th className="p-3.5 text-right">Amount (৳)</th>
-                  <th className="p-3.5 text-center">Action</th>
+                  <td colSpan={canManage ? 7 : 6} className="py-16 text-center text-neutral-500 font-medium">
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
+                      <span>Loading expenses...</span>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {expenses.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                      No expenses recorded for this criteria. Click "Add Daily Cost" to log an expense.
-                    </td>
-                  </tr>
-                ) : (
-                  expenses.map((e) => (
-                    <tr key={e.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="p-3.5 text-muted-foreground text-xs">
-                        {new Date(e.date).toLocaleDateString()}
-                      </td>
-                      <td className="p-3.5 font-medium text-foreground">{e.title}</td>
-                      <td className="p-3.5">
-                        <Badge variant="secondary" className="text-xs">
-                          {CATEGORIES.find((c) => c.value === e.category)?.label || e.category}
-                        </Badge>
-                      </td>
-                      <td className="p-3.5 text-muted-foreground text-xs">{e.note || '—'}</td>
-                      <td className="p-3.5 text-right font-bold text-rose-600">
-                        ৳{Number(e.amount).toLocaleString()}
-                      </td>
-                      <td className="p-3.5 text-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(e)}
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+              ) : error ? (
+                <tr>
+                  <td colSpan={canManage ? 7 : 6} className="py-12 text-center text-rose-600 font-medium">
+                    <div className="flex items-center justify-center gap-2">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>{error}</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : expenses.length === 0 ? (
+                <tr>
+                  <td colSpan={canManage ? 7 : 6} className="py-16 text-center text-neutral-500 font-medium">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Receipt className="w-8 h-8 text-neutral-400" />
+                      <span>No expenses found matching criteria.</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                <>
+                  {expenses.map((exp, idx) => {
+                    const isSelected = selectedExpense?.id === exp.id;
+                    return (
+                      <tr
+                        key={exp.id}
+                        className={`transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#0056b3] text-white font-semibold'
+                            : idx % 2 === 0
+                            ? 'bg-white dark:bg-slate-900 hover:bg-[#c6d8ea]/50 dark:hover:bg-slate-800/80'
+                            : 'bg-[#f4f8fc] dark:bg-slate-900/50 hover:bg-[#c6d8ea]/50 dark:hover:bg-slate-800/80'
+                        }`}
+                        onClick={() => setSelectedExpense(exp)}
+                        onDoubleClick={() => setViewExpense(exp)}
+                        title="Double-click to view details"
+                      >
+                        <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono ${isSelected ? 'text-blue-200' : 'text-neutral-500'}`}>{idx + 1}</td>
+                        <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-mono ${isSelected ? 'text-blue-100' : 'text-neutral-600 dark:text-neutral-400'}`}>{formatDate(exp.date)}</td>
+                        <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-semibold ${isSelected ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'}`}>{exp.title}</td>
+                        <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 ${isSelected ? 'text-blue-100' : 'text-neutral-700 dark:text-neutral-300'}`}>
+                          {getCategoryLabel(exp.category)}
+                        </td>
+                        <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 truncate max-w-[200px] ${isSelected ? 'text-blue-200' : 'text-neutral-500'}`}>{exp.note || '--'}</td>
+                        <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-right font-mono font-bold ${isSelected ? 'text-white' : 'text-rose-700 dark:text-rose-400'}`}>
+                          ৳ {Number(exp.amount).toFixed(2)}
+                        </td>
+                        {canManage && (
+                          <td className="px-2 py-1 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); handleOpenEdit(exp); }}
+                                className={`p-1 rounded-xs border transition-colors cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-white text-blue-700 border-white hover:bg-blue-50'
+                                    : 'bg-white dark:bg-slate-800 text-[#006400] dark:text-emerald-400 border-neutral-300 dark:border-slate-700 hover:bg-emerald-50'
+                                }`}
+                                title="Edit Expense"
+                              >
+                                <Edit2 className="w-3 h-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setExpenseToDelete(exp); }}
+                                className={`p-1 rounded-xs border transition-colors cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-white text-rose-600 border-white hover:bg-rose-50'
+                                    : 'bg-white dark:bg-slate-800 text-rose-600 border-neutral-300 dark:border-slate-700 hover:bg-rose-50'
+                                }`}
+                                title="Delete Expense"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                  {loadingMore && (
+                    <tr>
+                      <td colSpan={canManage ? 7 : 6} className="py-6 text-center text-neutral-500 font-medium">
+                        <div className="flex items-center justify-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
+                          <span>Loading more...</span>
+                        </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  )}
+                </>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Bottom Status / Summary Bar */}
+        <div className="bg-[#b0c8de] dark:bg-slate-800/90 px-3 py-1.5 border-t border-[#9fbcd6] dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono font-semibold text-neutral-800 dark:text-neutral-200 gap-1 shrink-0">
+          <div className="flex items-center gap-3">
+            <span className="text-blue-900 dark:text-blue-300">
+              Loaded <strong>{expenses.length}</strong> total of <strong>{meta.total}</strong>
+            </span>
+            <span>•</span>
+            <span className="text-rose-900 dark:text-rose-300">
+              Filtered Total: <strong className="text-rose-700 dark:text-rose-400">৳ {meta.totalAmount.toFixed(2)}</strong>
+            </span>
           </div>
-        </Card>
-      )}
+          <div className="flex items-center gap-3 text-neutral-700 dark:text-neutral-300">
+            {selectedExpense ? (
+              <span className="bg-[#006400] text-white px-2 py-0.5 rounded-xs font-bold">
+                Selected: {selectedExpense.title}
+              </span>
+            ) : (
+              <span className="italic text-neutral-600 dark:text-neutral-400 font-sans">
+                Tip: Double-click a row to view details
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
 
-      {/* Add Expense Dialog */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <form onSubmit={handleSave}>
-          <DialogHeader>
-            <DialogTitle>Add Daily Cost / Expense</DialogTitle>
-            <DialogDescription>
-              Record an operational expense for cash balance and balance sheet tracking
-            </DialogDescription>
-          </DialogHeader>
+      {/* View Details Modal */}
+      <Dialog
+        open={!!viewExpense}
+        onOpenChange={(open) => { if (!open) setViewExpense(null); }}
+        draggable={true}
+        closeOnBackdropClick={true}
+        className="p-0 max-w-lg w-full border-2 border-[#004d00] dark:border-emerald-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 overflow-hidden shadow-2xl"
+      >
+        {viewExpense && (
+          <div className="flex flex-col">
+            <div
+              data-drag-handle
+              className="relative bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 select-none border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-center cursor-grab active:cursor-grabbing"
+            >
+              <h2 className="text-lg font-bold text-white tracking-wide">Expense Details</h2>
+              <button
+                type="button"
+                onClick={() => setViewExpense(null)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/90 hover:text-white hover:bg-black/20 p-1 rounded-xs transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="p-4 space-y-4">
+              <div className="bg-white dark:bg-slate-800 p-3 border border-neutral-400 dark:border-slate-600 shadow-sm font-sans space-y-2 text-sm text-neutral-900 dark:text-neutral-100">
+                <div className="flex justify-between border-b border-neutral-200 dark:border-slate-700 pb-1">
+                  <span className="text-neutral-500 font-semibold">Title:</span>
+                  <span className="font-bold">{viewExpense.title}</span>
+                </div>
+                <div className="flex justify-between border-b border-neutral-200 dark:border-slate-700 pb-1">
+                  <span className="text-neutral-500 font-semibold">Category:</span>
+                  <span>{getCategoryLabel(viewExpense.category)}</span>
+                </div>
+                <div className="flex justify-between border-b border-neutral-200 dark:border-slate-700 pb-1">
+                  <span className="text-neutral-500 font-semibold">Date:</span>
+                  <span className="font-mono">{formatDate(viewExpense.date)}</span>
+                </div>
+                <div className="flex justify-between border-b border-neutral-200 dark:border-slate-700 pb-1">
+                  <span className="text-neutral-500 font-semibold">Logged By:</span>
+                  <span>{viewExpense.createdBy?.name || '—'}</span>
+                </div>
+                <div className="flex justify-between pb-1">
+                  <span className="text-neutral-500 font-semibold">Amount:</span>
+                  <span className="font-mono font-bold text-rose-700 dark:text-rose-400 text-base">
+                    ৳ {Number(viewExpense.amount).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+              
+              {viewExpense.note && (
+                <div className="bg-[#fffdf0] dark:bg-amber-950/20 p-3 border border-amber-300 dark:border-amber-700 shadow-sm text-sm">
+                  <h4 className="font-bold text-amber-800 dark:text-amber-500 mb-1">Note / Reference:</h4>
+                  <p className="text-amber-900 dark:text-amber-200">{viewExpense.note}</p>
+                </div>
+              )}
 
-          <div className="space-y-3.5 py-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Expense Title *</label>
-              <Input
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setViewExpense(null)}
+                  className="w-24 h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 text-neutral-900 dark:text-neutral-100 border border-neutral-500 font-bold text-[11px] uppercase tracking-wider shadow-sm transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+                {canManage && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const exp = viewExpense;
+                      setViewExpense(null);
+                      handleOpenEdit(exp);
+                    }}
+                    className="h-7 px-4 bg-white dark:bg-slate-700 text-[#006400] dark:text-emerald-400 border border-neutral-400 dark:border-slate-600 font-bold text-[11px] uppercase tracking-wider hover:bg-emerald-50 dark:hover:bg-slate-600 transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    Edit
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </Dialog>
+
+      {/* Add/Edit Modal */}
+      <Dialog
+        open={isModalOpen}
+        onOpenChange={(open) => { if (!open) setIsModalOpen(false); }}
+        draggable={true}
+        closeOnBackdropClick={false}
+        className="p-0 max-w-md w-full border-2 border-[#004d00] dark:border-emerald-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 overflow-hidden shadow-2xl"
+      >
+        <form onSubmit={validateAndConfirm} className="flex flex-col">
+          <div
+            data-drag-handle
+            className="relative bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 select-none border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-center cursor-grab active:cursor-grabbing"
+          >
+            <h2 className="text-lg font-bold text-white tracking-wide">
+              {editingExpense ? 'Edit Expense' : 'Add Daily Cost / Expense'}
+            </h2>
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              disabled={isSaving}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/90 hover:text-white hover:bg-black/20 p-1 rounded-xs transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          
+          <div className="p-4 space-y-3">
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
+                Expense Title <span className="text-rose-600">*</span>
+              </label>
+              <input
                 required
-                placeholder="e.g. Electric Bill for Showroom, Staff Tea"
+                type="text"
+                placeholder="e.g. Electric Bill, Staff Tea"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
+                className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-emerald-600"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">Category *</label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
+                  Category <span className="text-rose-600">*</span>
+                </label>
                 <select
+                  required
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full h-8 px-1.5 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-emerald-600"
                 >
-                  {CATEGORIES.filter((c) => c.value !== 'ALL').map((c) => (
-                    <option key={c.value} value={c.value}>
-                      {c.label}
-                    </option>
+                  {CATEGORIES.filter(c => c.value !== 'ALL').map((c) => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
                   ))}
                 </select>
               </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">Amount (৳) *</label>
-                <Input
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
+                  Amount (৳) <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  required
                   type="number"
                   step="0.01"
-                  min="0.01"
-                  required
+                  min="0"
                   placeholder="0.00"
-                  value={form.amount === 0 ? '' : form.amount}
-                  onChange={(e) => setForm({ ...form, amount: parseFloat(e.target.value) || 0 })}
+                  value={form.amount}
+                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                  className="w-full h-8 px-2 text-sm font-mono font-bold text-rose-700 dark:text-rose-400 border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-emerald-600"
                 />
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Date of Expense</label>
-              <Input
-                type="date"
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
+                Date of Expense <span className="text-rose-600">*</span>
+              </label>
+              <input
                 required
+                type="date"
                 value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
+                className="w-full h-8 px-2 text-sm font-mono border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-emerald-600"
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Note / Reference (Optional)</label>
-              <Input
-                placeholder="Receipt #, Bill number, or voucher details"
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
+                Note / Reference
+              </label>
+              <input
+                type="text"
+                placeholder="Receipt #, Voucher details..."
                 value={form.note}
                 onChange={(e) => setForm({ ...form, note: e.target.value })}
+                className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-emerald-600"
               />
             </div>
-          </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setModalOpen(false)}
-              disabled={isSaving}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Save Expense'}
-            </Button>
-          </DialogFooter>
+            <div className="flex justify-end gap-2 pt-4">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                disabled={isSaving}
+                className="w-24 h-8 bg-white dark:bg-slate-800 hover:bg-neutral-100 text-neutral-900 dark:text-neutral-100 border border-neutral-500 font-bold text-[11px] uppercase tracking-wider shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="w-28 h-8 bg-[#006400] hover:bg-emerald-800 text-white border border-[#004d00] font-bold text-[11px] uppercase tracking-wider shadow-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <DollarSign className="w-3.5 h-3.5" />}
+                {isSaving ? 'Saving' : 'Save'}
+              </button>
+            </div>
+          </div>
         </form>
       </Dialog>
+
+      {/* Save Confirm Dialog */}
+      <ConfirmDialog
+        open={showConfirmSave}
+        onOpenChange={(isOpen) => !isSaving && setShowConfirmSave(isOpen)}
+        title="Confirm Expense"
+        description={`Are you sure you want to ${editingExpense ? 'update' : 'record'} this expense?`}
+        onConfirm={executeSave}
+        confirmText="Save"
+        cancelText="Cancel"
+        variant="success"
+        isLoading={isSaving}
+        loadingText="Saving..."
+        details={[
+          { label: 'Title:', value: form.title },
+          { label: 'Category:', value: getCategoryLabel(form.category) },
+          { label: 'Amount:', value: `৳ ${Number(form.amount).toFixed(2)}`, color: 'text-rose-600 dark:text-rose-400' },
+          { label: 'Date:', value: form.date },
+        ]}
+      />
+
+      {/* Delete Confirm Dialog */}
+      <ConfirmDialog
+        open={!!expenseToDelete}
+        onOpenChange={(isOpen) => !isDeleting && !isOpen && setExpenseToDelete(null)}
+        title="Delete Expense"
+        description="Are you sure you want to delete this expense? This action cannot be undone."
+        onConfirm={executeDelete}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
+        loadingText="Deleting..."
+        details={expenseToDelete ? [
+          { label: 'Title:', value: expenseToDelete.title },
+          { label: 'Category:', value: getCategoryLabel(expenseToDelete.category) },
+          { label: 'Amount:', value: `৳ ${Number(expenseToDelete.amount).toFixed(2)}`, color: 'text-rose-600 dark:text-rose-400' },
+        ] : []}
+      />
     </div>
   );
 }
