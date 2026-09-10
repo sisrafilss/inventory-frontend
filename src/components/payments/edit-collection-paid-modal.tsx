@@ -11,6 +11,7 @@ interface EditCollectionPaidModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialType?: 'SALES' | 'PURCHASE';
+  initialTransactionId?: string;
   onSuccess?: () => void;
 }
 
@@ -18,6 +19,7 @@ export function EditCollectionPaidModal({
   open,
   onOpenChange,
   initialType = 'SALES',
+  initialTransactionId,
   onSuccess,
 }: EditCollectionPaidModalProps) {
   const formatDateToYMD = (d: Date) => {
@@ -57,8 +59,13 @@ export function EditCollectionPaidModal({
     if (open) {
       setReportType(initialType);
       handleRefresh();
+      if (initialTransactionId) {
+        setTransactionId(initialTransactionId);
+        // Defer search to allow state to settle
+        setTimeout(() => handleSearchTransactionByCode(initialTransactionId), 0);
+      }
     }
-  }, [open, initialType]);
+  }, [open, initialType, initialTransactionId]);
 
   const handleRefresh = () => {
     setDate(todayYMD);
@@ -77,8 +84,9 @@ export function EditCollectionPaidModal({
   };
 
   // Search transaction by Transaction ID / Receipt Number
-  const handleSearchTransaction = async () => {
-    const trimmed = transactionId.trim();
+  const handleSearchTransaction = () => handleSearchTransactionByCode(transactionId);
+  const handleSearchTransactionByCode = async (code: string) => {
+    const trimmed = code.trim();
     if (!trimmed) {
       setStatusMessage({ text: 'Please enter a Transaction ID to search.', isError: true });
       return;
