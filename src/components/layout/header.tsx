@@ -10,10 +10,12 @@ import { Menu, LogOut, Shield, Phone } from 'lucide-react';
 import { AppLogo } from '@/components/ui/app-logo';
 
 interface HeaderProps {
-  onOpenMobileMenu: () => void;
+  onToggleSidebar?: () => void;
+  onOpenMobileMenu?: () => void;
+  isSidebarOpen?: boolean;
 }
 
-export function Header({ onOpenMobileMenu }: HeaderProps) {
+export function Header({ onToggleSidebar, onOpenMobileMenu, isSidebarOpen }: HeaderProps) {
   const { user, logout } = useAuth();
   const { t } = useLanguage();
 
@@ -21,12 +23,14 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
 
   return (
     <header className="h-12 bg-[#004d00] dark:bg-emerald-950 text-white border-b border-[#003800] dark:border-emerald-900 px-3 sm:px-5 flex items-center justify-between sticky top-0 z-30 shadow-md select-none">
-      {/* Left: Mobile Toggle & Desktop System Title */}
+      {/* Left: Sidebar Toggle & Desktop System Title */}
       <div className="flex items-center gap-2.5">
         <button
-          onClick={onOpenMobileMenu}
-          className="lg:hidden p-1.5 rounded hover:bg-white/10 text-white"
-          aria-label="Open mobile menu"
+          type="button"
+          onClick={onToggleSidebar || onOpenMobileMenu}
+          className="p-1.5 rounded hover:bg-white/10 text-white transition-colors cursor-pointer"
+          aria-label="Toggle navigation menu"
+          title={isSidebarOpen ? 'Collapse sidebar (Ctrl+B)' : 'Expand sidebar (Ctrl+B)'}
         >
           <Menu className="w-5 h-5" />
         </button>

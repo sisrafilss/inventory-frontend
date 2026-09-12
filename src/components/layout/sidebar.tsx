@@ -27,14 +27,16 @@ import {
   Tag,
   X,
   Phone,
+  ChevronLeft,
 } from 'lucide-react';
 import { AppLogo } from '@/components/ui/app-logo';
 
 interface SidebarProps {
+  onClose?: () => void;
   onCloseMobile?: () => void;
 }
 
-export function Sidebar({ onCloseMobile }: SidebarProps) {
+export function Sidebar({ onClose, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
   const { t } = useLanguage();
@@ -139,13 +141,15 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
       <div className="h-12 flex items-center justify-between px-3 bg-[#004d00] dark:bg-emerald-950 border-b border-[#003800] dark:border-emerald-900 shrink-0">
         <AppLogo size="sm" variant="dark" />
 
-        {onCloseMobile && (
+        {(onClose || onCloseMobile) && (
           <button
-            onClick={onCloseMobile}
-            className="lg:hidden p-1 rounded hover:bg-white/10 text-white"
-            aria-label="Close menu"
+            type="button"
+            onClick={onClose || onCloseMobile}
+            className="p-1 rounded hover:bg-white/10 text-white transition-colors cursor-pointer"
+            aria-label="Collapse sidebar"
+            title="Collapse sidebar"
           >
-            <X className="w-4 h-4" />
+            <ChevronLeft className="w-4 h-4" />
           </button>
         )}
       </div>
