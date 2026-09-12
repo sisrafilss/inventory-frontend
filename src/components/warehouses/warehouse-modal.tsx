@@ -404,7 +404,7 @@ export function WarehouseModal({
             <div className="relative">
               <input
                 type="text"
-                placeholder="e.g. Plot 14, Sector 7, Tongi, Gazipur"
+                placeholder="e.g. Shiromoni Bazar, Khulna"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 disabled={isSaving || isDeleting}

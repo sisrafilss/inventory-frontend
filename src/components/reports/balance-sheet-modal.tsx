@@ -228,7 +228,7 @@ export function BalanceSheetModal({ open, onOpenChange }: BalanceSheetModalProps
             {/* Store Header */}
             <div className="text-center space-y-1 pb-3 border-b border-slate-300 dark:border-slate-700">
               <h1 className="text-2xl font-extrabold uppercase tracking-tight text-slate-900 dark:text-white print:text-black">
-                {store?.storeName || 'M.R. Enterprise & Wholesale Trading'}
+                {store?.storeName || 'M/S M. R. Enterprise'}
               </h1>
               <p className="text-xs text-slate-600 dark:text-slate-400 print:text-slate-700">
                 {store?.address}
