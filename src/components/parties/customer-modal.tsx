@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Dialog } from '@/components/ui/dialog';
 import {
   X,
@@ -15,8 +15,11 @@ import {
   MapPin,
   Mail,
   DollarSign,
+  Building2,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
-import { Customer } from '@/lib/types';
+import { Customer, Company } from '@/lib/types';
 import { api } from '@/lib/api/client';
 import { useAuth } from '@/lib/context/auth-context';
 
@@ -40,11 +43,20 @@ export function CustomerModal({
 
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [openingDue, setOpeningDue] = useState<number>(0);
   const [isActive, setIsActive] = useState(true);
+
+  // Companies dropdown & search states
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
+  const [companySearch, setCompanySearch] = useState('');
+  const [highlightedCompanyIdx, setHighlightedCompanyIdx] = useState(0);
+  const companyBoxRef = useRef<HTMLDivElement>(null);
+  const companyInputRef = useRef<HTMLInputElement>(null);
 
   // Real-time code duplicate check states
   const [isCheckingCode, setIsCheckingCode] = useState(false);
@@ -57,11 +69,57 @@ export function CustomerModal({
 
   const nameInputRef = useRef<HTMLInputElement>(null);
 
+  // Fetch registered companies on open
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+    api
+      .get<Company[]>('/companies', { isActive: 'true' })
+      .then((res) => {
+        if (active && res.data) {
+          setCompanies(res.data);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load companies:', err);
+      });
+    return () => {
+      active = false;
+    };
+  }, [open]);
+
+  // Close company dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        companyBoxRef.current &&
+        !companyBoxRef.current.contains(e.target as Node)
+      ) {
+        setIsCompanyDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Filter companies by code or name
+  const filteredCompanies = useMemo(() => {
+    if (!companySearch.trim()) return companies;
+    const q = companySearch.trim().toLowerCase();
+    return companies.filter((c) => {
+      const matchName = c.name?.toLowerCase().includes(q);
+      const matchCode = c.code ? c.code.toLowerCase().includes(q) : false;
+      return matchName || matchCode;
+    });
+  }, [companies, companySearch]);
+
   useEffect(() => {
     if (open) {
       if (customer) {
         setCode(customer.code || '');
         setName(customer.name || '');
+        setCompanyName(customer.companyName || '');
+        setCompanySearch(customer.companyName || '');
         setPhone(customer.phone || '');
         setEmail(customer.email || '');
         setAddress(customer.address || '');
@@ -70,6 +128,8 @@ export function CustomerModal({
       } else {
         resetForm();
       }
+      setIsCompanyDropdownOpen(false);
+      setHighlightedCompanyIdx(0);
       setStatusMessage(null);
       setCodeWarning(null);
       setCodeAvailable(false);
@@ -80,6 +140,7 @@ export function CustomerModal({
       setCodeAvailable(false);
       setIsSaving(false);
       setIsDeleting(false);
+      setIsCompanyDropdownOpen(false);
     }
   }, [open, customer]);
 
@@ -138,6 +199,10 @@ export function CustomerModal({
   const resetForm = () => {
     setCode('');
     setName('');
+    setCompanyName('');
+    setCompanySearch('');
+    setIsCompanyDropdownOpen(false);
+    setHighlightedCompanyIdx(0);
     setPhone('');
     setEmail('');
     setAddress('');
@@ -182,6 +247,7 @@ export function CustomerModal({
     const payload = {
       code: trimmedCode,
       name: trimmedName,
+      companyName: companyName.trim() || undefined,
       phone: phone.trim() || undefined,
       email: email.trim() || undefined,
       address: address.trim() || undefined,
@@ -381,6 +447,184 @@ export function CustomerModal({
                 disabled={isSaving}
                 className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100 font-semibold"
               />
+            </div>
+          </div>
+
+          {/* Company / Firm Selection (Dropdown + Search by Code or Name - Optional) */}
+          <div className="grid grid-cols-12 items-center gap-2">
+            <label className="col-span-4 text-right font-medium text-neutral-800 dark:text-neutral-200">
+              Company / Firm <span className="text-[10px] text-neutral-500 font-normal">(Optional)</span>
+            </label>
+            <div className="col-span-8 relative" ref={companyBoxRef}>
+              <div className="relative flex items-center">
+                <input
+                  ref={companyInputRef}
+                  type="text"
+                  placeholder="Select company or search by code/name..."
+                  value={companySearch}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setCompanySearch(val);
+                    setCompanyName(val);
+                    setIsCompanyDropdownOpen(true);
+                    setHighlightedCompanyIdx(0);
+                  }}
+                  onFocus={() => {
+                    setIsCompanyDropdownOpen(true);
+                    setHighlightedCompanyIdx(0);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      if (!isCompanyDropdownOpen) {
+                        setIsCompanyDropdownOpen(true);
+                      } else {
+                        setHighlightedCompanyIdx((prev) =>
+                          prev < filteredCompanies.length - 1 ? prev + 1 : prev
+                        );
+                      }
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setHighlightedCompanyIdx((prev) => (prev > 0 ? prev - 1 : 0));
+                    } else if (e.key === 'Enter') {
+                      if (isCompanyDropdownOpen && filteredCompanies[highlightedCompanyIdx]) {
+                        e.preventDefault();
+                        const selected = filteredCompanies[highlightedCompanyIdx];
+                        setCompanyName(selected.name);
+                        setCompanySearch(selected.name);
+                        setIsCompanyDropdownOpen(false);
+                      }
+                    } else if (e.key === 'Escape') {
+                      setIsCompanyDropdownOpen(false);
+                    }
+                  }}
+                  disabled={isSaving}
+                  className="w-full px-2 py-1 pr-14 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100"
+                />
+
+                <div className="absolute right-1 flex items-center gap-0.5 text-neutral-500">
+                  {companySearch && (
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => {
+                        setCompanyName('');
+                        setCompanySearch('');
+                        setIsCompanyDropdownOpen(false);
+                      }}
+                      className="p-0.5 hover:text-rose-600 text-neutral-400 hover:bg-neutral-100 dark:hover:bg-slate-800 rounded transition-colors cursor-pointer"
+                      title="Clear company"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => {
+                      setIsCompanyDropdownOpen((prev) => !prev);
+                      companyInputRef.current?.focus();
+                    }}
+                    className="p-0.5 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-slate-800 rounded transition-colors cursor-pointer"
+                    title="Toggle company dropdown"
+                  >
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 transition-transform duration-150 ${
+                        isCompanyDropdownOpen ? 'rotate-180 text-emerald-700 dark:text-emerald-400' : ''
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {/* Dropdown Popup */}
+              {isCompanyDropdownOpen && (
+                <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 shadow-xl max-h-52 overflow-y-auto text-xs">
+                  <div className="px-2.5 py-1 bg-[#eaf1f8] dark:bg-slate-800/80 border-b border-neutral-300 dark:border-slate-700 text-[10px] font-semibold text-neutral-600 dark:text-neutral-400 flex items-center justify-between">
+                    <span>Search by Code or Company Name</span>
+                    <span>{filteredCompanies.length} available</span>
+                  </div>
+
+                  {filteredCompanies.length > 0 ? (
+                    filteredCompanies.map((comp, idx) => {
+                      const isSelected = companyName === comp.name;
+                      const isHighlighted = idx === highlightedCompanyIdx;
+                      return (
+                        <div
+                          key={comp.id}
+                          onMouseEnter={() => setHighlightedCompanyIdx(idx)}
+                          onClick={() => {
+                            setCompanyName(comp.name);
+                            setCompanySearch(comp.name);
+                            setIsCompanyDropdownOpen(false);
+                          }}
+                          className={`px-2.5 py-1.5 flex items-center justify-between border-b border-neutral-100 dark:border-slate-800 cursor-pointer transition-colors ${
+                            isSelected
+                              ? 'bg-emerald-100 dark:bg-emerald-950/60 font-semibold text-emerald-900 dark:text-emerald-200'
+                              : isHighlighted
+                              ? 'bg-emerald-50/80 dark:bg-slate-800 text-neutral-900 dark:text-neutral-100'
+                              : 'text-neutral-800 dark:text-neutral-200'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 pr-2">
+                            <Building2
+                              className={`w-3.5 h-3.5 shrink-0 ${
+                                isSelected
+                                  ? 'text-emerald-700 dark:text-emerald-400'
+                                  : 'text-neutral-400'
+                              }`}
+                            />
+                            <span className="truncate">{comp.name}</span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {comp.code && (
+                              <span
+                                className="px-1.5 py-0.5 font-mono text-[10px] font-bold bg-neutral-100 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 rounded"
+                                title={`Company Code: ${comp.code}`}
+                              >
+                                #{comp.code}
+                              </span>
+                            )}
+                            {isSelected && (
+                              <Check className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="p-3 text-center text-neutral-500 dark:text-neutral-400">
+                      <p className="text-xs">No company matching &quot;{companySearch}&quot;</p>
+                      {companySearch.trim() && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCompanyName(companySearch.trim());
+                            setIsCompanyDropdownOpen(false);
+                          }}
+                          className="mt-1.5 text-[11px] text-emerald-700 dark:text-emerald-400 font-bold hover:underline cursor-pointer block mx-auto"
+                        >
+                          Use &quot;{companySearch.trim()}&quot; as custom company
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {companyName && (
+                    <div
+                      onClick={() => {
+                        setCompanyName('');
+                        setCompanySearch('');
+                        setIsCompanyDropdownOpen(false);
+                      }}
+                      className="px-2.5 py-1.5 text-center text-[11px] text-rose-600 dark:text-rose-400 font-medium hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer border-t border-neutral-200 dark:border-slate-700"
+                    >
+                      Clear Selection (No Company)
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

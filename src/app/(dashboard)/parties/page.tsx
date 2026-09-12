@@ -154,11 +154,12 @@ export default function PartiesPage() {
       const q = search.toLowerCase().trim();
       const matchCode = c.code ? c.code.toLowerCase().includes(q) : false;
       const matchName = c.name.toLowerCase().includes(q);
+      const matchCompany = c.companyName ? c.companyName.toLowerCase().includes(q) : false;
       const matchPhone = c.phone ? c.phone.toLowerCase().includes(q) : false;
       const matchAddress = c.address ? c.address.toLowerCase().includes(q) : false;
       const matchId = c.id.toLowerCase().includes(q);
 
-      return matchCode || matchName || matchPhone || matchAddress || matchId;
+      return matchCode || matchName || matchCompany || matchPhone || matchAddress || matchId;
     });
   }, [customers, statusFilter, search]);
 
@@ -973,6 +974,18 @@ export default function PartiesPage() {
                                   }`}
                                 />
                                 <span>{c.name}</span>
+                                {c.companyName && (
+                                  <span
+                                    className={`text-[10px] font-normal px-1.5 py-0.5 rounded border ${
+                                      isSelected
+                                        ? 'bg-blue-900/60 text-blue-100 border-blue-400'
+                                        : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                                    }`}
+                                    title={`Company / Firm: ${c.companyName}`}
+                                  >
+                                    {c.companyName}
+                                  </span>
+                                )}
                               </div>
                             </td>
 
@@ -1109,11 +1122,11 @@ export default function PartiesPage() {
             <div className="flex items-center gap-3 text-neutral-700 dark:text-neutral-300">
               {activeTab === 'suppliers' && selectedSupplier ? (
                 <span className="bg-[#006400] text-white px-2 py-0.5 rounded-xs font-bold">
-                  Selected: {selectedSupplier.code ? `[#${selectedSupplier.code}] ` : ''}{selectedSupplier.name} [Due: ৳{Number(selectedSupplier.currentDue || 0).toLocaleString()}]
+                  Selected: {selectedSupplier.code ? `[#${selectedSupplier.code}] ` : ''}{selectedSupplier.name}{selectedSupplier.companyName ? ` (${selectedSupplier.companyName})` : ''} [Due: ৳{Number(selectedSupplier.currentDue || 0).toLocaleString()}]
                 </span>
               ) : activeTab === 'customers' && selectedCustomer ? (
                 <span className="bg-[#006400] text-white px-2 py-0.5 rounded-xs font-bold">
-                  Selected: {selectedCustomer.code ? `[#${selectedCustomer.code}] ` : ''}{selectedCustomer.name} [Due: ৳{Number(selectedCustomer.currentDue || 0).toLocaleString()}]
+                  Selected: {selectedCustomer.code ? `[#${selectedCustomer.code}] ` : ''}{selectedCustomer.name}{selectedCustomer.companyName ? ` (${selectedCustomer.companyName})` : ''} [Due: ৳{Number(selectedCustomer.currentDue || 0).toLocaleString()}]
                 </span>
               ) : (
                 <span className="italic text-neutral-600 dark:text-neutral-400">
