@@ -288,9 +288,6 @@ export default function SalesListPage() {
             </table>
           </div>
           
-          {/* Grey backdrop filling remaining space */}
-          <div className="flex-1 min-h-[60px] bg-[#9ca3af] dark:bg-slate-950 w-full" />
-          
           {/* Bottom Status / Summary Bar */}
           <div className="bg-[#b0c8de] dark:bg-slate-800/90 px-3 py-1.5 border-t border-[#9fbcd6] dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono font-semibold text-neutral-800 dark:text-neutral-200 gap-1 shrink-0">
             <div className="flex items-center gap-3">
