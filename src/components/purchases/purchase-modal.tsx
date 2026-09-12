@@ -1035,10 +1035,10 @@ export function PurchaseModal({
                 </div>
               </div>
 
-              {/* Sale Rate (Optional) & Add Button */}
+              {/* Sale Rate (MRP) (Optional) & Add Button */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
-                  Sale Rate
+                  Sale Rate (MRP)
                 </label>
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1">
@@ -1049,7 +1049,7 @@ export function PurchaseModal({
                       onChange={(val) => setSaleRate(val)}
                       placeholder="0.00"
                       className="w-28"
-                      onFocus={() => setBannerPrompt('Type Sale Rate (Optional)')}
+                      onFocus={() => setBannerPrompt('Type Sale Rate (MRP) - Optional')}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault();
@@ -1355,7 +1355,7 @@ export function PurchaseModal({
                     <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 w-20 font-bold">Type</th>
                     <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 w-20 text-right font-bold">Quantity</th>
                     <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 w-24 text-right font-bold">Rate</th>
-                    <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 w-24 text-right font-bold">Sale Rate</th>
+                    <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 w-24 text-right font-bold">Sale Rate (MRP)</th>
                     <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 w-24 text-right font-bold">Amount</th>
                     <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 min-w-[120px] font-bold">Remarks</th>
                     <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 w-16 text-center font-bold">Action</th>
