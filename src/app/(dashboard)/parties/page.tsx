@@ -25,9 +25,11 @@ import {
   TrendingDown,
   TrendingUp,
   ArrowRightLeft,
+  Eye,
 } from 'lucide-react';
 import { SupplierModal } from '@/components/parties/supplier-modal';
 import { CustomerModal } from '@/components/parties/customer-modal';
+import { CustomerDetailsModal } from '@/components/parties/customer-details-modal';
 import { PartyPaymentModal } from '@/components/parties/party-payment-modal';
 
 export default function PartiesPage() {
@@ -65,6 +67,8 @@ export default function PartiesPage() {
 
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [modalCustomer, setModalCustomer] = useState<Customer | null>(null);
+
+  const [viewCustomer, setViewCustomer] = useState<Customer | null>(null);
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentModalType, setPaymentModalType] = useState<'PAY' | 'COLLECT'>('PAY');
@@ -591,6 +595,15 @@ export default function PartiesPage() {
                   <>
                     <button
                       type="button"
+                      onClick={() => setViewCustomer(selectedCustomer)}
+                      className="h-6 px-2 bg-white dark:bg-slate-800 text-blue-800 dark:text-blue-300 border border-blue-600 hover:bg-blue-50 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                      title="View customer details"
+                    >
+                      <Eye className="w-3 h-3" />
+                      <span>Details</span>
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => handleOpenCollectCustomer(selectedCustomer)}
                       className="h-6 px-2 bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 border border-emerald-500 hover:bg-emerald-50 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
                       title="Collect cash from customer"
@@ -868,8 +881,11 @@ export default function PartiesPage() {
                       <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center font-mono">
                         Code
                       </th>
-                      <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[200px]">
+                      <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[180px]">
                         Customer Name
+                      </th>
+                      <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[150px]">
+                        Company / Firm
                       </th>
                       <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-36 font-mono">
                         Phone Number
@@ -891,7 +907,7 @@ export default function PartiesPage() {
                   <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
                     {loading ? (
                       <tr>
-                        <td colSpan={8} className="py-16 text-center text-neutral-500 font-medium">
+                        <td colSpan={9} className="py-16 text-center text-neutral-500 font-medium">
                           <div className="flex items-center justify-center gap-2">
                             <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
                             <span>Loading customers from database...</span>
@@ -900,7 +916,7 @@ export default function PartiesPage() {
                       </tr>
                     ) : error ? (
                       <tr>
-                        <td colSpan={8} className="py-12 text-center text-rose-600 font-medium">
+                        <td colSpan={9} className="py-12 text-center text-rose-600 font-medium">
                           <div className="flex items-center justify-center gap-2">
                             <AlertCircle className="w-4 h-4" />
                             <span>{error}</span>
@@ -909,7 +925,7 @@ export default function PartiesPage() {
                       </tr>
                     ) : filteredCustomers.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-16 text-center text-neutral-500 font-medium">
+                        <td colSpan={9} className="py-16 text-center text-neutral-500 font-medium">
                           <div className="flex flex-col items-center justify-center gap-2">
                             <Users className="w-8 h-8 text-neutral-400" />
                             <span>No customers found matching your filter criteria.</span>
@@ -932,7 +948,7 @@ export default function PartiesPage() {
                           <tr
                             key={c.id}
                             onClick={() => setSelectedPartyId(c.id)}
-                            onDoubleClick={() => handleOpenEditCustomer(c)}
+                            onDoubleClick={() => setViewCustomer(c)}
                             className={`transition-colors ${
                               isSelected
                                 ? 'bg-[#0056b3] text-white font-semibold cursor-pointer'
@@ -974,19 +990,31 @@ export default function PartiesPage() {
                                   }`}
                                 />
                                 <span>{c.name}</span>
-                                {c.companyName && (
-                                  <span
-                                    className={`text-[10px] font-normal px-1.5 py-0.5 rounded border ${
-                                      isSelected
-                                        ? 'bg-blue-900/60 text-blue-100 border-blue-400'
-                                        : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                              </div>
+                            </td>
+
+                            {/* Company / Firm */}
+                            <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5">
+                              {c.companyName ? (
+                                <div className="flex items-center gap-1">
+                                  <Building2
+                                    className={`w-3 h-3 shrink-0 ${
+                                      isSelected ? 'text-blue-200' : 'text-emerald-700 dark:text-emerald-400'
                                     }`}
-                                    title={`Company / Firm: ${c.companyName}`}
+                                  />
+                                  <span
+                                    className={`font-medium ${
+                                      isSelected ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'
+                                    }`}
                                   >
                                     {c.companyName}
                                   </span>
-                                )}
-                              </div>
+                                </div>
+                              ) : (
+                                <span className={isSelected ? 'text-blue-200' : 'text-neutral-400 dark:text-neutral-500 italic'}>
+                                  --
+                                </span>
+                              )}
                             </td>
 
                             {/* Phone Number */}
@@ -1042,6 +1070,18 @@ export default function PartiesPage() {
                                 className="flex items-center justify-center gap-1"
                                 onClick={(e) => e.stopPropagation()}
                               >
+                                <button
+                                  type="button"
+                                  onClick={() => setViewCustomer(c)}
+                                  className={`p-1 rounded-xs border transition-colors cursor-pointer ${
+                                    isSelected
+                                      ? 'bg-white text-blue-700 border-white hover:bg-blue-50'
+                                      : 'bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 border-neutral-300 dark:border-slate-700 hover:bg-blue-50'
+                                  }`}
+                                  title="View customer details"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() => handleOpenCollectCustomer(c)}
@@ -1130,13 +1170,30 @@ export default function PartiesPage() {
                 </span>
               ) : (
                 <span className="italic text-neutral-600 dark:text-neutral-400">
-                  Tip: Double-click row to edit • Click Pay/Collect to record transaction
+                  Tip: Double-click row to view details • Click Edit or Collect/Pay to record transaction
                 </span>
               )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Customer Details Modal (Double-click or Details button) */}
+      <CustomerDetailsModal
+        open={Boolean(viewCustomer)}
+        onOpenChange={(open) => {
+          if (!open) setViewCustomer(null);
+        }}
+        customer={viewCustomer}
+        onEdit={(cust) => {
+          setViewCustomer(null);
+          handleOpenEditCustomer(cust);
+        }}
+        onCollect={(cust) => {
+          setViewCustomer(null);
+          handleOpenCollectCustomer(cust);
+        }}
+      />
 
       {/* Supplier Add / Edit Modal */}
       <SupplierModal
