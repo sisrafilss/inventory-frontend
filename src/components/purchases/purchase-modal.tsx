@@ -125,6 +125,7 @@ export function PurchaseModal({
   const [paidAmount, setPaidAmount] = useState<number | string>('');
   const [paidTouched, setPaidTouched] = useState(false);
   const [discountAmount, setDiscountAmount] = useState<number | string>('');
+  const [discountPercent, setDiscountPercent] = useState<number | string>('');
 
   // Dialogs
   const [showConfirmSave, setShowConfirmSave] = useState(false);
@@ -563,6 +564,7 @@ export function PurchaseModal({
     setPaidAmount('');
     setPaidTouched(false);
     setDiscountAmount('');
+    setDiscountPercent('');
     setInvoiceNumber(`PUR-${Date.now().toString().slice(-6)}`);
     setBannerPrompt('Type Product Code');
     setActiveFocusedField('itemCode');
@@ -595,6 +597,40 @@ export function PurchaseModal({
 
   // Total calculations
   const totalAmount = lineItems.reduce((acc, item) => acc + item.amount, 0);
+
+  // Sync discount amount and percentage
+  const handleDiscountAmountChange = (val: number | string) => {
+    setDiscountAmount(val);
+    const num = parseFloat(String(val)) || 0;
+    if (totalAmount > 0 && num > 0) {
+      setDiscountPercent(Number(((num / totalAmount) * 100).toFixed(2)));
+    } else {
+      setDiscountPercent('');
+    }
+  };
+
+  const handleDiscountPercentChange = (val: number | string) => {
+    setDiscountPercent(val);
+    const pct = parseFloat(String(val)) || 0;
+    if (totalAmount > 0 && pct > 0) {
+      setDiscountAmount(Number(((totalAmount * pct) / 100).toFixed(2)));
+    } else {
+      setDiscountAmount('');
+    }
+  };
+
+  useEffect(() => {
+    const pct = parseFloat(String(discountPercent));
+    if (!isNaN(pct) && pct > 0 && totalAmount > 0) {
+      setDiscountAmount(Number(((totalAmount * pct) / 100).toFixed(2)));
+    } else {
+      const amt = parseFloat(String(discountAmount));
+      if (!isNaN(amt) && amt > 0 && totalAmount > 0) {
+        setDiscountPercent(Number(((amt / totalAmount) * 100).toFixed(2)));
+      }
+    }
+  }, [totalAmount]);
+
   const discountVal = Number(discountAmount) || 0;
   const netAmount = Math.max(0, totalAmount - discountVal);
 
@@ -643,6 +679,7 @@ export function PurchaseModal({
             : selectedSupplier?.name || supplierName || undefined,
         warehouseId: selectedWarehouseId || defaultWarehouseId || undefined,
         paidAmount: effectivePaid,
+        discount: discountVal,
         items: lineItems.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
@@ -968,7 +1005,7 @@ export function PurchaseModal({
                     <option value="Dozens">Dozens</option>
                     <option value="Sets">Sets</option>
                     <option value="Boxes">Boxes</option>
-                    <option value="Kilograms">Kilograms</option>
+                    <option value="Kilograms">Kilogram (KG)</option>
                     <option value="Cartons">Cartons</option>
                     <option value="Packets">Packets</option>
                     <option value="Pairs">Pairs</option>
@@ -1385,7 +1422,7 @@ export function PurchaseModal({
                           <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700 text-center">{idx + 1}</td>
                           <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700 font-mono font-semibold">{item.code}</td>
                           <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700">{item.name}</td>
-                          <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700">{item.type}</td>
+                          <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700">{item.type === 'Kilograms' || item.type === 'Kilogram' ? 'KG' : item.type}</td>
                           <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700 text-right font-bold">{item.quantity}</td>
                           <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700 text-right">{item.rate.toFixed(2)}</td>
                           <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700 text-right font-semibold text-emerald-700 dark:text-emerald-400">
@@ -1475,15 +1512,32 @@ export function PurchaseModal({
 
               <div className="flex items-center justify-end gap-3">
                 <label className="text-xs font-bold text-red-600 dark:text-red-500 w-24 text-right">
-                  Discount
+                  Discount (Tk)
                 </label>
                 <PremiumNumberInput
                   min={0}
                   step={1}
                   value={discountAmount === 0 || discountAmount === '0.00' ? '' : discountAmount}
-                  onChange={(val) => setDiscountAmount(val)}
+                  onChange={handleDiscountAmountChange}
                   disabled={isSaving}
                   placeholder="0.00"
+                  className="w-36 text-red-600 dark:text-red-400 font-bold"
+                  textAlign="right"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3">
+                <label className="text-xs font-bold text-red-600 dark:text-red-500 w-24 text-right">
+                  Discount (%)
+                </label>
+                <PremiumNumberInput
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  value={discountPercent === 0 || discountPercent === '0.00' ? '' : discountPercent}
+                  onChange={handleDiscountPercentChange}
+                  disabled={isSaving}
+                  placeholder="0.00%"
                   className="w-36 text-red-600 dark:text-red-400 font-bold"
                   textAlign="right"
                 />

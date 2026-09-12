@@ -414,7 +414,7 @@ export function ProductLookupModal({
                           : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
                       }`}
                     >
-                      {currentStock} {p.unit || ''}
+                      {currentStock} {p.unit === 'Kilograms' || p.unit === 'Kilogram' ? 'KG' : (p.unit || '')}
                     </span>
                   </td>
 

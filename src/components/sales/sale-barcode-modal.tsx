@@ -615,7 +615,7 @@ export function SaleBarcodeModal({
                           {item.name}
                         </td>
                         <td className="py-2 px-2.5 border-r border-neutral-200 dark:border-slate-800 text-center text-neutral-600 dark:text-neutral-400">
-                          {item.type}
+                          {item.type === 'Kilograms' || item.type === 'Kilogram' ? 'KG' : item.type}
                         </td>
                         <td className="py-1.5 px-2 border-r border-neutral-200 dark:border-slate-800 text-center">
                           <input

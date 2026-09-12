@@ -732,7 +732,7 @@ export default function ProductsPage() {
                             }`}>
                               {p.quantity}
                             </span>
-                            <span className={`text-[10px] ml-1 ${isSelected ? 'text-blue-200' : 'text-neutral-400'}`}>{p.unit}</span>
+                            <span className={`text-[10px] ml-1 ${isSelected ? 'text-blue-200' : 'text-neutral-400'}`}>{p.unit === 'Kilograms' || p.unit === 'Kilogram' ? 'KG' : p.unit}</span>
                           </td>
                           <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
                             <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-bold uppercase border ${
@@ -933,7 +933,7 @@ export default function ProductsPage() {
                   <option value="Dozens">Dozens</option>
                   <option value="Sets">Sets</option>
                   <option value="Boxes">Boxes</option>
-                  <option value="Kilograms">Kilograms</option>
+                  <option value="Kilograms">Kilogram (KG)</option>
                   <option value="Cartons">Cartons</option>
                   <option value="Packets">Packets</option>
                   <option value="Pairs">Pairs</option>
@@ -1064,7 +1064,7 @@ export default function ProductsPage() {
                           {p.company?.name || companies.find((c) => c.id === p.companyId)?.name || '—'}
                         </td>
                         <td className={`py-0.5 px-2 border-r ${isSelected ? 'border-blue-400/40' : 'border-neutral-300 dark:border-slate-700'} w-24`}>
-                          {p.unit}
+                          {p.unit === 'Kilograms' || p.unit === 'Kilogram' ? 'KG' : p.unit}
                         </td>
                         <td className={`py-0.5 px-2 truncate ${isSelected ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}`}>
                           {p.description || 'None'}
@@ -1131,7 +1131,7 @@ export default function ProductsPage() {
                   <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Item Name:</span><span className="font-bold text-neutral-900 dark:text-neutral-100">{viewProduct.name}</span></div>
                   <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Company:</span><span className="text-neutral-900 dark:text-neutral-100">{viewProduct.company?.name || companies.find((c) => c.id === viewProduct.companyId)?.name || '—'}</span></div>
                   <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Category:</span><span className="text-neutral-900 dark:text-neutral-100">{viewProduct.category?.name || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Unit:</span><span className="text-neutral-900 dark:text-neutral-100">{viewProduct.unit}</span></div>
+                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Unit:</span><span className="text-neutral-900 dark:text-neutral-100">{viewProduct.unit === 'Kilograms' || viewProduct.unit === 'Kilogram' ? 'KG' : viewProduct.unit}</span></div>
                 </div>
               </div>
 
@@ -1142,8 +1142,8 @@ export default function ProductsPage() {
                     <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Purchase Rate:</span><span className="font-mono font-bold text-neutral-900 dark:text-neutral-100">৳ {Number(viewProduct.costPrice || 0).toFixed(2)}</span></div>
                   )}
                   <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Sale Rate:</span><span className="font-mono font-bold text-neutral-900 dark:text-neutral-100">৳ {Number(viewProduct.sellingPrice).toFixed(2)}</span></div>
-                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Available Stock:</span><span className="font-bold text-neutral-900 dark:text-neutral-100">{viewProduct.quantity} {viewProduct.unit}</span></div>
-                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Reorder Level:</span><span className="text-neutral-900 dark:text-neutral-100">{viewProduct.reorderLevel} {viewProduct.unit}</span></div>
+                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Available Stock:</span><span className="font-bold text-neutral-900 dark:text-neutral-100">{viewProduct.quantity} {viewProduct.unit === 'Kilograms' || viewProduct.unit === 'Kilogram' ? 'KG' : viewProduct.unit}</span></div>
+                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Reorder Level:</span><span className="text-neutral-900 dark:text-neutral-100">{viewProduct.reorderLevel} {viewProduct.unit === 'Kilograms' || viewProduct.unit === 'Kilogram' ? 'KG' : viewProduct.unit}</span></div>
                   <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Status:</span>
                     <span className={`font-bold ${
                       viewProduct.stockStatus === 'IN_STOCK' ? 'text-emerald-600' : viewProduct.stockStatus === 'LOW_STOCK' ? 'text-amber-600' : 'text-rose-600'

@@ -167,6 +167,8 @@ export interface Purchase {
   supplierName?: string | null;
   paymentType: "CASH" | "SUPPLIER";
   totalAmount: number;
+  discount?: number;
+  netAmount?: number;
   paidAmount: number;
   dueAmount: number;
   note?: string | null;

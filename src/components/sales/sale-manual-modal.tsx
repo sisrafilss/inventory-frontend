@@ -1626,7 +1626,7 @@ export function SaleManualModal({
                             {item.name}
                           </td>
                           <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700">
-                            {item.type}
+                            {item.type === 'Kilograms' || item.type === 'Kilogram' ? 'KG' : item.type}
                           </td>
                           <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700 text-right font-bold">
                             {item.quantity}

@@ -434,7 +434,7 @@ export default function InventoryPage() {
                             {p.category?.name || '—'}
                           </td>
                           <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1 text-right font-mono font-bold ${isSelected ? 'text-white' : p.quantity <= p.reorderLevel ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
-                            {p.quantity} <span className="text-[10px] font-sans font-normal opacity-80">{p.unit}</span>
+                            {p.quantity} <span className="text-[10px] font-sans font-normal opacity-80">{p.unit === 'Kilograms' || p.unit === 'Kilogram' ? 'KG' : p.unit}</span>
                           </td>
                           <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1 text-right font-mono ${isSelected ? 'text-blue-100' : 'text-neutral-600 dark:text-neutral-400'}`}>
                             {Number(p.costPrice).toFixed(2)}
