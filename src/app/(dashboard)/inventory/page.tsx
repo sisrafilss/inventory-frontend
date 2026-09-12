@@ -9,6 +9,7 @@ import { useLanguage } from '@/lib/context/language-context';
 import { Dialog } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ProductCombobox } from '@/components/ui/product-combobox';
+import { formatStock, formatUnitLabel } from '@/lib/stock-utils';
 import {
   Boxes,
   PlusCircle,
@@ -434,7 +435,7 @@ export default function InventoryPage() {
                             {p.category?.name || '—'}
                           </td>
                           <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1 text-right font-mono font-bold ${isSelected ? 'text-white' : p.quantity <= p.reorderLevel ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
-                            {p.quantity} <span className="text-[10px] font-sans font-normal opacity-80">{p.unit === 'Kilograms' || p.unit === 'Kilogram' ? 'KG' : p.unit}</span>
+                            {formatStock(p.quantity, p.unit, p.packSize)}
                           </td>
                           <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1 text-right font-mono ${isSelected ? 'text-blue-100' : 'text-neutral-600 dark:text-neutral-400'}`}>
                             {Number(p.costPrice).toFixed(2)}
@@ -555,11 +556,11 @@ export default function InventoryPage() {
                           }`}>
                             <span className="flex items-center justify-center gap-0.5">
                               {isPositive ? <ArrowUpRight className="w-3.5 h-3.5" /> : isNegative ? <ArrowDownRight className="w-3.5 h-3.5" /> : null}
-                              {isPositive ? `+${m.quantityChange}` : m.quantityChange}
+                              {isPositive ? `+${parseFloat(Number(m.quantityChange).toFixed(3))}` : parseFloat(Number(m.quantityChange).toFixed(3))}
                             </span>
                           </td>
                           <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono ${isSelected ? 'text-blue-100' : 'text-neutral-600 dark:text-neutral-400'}`}>
-                            {m.quantityBefore} <span className="text-neutral-400">→</span> <strong className={isSelected ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'}>{m.quantityAfter}</strong>
+                            {parseFloat(Number(m.quantityBefore).toFixed(3))} <span className="text-neutral-400">→</span> <strong className={isSelected ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'}>{parseFloat(Number(m.quantityAfter).toFixed(3))}</strong>
                           </td>
                           <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 ${isSelected ? 'text-blue-100' : 'text-neutral-700 dark:text-neutral-300'}`}>
                             <span className="font-medium block leading-tight">{m.performedBy.name}</span>
@@ -602,7 +603,7 @@ export default function InventoryPage() {
               </span>
             ) : activeTab === 'history' && selectedMovementRow ? (
               <span className="bg-[#0056b3] text-white px-2 py-0.5 rounded-xs font-bold">
-                Selected: {selectedMovementRow.product.name} ({selectedMovementRow.quantityChange > 0 ? '+' : ''}{selectedMovementRow.quantityChange})
+                Selected: {selectedMovementRow.product.name} ({selectedMovementRow.quantityChange > 0 ? '+' : ''}{parseFloat(Number(selectedMovementRow.quantityChange).toFixed(3))})
               </span>
             ) : (
               <span className="italic text-neutral-600 dark:text-neutral-400 font-sans">
@@ -689,10 +690,10 @@ export default function InventoryPage() {
                 <input
                   required
                   type="number"
-                  min="1"
-                  step="1"
+                  min="0.001"
+                  step="any"
                   value={adjustQty}
-                  onChange={(e) => setAdjustQty(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+                  onChange={(e) => setAdjustQty(e.target.value === '' ? '' : parseFloat(e.target.value))}
                   placeholder="e.g. 5"
                   className="w-full h-8 px-2 text-sm font-mono font-bold border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
                 />
@@ -704,18 +705,18 @@ export default function InventoryPage() {
               <div className="bg-[#fffdf0] dark:bg-amber-950/20 border border-amber-300 dark:border-amber-700 p-3 rounded-xs shadow-sm font-mono text-sm space-y-1.5 text-neutral-800 dark:text-neutral-200">
                 <div className="flex justify-between items-center">
                   <span className="font-sans font-semibold">Current Stock:</span>
-                  <span className="font-bold">{qtyBefore} {adjustSelectedProduct.unit}</span>
+                  <span className="font-bold">{formatStock(qtyBefore, adjustSelectedProduct.unit, adjustSelectedProduct.packSize)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="font-sans font-semibold">Calculated Change:</span>
                   <span className={`font-bold ${change > 0 ? 'text-emerald-700' : change < 0 ? 'text-rose-700' : ''}`}>
-                    {change > 0 ? `+${change}` : change} {adjustSelectedProduct.unit}
+                    {change > 0 ? `+${parseFloat(Number(change).toFixed(3))}` : parseFloat(Number(change).toFixed(3))} {adjustSelectedProduct.unit}
                   </span>
                 </div>
                 <div className="flex justify-between items-center border-t border-amber-200 dark:border-amber-800 pt-1.5 mt-1.5">
                   <span className="font-sans font-bold uppercase">New Expected Stock:</span>
                   <span className={`font-bold text-base ${qtyAfter < 0 ? 'text-rose-600' : 'text-neutral-900 dark:text-white'}`}>
-                    {qtyAfter} {adjustSelectedProduct.unit}
+                    {formatStock(qtyAfter, adjustSelectedProduct.unit, adjustSelectedProduct.packSize)}
                   </span>
                 </div>
                 {qtyAfter < 0 && (

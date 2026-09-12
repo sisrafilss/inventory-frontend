@@ -23,6 +23,7 @@ import { InvoiceMemoModal, MemoSale } from './invoice-memo-modal';
 import { ProductLookupModal } from '../products/product-lookup-modal';
 import { CustomerLookupModal } from '../customers/customer-lookup-modal';
 import { AddCustomerModal } from '../customers/add-customer-modal';
+import { formatStock, formatUnitLabel, isPackagedUnit, getDefaultPackSize } from '@/lib/stock-utils';
 
 export interface ManualSaleLineItem {
   id: string;
@@ -36,6 +37,8 @@ export interface ManualSaleLineItem {
   purchaseRate: number;
   purchaseAmount: number;
   profit: number;
+  packSize?: number;
+  looseQuantity?: number;
 }
 
 interface SaleManualModalProps {
@@ -106,14 +109,21 @@ export function SaleManualModal({
   const [commission, setCommission] = useState<number | string>('');
   const [purchaseRate, setPurchaseRate] = useState<number | string>('');
   const [quantity, setQuantity] = useState<number | string>('');
+  const [packSize, setPackSize] = useState<number | string>('');
+  const [looseQuantity, setLooseQuantity] = useState<number | string>('');
   const [availableStock, setAvailableStock] = useState<number>(0);
   const [saleRate, setSaleRate] = useState<number | string>('');
   const [itemType, setItemType] = useState('Pieces');
 
   // Calculated single item amount
   const itemQtyNum = parseFloat(String(quantity)) || 0;
+  const itemLooseNum = parseFloat(String(looseQuantity)) || 0;
+  const itemPackSizeNum = parseFloat(String(packSize)) > 0 ? parseFloat(String(packSize)) : getDefaultPackSize(itemType);
+  const effectiveSingleQty = isPackagedUnit(itemType) && itemPackSizeNum > 1
+    ? itemQtyNum + (itemLooseNum / itemPackSizeNum)
+    : (itemQtyNum > 0 ? itemQtyNum : itemLooseNum);
   const itemRateNum = parseFloat(String(saleRate)) || 0;
-  const currentItemAmount = Number((itemQtyNum * itemRateNum).toFixed(2));
+  const currentItemAmount = Number((effectiveSingleQty * itemRateNum).toFixed(2));
 
   // Helper to get warehouse-specific stock
   const getStockForWarehouse = (p: Product | null, wId: string): number => {
@@ -169,6 +179,7 @@ export function SaleManualModal({
   // Refs
   const codeInputRef = useRef<HTMLInputElement>(null);
   const qtyInputRef = useRef<HTMLInputElement>(null);
+  const looseQtyInputRef = useRef<HTMLInputElement>(null);
   const saleRateInputRef = useRef<HTMLInputElement>(null);
 
   const handleSelectProductFromLookup = (p: Product) => {
@@ -187,6 +198,9 @@ export function SaleManualModal({
     setPurchaseRate(pCost > 0 ? String(pCost) : '0');
     setAvailableStock(getStockForWarehouse(p, selectedWarehouseId));
     setItemType(p.unit || 'Pieces');
+    const pPack = getDefaultPackSize(p.unit, p.packSize);
+    setPackSize(pPack > 1 ? String(pPack) : (p.packSize ? String(p.packSize) : ''));
+    setLooseQuantity('');
     setSaleRate(''); // Never preloaded: admin/manager manually enters Sale Rate
     setQuantity('1');
     setCodeSuccess(true);
@@ -354,6 +368,9 @@ export function SaleManualModal({
           setPurchaseRate(pCost > 0 ? String(pCost) : '0');
           setAvailableStock(getStockForWarehouse(p, selectedWarehouseId));
           setItemType(p.unit || 'Pieces');
+          const pPack = getDefaultPackSize(p.unit, p.packSize);
+          setPackSize(pPack > 1 ? String(pPack) : (p.packSize ? String(p.packSize) : ''));
+          setLooseQuantity('');
           setSaleRate(''); // Never preloaded: admin/manager manually enters Sale Rate
           setQuantity('1');
           setCodeSuccess(true);
@@ -374,6 +391,8 @@ export function SaleManualModal({
         setAvailableStock(0);
         setSaleRate('');
         setQuantity('');
+        setPackSize('');
+        setLooseQuantity('');
         setCodeSuccess(false);
         setCodeWarning(`Product "${code}" does not exist in database.`);
       })
@@ -470,12 +489,34 @@ export function SaleManualModal({
       return;
     }
 
-    const qty = parseInt(String(quantity), 10);
-    if (isNaN(qty) || qty <= 0) {
-      setValidationWarning('Quantity must be greater than 0.');
+    const isPackaged = isPackagedUnit(itemType);
+    const mainQty = quantity === '' ? 0 : parseFloat(String(quantity));
+    const looseQty = looseQuantity === '' ? 0 : parseFloat(String(looseQuantity));
+    const pSize = parseFloat(String(packSize)) > 0 ? parseFloat(String(packSize)) : getDefaultPackSize(itemType);
+
+    if (isNaN(mainQty) || isNaN(looseQty) || mainQty < 0 || looseQty < 0) {
+      setValidationWarning('Quantity cannot be negative or invalid.');
       setTimeout(() => qtyInputRef.current?.focus(), 50);
       return;
     }
+
+    if (isPackaged) {
+      if (mainQty === 0 && looseQty === 0) {
+        setValidationWarning('Quantity and loose quantity cannot both be zero. Please enter a valid quantity.');
+        setTimeout(() => qtyInputRef.current?.focus(), 50);
+        return;
+      }
+    } else {
+      if (mainQty <= 0) {
+        setValidationWarning('Quantity must be greater than 0.');
+        setTimeout(() => qtyInputRef.current?.focus(), 50);
+        return;
+      }
+    }
+
+    const effectiveQty = isPackagedUnit(itemType) && pSize > 1
+      ? mainQty + (looseQty / pSize)
+      : (mainQty > 0 ? mainQty : looseQty);
 
     const rate = parseFloat(String(saleRate));
     if (isNaN(rate) || rate <= 0) {
@@ -489,16 +530,16 @@ export function SaleManualModal({
       .filter((i) => i.productId === selectedProduct.id)
       .reduce((sum, i) => sum + i.quantity, 0);
 
-    if (existingInTable + qty > availableStock) {
+    if (existingInTable + effectiveQty > availableStock) {
       setValidationWarning(
-        `Insufficient stock! Available: ${availableStock}, In Invoice: ${existingInTable + qty}.`
+        `Insufficient stock! Available: ${formatStock(availableStock, itemType, pSize)}, In Invoice: ${formatStock(existingInTable + effectiveQty, itemType, pSize)}.`
       );
       return;
     }
 
     const pRate = parseFloat(String(purchaseRate)) || 0;
-    const amount = Number((qty * rate).toFixed(2));
-    const purchaseAmount = Number((qty * pRate).toFixed(2));
+    const amount = Number((effectiveQty * rate).toFixed(2));
+    const purchaseAmount = Number((effectiveQty * pRate).toFixed(2));
     const profit = Number((amount - purchaseAmount).toFixed(2));
 
     const newItem: ManualSaleLineItem = {
@@ -507,12 +548,14 @@ export function SaleManualModal({
       code: selectedProduct.sku,
       name: selectedProduct.name,
       type: itemType,
-      quantity: qty,
+      quantity: effectiveQty,
       rate,
       amount,
       purchaseRate: pRate,
       purchaseAmount,
       profit,
+      packSize: pSize,
+      looseQuantity: looseQty > 0 ? looseQty : undefined,
     };
 
     setLineItems((prev) => [...prev, newItem]);
@@ -528,6 +571,8 @@ export function SaleManualModal({
     setCommission('');
     setPurchaseRate('');
     setQuantity('');
+    setPackSize('');
+    setLooseQuantity('');
     setAvailableStock(0);
     setSaleRate('');
     setCodeWarning(null);
@@ -563,6 +608,8 @@ export function SaleManualModal({
     setCommission('');
     setPurchaseRate('');
     setQuantity('');
+    setPackSize('');
+    setLooseQuantity('');
     setAvailableStock(0);
     setSaleRate('');
     setCodeWarning(null);
@@ -771,6 +818,8 @@ export function SaleManualModal({
           quantity: item.quantity,
           unitPrice: item.rate,
           purchaseCost: item.purchaseRate,
+          packSize: item.packSize,
+          looseQuantity: item.looseQuantity,
         })),
       };
 
@@ -972,7 +1021,8 @@ export function SaleManualModal({
                   <input
                     ref={qtyInputRef}
                     type="number"
-                    min="1"
+                    min="0"
+                    step="any"
                     value={quantity}
                     onChange={(e) => setQuantity(e.target.value)}
                     onFocus={() => setActiveFocusedField('quantity')}
@@ -980,7 +1030,9 @@ export function SaleManualModal({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        if (!saleRate || parseFloat(String(saleRate)) <= 0) {
+                        if (isPackagedUnit(itemType)) {
+                          looseQtyInputRef.current?.focus();
+                        } else if (!saleRate || parseFloat(String(saleRate)) <= 0) {
                           saleRateInputRef.current?.focus();
                         } else {
                           handleAddItem();
@@ -999,11 +1051,65 @@ export function SaleManualModal({
                     type="text"
                     readOnly
                     tabIndex={-1}
-                    value={availableStock}
-                    className="w-20 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-slate-700 font-bold select-none cursor-not-allowed focus:outline-none"
+                    value={formatStock(availableStock, itemType, Number(packSize))}
+                    className="w-24 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-slate-700 font-bold select-none cursor-not-allowed focus:outline-none text-xs truncate"
                   />
                 </div>
               </div>
+
+              {/* Packaging Fields (Loose & Pack Size) */}
+              {isPackagedUnit(itemType) && (
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
+                    Loose / Pack
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[11px] font-semibold text-neutral-600 dark:text-neutral-400">Loose:</span>
+                      <input
+                        ref={looseQtyInputRef}
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={looseQuantity}
+                        onChange={(e) => setLooseQuantity(e.target.value)}
+                        onFocus={() => setActiveFocusedField('looseQuantity')}
+                        onBlur={() => setActiveFocusedField('')}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (!saleRate || parseFloat(String(saleRate)) <= 0) {
+                              saleRateInputRef.current?.focus();
+                            } else {
+                              handleAddItem();
+                            }
+                          }
+                        }}
+                        placeholder="0 Pcs"
+                        className={`w-16 h-6 px-1.5 border border-neutral-400 dark:border-slate-600 font-bold focus:outline-none text-xs transition-colors ${
+                          activeFocusedField === 'looseQuantity'
+                            ? 'bg-[#ffff00] text-black ring-1 ring-amber-500'
+                            : 'bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100'
+                        }`}
+                      />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[11px] font-semibold text-neutral-600 dark:text-neutral-400">Size:</span>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={packSize}
+                        onChange={(e) => setPackSize(e.target.value)}
+                        placeholder={String(getDefaultPackSize(itemType))}
+                        disabled={itemType === 'Dozens' || itemType === 'Pairs'}
+                        className="w-16 h-6 px-1.5 border border-neutral-400 dark:border-slate-600 font-bold bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 focus:outline-none disabled:opacity-50 text-xs"
+                        title="Items per pack / carton"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Row 5: Sale Rate & Type */}
               <div className="flex items-center gap-2">
@@ -1629,7 +1735,7 @@ export function SaleManualModal({
                             {item.type === 'Kilograms' || item.type === 'Kilogram' ? 'KG' : item.type}
                           </td>
                           <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700 text-right font-bold">
-                            {item.quantity}
+                            {formatStock(item.quantity, item.type, item.packSize)}
                           </td>
                           <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700 text-right">
                             {item.rate.toLocaleString('en-US', { minimumFractionDigits: 2 })}

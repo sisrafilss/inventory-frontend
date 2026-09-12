@@ -24,6 +24,7 @@ import { SupplierLookupModal } from '@/components/suppliers/supplier-lookup-moda
 import { SupplierModal as AddSupplierModal } from '@/components/parties/supplier-modal';
 import { ProductLookupModal } from '@/components/products/product-lookup-modal';
 import { PremiumNumberInput } from '@/components/ui/number-input';
+import { formatStock, formatUnitLabel, isPackagedUnit, getDefaultPackSize } from '@/lib/stock-utils';
 
 export interface PurchaseLineItem {
   id: string;
@@ -39,6 +40,8 @@ export interface PurchaseLineItem {
   saleRate?: number;
   dpRate: number;
   commission: number;
+  packSize?: number;
+  looseQuantity?: number;
 }
 
 interface PurchaseModalProps {
@@ -106,6 +109,8 @@ export function PurchaseModal({
   const [itemName, setItemName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [quantity, setQuantity] = useState<number | string>('');
+  const [packSize, setPackSize] = useState<number | string>('');
+  const [looseQuantity, setLooseQuantity] = useState<number | string>('');
   const [itemType, setItemType] = useState('Pieces');
   const [dpRate, setDpRate] = useState<number | string>('');
   const [commission, setCommission] = useState<number | string>('');
@@ -134,6 +139,7 @@ export function PurchaseModal({
 
   // Ref for auto-focusing quantity
   const qtyInputRef = useRef<HTMLInputElement>(null);
+  const looseQtyInputRef = useRef<HTMLInputElement>(null);
   const codeInputRef = useRef<HTMLInputElement>(null);
 
   // Click-outside listener for dropdowns
@@ -273,6 +279,9 @@ export function PurchaseModal({
           setItemName(p.name || '');
           setCompanyName(p.company?.name || '');
           setItemType(p.unit || 'Pieces');
+          const pPack = getDefaultPackSize(p.unit, p.packSize);
+          setPackSize(pPack > 1 ? String(pPack) : (p.packSize ? String(p.packSize) : ''));
+          setLooseQuantity('');
           const dp = p.dpRate ? Number(p.dpRate) : (p.costPrice ? Number(p.costPrice) : 0);
           setDpRate(dp > 0 ? String(dp) : '');
           const comm = p.commissionPercent ? Number(p.commissionPercent) : 0;
@@ -293,6 +302,9 @@ export function PurchaseModal({
         setSelectedProduct(null);
         setItemName('');
         setCompanyName('');
+        setQuantity('');
+        setPackSize('');
+        setLooseQuantity('');
         setDpRate('');
         setCommission('');
         setPurchaseRate('');
@@ -330,6 +342,9 @@ export function PurchaseModal({
     setItemName(p.name || '');
     setCompanyName(p.company?.name || '');
     setItemType(p.unit || 'Pieces');
+    const pPack = getDefaultPackSize(p.unit, p.packSize);
+    setPackSize(pPack > 1 ? String(pPack) : (p.packSize ? String(p.packSize) : ''));
+    setLooseQuantity('');
     const dp = p.dpRate ? Number(p.dpRate) : (p.costPrice ? Number(p.costPrice) : 0);
     setDpRate(dp > 0 ? String(dp) : '');
     const comm = p.commissionPercent ? Number(p.commissionPercent) : 0;
@@ -494,15 +509,37 @@ export function PurchaseModal({
       return;
     }
 
-    const qty = Number(quantity);
-    if (!qty || qty <= 0) {
-      setValidationWarning('Quantity must be greater than 0.');
+    const isPackaged = isPackagedUnit(itemType);
+    const mainQty = quantity === '' ? 0 : parseFloat(String(quantity));
+    const looseQty = looseQuantity === '' ? 0 : parseFloat(String(looseQuantity));
+    const pSize = parseFloat(String(packSize)) > 0 ? parseFloat(String(packSize)) : getDefaultPackSize(itemType);
+
+    if (isNaN(mainQty) || isNaN(looseQty) || mainQty < 0 || looseQty < 0) {
+      setValidationWarning('Quantity cannot be negative or invalid.');
       setTimeout(() => qtyInputRef.current?.focus(), 50);
       return;
     }
 
+    if (isPackaged) {
+      if (mainQty === 0 && looseQty === 0) {
+        setValidationWarning('Quantity and loose quantity cannot both be zero. Please enter a valid quantity.');
+        setTimeout(() => qtyInputRef.current?.focus(), 50);
+        return;
+      }
+    } else {
+      if (mainQty <= 0) {
+        setValidationWarning('Quantity must be greater than 0.');
+        setTimeout(() => qtyInputRef.current?.focus(), 50);
+        return;
+      }
+    }
+
+    const effectiveQty = isPackagedUnit(itemType) && pSize > 1
+      ? mainQty + (looseQty / pSize)
+      : (mainQty > 0 ? mainQty : looseQty);
+
     const rate = Number(purchaseRate) || Number(dpRate) || 0;
-    const amount = Number((qty * rate).toFixed(2));
+    const amount = Number((effectiveQty * rate).toFixed(2));
     const sRate = parseFloat(String(saleRate));
 
     const newItem: PurchaseLineItem = {
@@ -511,7 +548,7 @@ export function PurchaseModal({
       code: selectedProduct.sku,
       name: itemName || selectedProduct.name,
       type: itemType,
-      quantity: qty,
+      quantity: effectiveQty,
       rate,
       purchaseRate: rate,
       saleRate: !isNaN(sRate) && sRate > 0 ? sRate : undefined,
@@ -519,6 +556,8 @@ export function PurchaseModal({
       remarks: '',
       dpRate: Number(dpRate) || 0,
       commission: Number(commission) || 0,
+      packSize: pSize,
+      looseQuantity: looseQty > 0 ? looseQty : undefined,
     };
 
     setLineItems((prev) => [...prev, newItem]);
@@ -530,6 +569,8 @@ export function PurchaseModal({
     setItemName('');
     setCompanyName('');
     setQuantity('');
+    setPackSize('');
+    setLooseQuantity('');
     setDpRate('');
     setCommission('');
     setPurchaseRate('');
@@ -554,6 +595,8 @@ export function PurchaseModal({
     setItemName('');
     setCompanyName('');
     setQuantity('');
+    setPackSize('');
+    setLooseQuantity('');
     setDpRate('');
     setCommission('');
     setPurchaseRate('');
@@ -687,6 +730,8 @@ export function PurchaseModal({
           commissionPercent: item.commission,
           purchaseRate: item.rate,
           saleRate: item.saleRate !== undefined && item.saleRate > 0 ? item.saleRate : undefined,
+          packSize: item.packSize,
+          looseQuantity: item.looseQuantity,
         })),
       });
 
@@ -975,8 +1020,8 @@ export function PurchaseModal({
                 <div className="flex items-center gap-2">
                   <PremiumNumberInput
                     inputRef={qtyInputRef}
-                    min={1}
-                    step={1}
+                    min={0}
+                    step="any"
                     value={quantity}
                     onChange={(val) => setQuantity(val)}
                     placeholder="0"
@@ -990,14 +1035,25 @@ export function PurchaseModal({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        handleAddItem();
+                        if (isPackagedUnit(itemType)) {
+                          looseQtyInputRef.current?.focus();
+                        } else {
+                          handleAddItem();
+                        }
                       }
                     }}
                     disabled={isSaving}
                   />
                   <select
                     value={itemType}
-                    onChange={(e) => setItemType(e.target.value)}
+                    onChange={(e) => {
+                      const newUnit = e.target.value;
+                      setItemType(newUnit);
+                      const defPack = getDefaultPackSize(newUnit);
+                      if (defPack > 1) {
+                        setPackSize(String(defPack));
+                      }
+                    }}
                     disabled={isSaving}
                     className="w-24 sm:w-28 h-6 px-1.5 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none disabled:opacity-50"
                   >
@@ -1012,6 +1068,51 @@ export function PurchaseModal({
                   </select>
                 </div>
               </div>
+
+              {/* Packaging Fields (Loose Pieces & Pack Size) */}
+              {isPackagedUnit(itemType) && (
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                    Loose / Pack
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[11px] font-semibold text-neutral-600 dark:text-neutral-400">Loose:</span>
+                      <PremiumNumberInput
+                        inputRef={looseQtyInputRef}
+                        min={0}
+                        step="any"
+                        value={looseQuantity}
+                        onChange={(val) => setLooseQuantity(val)}
+                        placeholder="0 Pcs"
+                        className="w-16"
+                        onFocus={() => setBannerPrompt('Type Loose Pieces (খুচরা)')}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddItem();
+                          }
+                        }}
+                        disabled={isSaving}
+                      />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[11px] font-semibold text-neutral-600 dark:text-neutral-400">Size:</span>
+                      <PremiumNumberInput
+                        min={1}
+                        step={1}
+                        value={packSize}
+                        onChange={(val) => setPackSize(val)}
+                        placeholder={String(getDefaultPackSize(itemType))}
+                        className="w-16"
+                        title="Items per carton/pack (e.g. 12 for Dozen)"
+                        onFocus={() => setBannerPrompt('Items per carton/pack (Pack Size)')}
+                        disabled={isSaving || itemType === 'Dozens' || itemType === 'Pairs'}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* DP Rate */}
               <div className="flex items-center gap-2">
@@ -1423,7 +1524,9 @@ export function PurchaseModal({
                           <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700 font-mono font-semibold">{item.code}</td>
                           <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700">{item.name}</td>
                           <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700">{item.type === 'Kilograms' || item.type === 'Kilogram' ? 'KG' : item.type}</td>
-                          <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700 text-right font-bold">{item.quantity}</td>
+                          <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700 text-right font-bold">
+                            {formatStock(item.quantity, item.type, item.packSize)}
+                          </td>
                           <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700 text-right">{item.rate.toFixed(2)}</td>
                           <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700 text-right font-semibold text-emerald-700 dark:text-emerald-400">
                             {item.saleRate ? item.saleRate.toFixed(2) : '—'}

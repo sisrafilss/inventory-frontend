@@ -278,10 +278,10 @@ export function SaleBarcodeModal({
 
   // Quantity change
   const handleQuantityChange = (index: number, val: string) => {
-    const qty = parseInt(val, 10);
+    const qty = parseFloat(val);
     setItems((prev) => {
       const updated = [...prev];
-      const validQty = isNaN(qty) || qty < 1 ? 1 : qty;
+      const validQty = isNaN(qty) || qty <= 0 ? 0 : qty;
       updated[index] = {
         ...updated[index],
         quantity: validQty,
@@ -620,7 +620,8 @@ export function SaleBarcodeModal({
                         <td className="py-1.5 px-2 border-r border-neutral-200 dark:border-slate-800 text-center">
                           <input
                             type="number"
-                            min="1"
+                            min="0"
+                            step="any"
                             value={item.quantity}
                             onChange={(e) => handleQuantityChange(idx, e.target.value)}
                             className="w-16 h-6 px-1.5 text-center font-mono font-semibold bg-neutral-100 dark:bg-slate-800 border border-neutral-300 dark:border-slate-600 focus:outline-none focus:border-emerald-600 rounded"

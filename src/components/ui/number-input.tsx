@@ -8,9 +8,10 @@ export interface PremiumNumberInputProps {
   onChange: (val: string) => void;
   min?: number;
   max?: number;
-  step?: number;
+  step?: number | string;
   placeholder?: string;
   className?: string;
+  title?: string;
   disabled?: boolean;
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
@@ -18,6 +19,7 @@ export interface PremiumNumberInputProps {
   inputRef?: React.Ref<HTMLInputElement>;
   textAlign?: 'left' | 'right' | 'center';
   isFocusedHighlight?: boolean;
+  allowZero?: boolean;
 }
 
 export function PremiumNumberInput({
@@ -28,6 +30,7 @@ export function PremiumNumberInput({
   step = 1,
   placeholder = '0.00',
   className = '',
+  title,
   disabled = false,
   onFocus,
   onBlur,
@@ -35,37 +38,36 @@ export function PremiumNumberInput({
   inputRef,
   textAlign = 'left',
   isFocusedHighlight = false,
+  allowZero = true,
 }: PremiumNumberInputProps) {
-  // If value is 0, '0', '0.00', '0.0', null, or undefined, render empty string so placeholder shows
+  // If allowZero is false and value is 0, render empty string so placeholder shows.
+  // Otherwise, only empty, undefined, or null should render empty string.
   const displayValue =
-    value === 0 ||
-    value === '0' ||
-    value === '0.00' ||
-    value === '0.0' ||
-    value === undefined ||
-    value === null
+    value === undefined || value === null || value === '' || (!allowZero && (value === 0 || value === '0' || value === '0.00' || value === '0.0'))
       ? ''
       : String(value);
 
+  const numStep = typeof step === 'string' ? (parseFloat(step) || 1) : step;
+
   const handleStep = (direction: 'up' | 'down') => {
     if (disabled) return;
-    const isDecimalStep = step < 1 || String(step).includes('.');
-    const precision = isDecimalStep ? (String(step).split('.')[1]?.length || 2) : 0;
+    const isDecimalStep = numStep < 1 || String(numStep).includes('.');
+    const precision = isDecimalStep ? (String(numStep).split('.')[1]?.length || 2) : 0;
 
     let current: number;
     if (displayValue === '') {
-      current = direction === 'up' && min !== undefined && min > 0 ? min - step : 0;
+      current = direction === 'up' && min !== undefined && min > 0 ? min - numStep : 0;
     } else {
       current = parseFloat(displayValue) || 0;
     }
 
     let next: number;
     if (direction === 'up') {
-      next = Number((current + step).toFixed(precision));
+      next = Number((current + numStep).toFixed(precision));
       if (min !== undefined && next < min) next = min;
       if (max !== undefined && next > max) next = max;
     } else {
-      next = Number((current - step).toFixed(precision));
+      next = Number((current - numStep).toFixed(precision));
       if (min !== undefined && next < min) next = min;
     }
 
@@ -78,6 +80,7 @@ export function PremiumNumberInput({
         ref={inputRef}
         type="text"
         inputMode="decimal"
+        title={title}
         value={displayValue}
         placeholder={placeholder}
         disabled={disabled}

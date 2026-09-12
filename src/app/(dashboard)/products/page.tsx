@@ -10,6 +10,7 @@ import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } fr
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Package, Plus, Search, Edit2, AlertCircle, ChevronLeft, ChevronRight, Building2, HelpCircle, X, Loader2, Check, ShoppingCart } from 'lucide-react';
 import { PurchaseModal } from '@/components/purchases/purchase-modal';
+import { formatStock, formatUnitLabel, isPackagedUnit, getDefaultPackSize } from '@/lib/stock-utils';
 
 export default function ProductsPage() {
   const { user } = useAuth();
@@ -59,6 +60,7 @@ export default function ProductsPage() {
     companyId: '',
     warehouseId: '',
     unit: 'Pieces',
+    packSize: 1 as number | string,
     dpRate: 0,
     costPrice: 0,
     sellingPrice: 0,
@@ -304,6 +306,7 @@ export default function ProductsPage() {
       companyId: companies[0]?.id || '',
       warehouseId: '',
       unit: 'Pieces',
+      packSize: 1,
       dpRate: 0,
       costPrice: 0,
       sellingPrice: 0,
@@ -328,6 +331,7 @@ export default function ProductsPage() {
       companyId: p.companyId || '',
       warehouseId: '',
       unit: p.unit || 'Pieces',
+      packSize: p.packSize || 1,
       dpRate: p.dpRate ? Number(p.dpRate) : 0,
       costPrice: p.costPrice ?? 0,
       sellingPrice: p.sellingPrice,
@@ -352,6 +356,7 @@ export default function ProductsPage() {
       companyId: p.companyId || '',
       warehouseId: '',
       unit: p.unit || 'Pieces',
+      packSize: p.packSize || 1,
       dpRate: p.dpRate ? Number(p.dpRate) : 0,
       costPrice: p.costPrice ?? 0,
       sellingPrice: p.sellingPrice,
@@ -374,6 +379,7 @@ export default function ProductsPage() {
       companyId: companies[0]?.id || '',
       warehouseId: '',
       unit: 'Pieces',
+      packSize: 1,
       dpRate: 0,
       costPrice: 0,
       sellingPrice: 0,
@@ -409,6 +415,9 @@ export default function ProductsPage() {
     setIsSaving(true);
     try {
       let savedProduct: Product;
+      const effectivePackSize =
+        form.unit === 'Dozens' ? 12 : form.unit === 'Pairs' ? 2 : (Number(form.packSize) || 1);
+
       if (editingProduct) {
         const res = await api.patch<Product>(`/products/${editingProduct.id}`, {
           name: form.name,
@@ -416,6 +425,7 @@ export default function ProductsPage() {
           categoryId: form.categoryId || undefined,
           companyId: form.companyId || undefined,
           unit: form.unit,
+          packSize: effectivePackSize,
           dpRate: Number(form.dpRate),
           costPrice: Number(form.costPrice),
           sellingPrice: Number(form.sellingPrice),
@@ -427,6 +437,7 @@ export default function ProductsPage() {
       } else {
         const res = await api.post<Product>('/products', {
           ...form,
+          packSize: effectivePackSize,
           categoryId: form.categoryId || undefined,
           companyId: form.companyId || undefined,
           warehouseId: undefined,
@@ -730,9 +741,8 @@ export default function ProductsPage() {
                                 ? (isSelected ? 'text-amber-300' : 'text-amber-600')
                                 : (isSelected ? 'text-white' : 'text-neutral-900 dark:text-neutral-100')
                             }`}>
-                              {p.quantity}
+                              {formatStock(p.quantity, p.unit, p.packSize)}
                             </span>
-                            <span className={`text-[10px] ml-1 ${isSelected ? 'text-blue-200' : 'text-neutral-400'}`}>{p.unit === 'Kilograms' || p.unit === 'Kilogram' ? 'KG' : p.unit}</span>
                           </td>
                           <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
                             <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-bold uppercase border ${
@@ -926,7 +936,11 @@ export default function ProductsPage() {
                 </label>
                 <select
                   value={form.unit}
-                  onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                  onChange={(e) => {
+                    const u = e.target.value;
+                    const defaultPs = getDefaultPackSize(u, form.packSize ? Number(form.packSize) : 1);
+                    setForm({ ...form, unit: u, packSize: defaultPs });
+                  }}
                   className="w-40 sm:w-48 h-6 px-1.5 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
                 >
                   <option value="Pieces">Pieces</option>
@@ -939,6 +953,29 @@ export default function ProductsPage() {
                   <option value="Pairs">Pairs</option>
                 </select>
               </div>
+
+              {/* Pack / Carton Size (if packaged) */}
+              {isPackagedUnit(form.unit) && (
+                <div className="flex items-center gap-3">
+                  <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                    {form.unit === 'Cartons' ? 'Carton Size' : form.unit === 'Boxes' ? 'Box Size' : form.unit === 'Packets' ? 'Pack Size' : 'Items Per Unit'}
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      value={form.unit === 'Dozens' ? 12 : form.unit === 'Pairs' ? 2 : form.packSize}
+                      onChange={(e) => setForm({ ...form, packSize: e.target.value })}
+                      disabled={form.unit === 'Dozens' || form.unit === 'Pairs'}
+                      placeholder="e.g. 24"
+                      className="w-24 h-6 px-1.5 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-60"
+                    />
+                    <span className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                      {form.unit === 'Dozens' ? 'Pieces / Dozen (Fixed 12)' : form.unit === 'Pairs' ? 'Pieces / Pair (Fixed 2)' : `Pieces per ${formatUnitLabel(form.unit)}`}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Category (Optional) */}
               <div className="flex items-center gap-3">
@@ -1131,7 +1168,13 @@ export default function ProductsPage() {
                   <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Item Name:</span><span className="font-bold text-neutral-900 dark:text-neutral-100">{viewProduct.name}</span></div>
                   <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Company:</span><span className="text-neutral-900 dark:text-neutral-100">{viewProduct.company?.name || companies.find((c) => c.id === viewProduct.companyId)?.name || '—'}</span></div>
                   <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Category:</span><span className="text-neutral-900 dark:text-neutral-100">{viewProduct.category?.name || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Unit:</span><span className="text-neutral-900 dark:text-neutral-100">{viewProduct.unit === 'Kilograms' || viewProduct.unit === 'Kilogram' ? 'KG' : viewProduct.unit}</span></div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-500 font-semibold">Unit:</span>
+                    <span className="text-neutral-900 dark:text-neutral-100">
+                      {formatUnitLabel(viewProduct.unit)}
+                      {viewProduct.packSize && viewProduct.packSize > 1 ? ` (${viewProduct.packSize} Pcs/${formatUnitLabel(viewProduct.unit)})` : ''}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -1142,8 +1185,8 @@ export default function ProductsPage() {
                     <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Purchase Rate:</span><span className="font-mono font-bold text-neutral-900 dark:text-neutral-100">৳ {Number(viewProduct.costPrice || 0).toFixed(2)}</span></div>
                   )}
                   <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Sale Rate:</span><span className="font-mono font-bold text-neutral-900 dark:text-neutral-100">৳ {Number(viewProduct.sellingPrice).toFixed(2)}</span></div>
-                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Available Stock:</span><span className="font-bold text-neutral-900 dark:text-neutral-100">{viewProduct.quantity} {viewProduct.unit === 'Kilograms' || viewProduct.unit === 'Kilogram' ? 'KG' : viewProduct.unit}</span></div>
-                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Reorder Level:</span><span className="text-neutral-900 dark:text-neutral-100">{viewProduct.reorderLevel} {viewProduct.unit === 'Kilograms' || viewProduct.unit === 'Kilogram' ? 'KG' : viewProduct.unit}</span></div>
+                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Available Stock:</span><span className="font-bold text-neutral-900 dark:text-neutral-100">{formatStock(viewProduct.quantity, viewProduct.unit, viewProduct.packSize)}</span></div>
+                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Reorder Level:</span><span className="text-neutral-900 dark:text-neutral-100">{formatStock(viewProduct.reorderLevel, viewProduct.unit, viewProduct.packSize)}</span></div>
                   <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Status:</span>
                     <span className={`font-bold ${
                       viewProduct.stockStatus === 'IN_STOCK' ? 'text-emerald-600' : viewProduct.stockStatus === 'LOW_STOCK' ? 'text-amber-600' : 'text-rose-600'

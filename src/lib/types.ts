@@ -152,6 +152,8 @@ export interface PurchaseItem {
   warehouseId?: string | null;
   warehouse?: { id: string; name: string } | null;
   quantity: number;
+  packSize?: number;
+  looseQuantity?: number;
   dpRate: number;
   commissionPercent: number;
   purchaseRate: number;
@@ -250,6 +252,7 @@ export interface Product {
   sellingPrice: number;
   quantity: number;
   reorderLevel: number;
+  packSize?: number;
   description?: string | null;
   isActive: boolean;
   warehouseStocks?: WarehouseStock[];
@@ -270,9 +273,12 @@ export interface SaleItem {
     sku: string;
     unit?: string;
     quantity?: number;
+    packSize?: number;
     company?: { id: string; name: string } | null;
   };
   quantity: number;
+  packSize?: number;
+  looseQuantity?: number;
   purchaseCost?: number;
   unitPrice: number;
   lineTotal: number;
