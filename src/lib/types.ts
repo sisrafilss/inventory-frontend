@@ -155,6 +155,7 @@ export interface PurchaseItem {
   dpRate: number;
   commissionPercent: number;
   purchaseRate: number;
+  saleRate?: number;
   lineTotal: number;
 }
 

@@ -35,6 +35,8 @@ export interface PurchaseLineItem {
   rate: number;
   amount: number;
   remarks: string;
+  purchaseRate?: number;
+  saleRate?: number;
   dpRate: number;
   commission: number;
 }
@@ -108,6 +110,7 @@ export function PurchaseModal({
   const [dpRate, setDpRate] = useState<number | string>('');
   const [commission, setCommission] = useState<number | string>('');
   const [purchaseRate, setPurchaseRate] = useState<number | string>('');
+  const [saleRate, setSaleRate] = useState<number | string>('');
 
   // Loading & status flags
   const [isSearchingProduct, setIsSearchingProduct] = useState(false);
@@ -275,6 +278,8 @@ export function PurchaseModal({
           setCommission(comm > 0 ? String(comm) : '');
           const pRate = p.costPrice ? Number(p.costPrice) : (dp > 0 ? dp : 0);
           setPurchaseRate(pRate > 0 ? String(pRate) : '');
+          const sRate = p.sellingPrice ? Number(p.sellingPrice) : 0;
+          setSaleRate(sRate > 0 ? String(sRate) : '');
           setCodeSuccess(true);
           setCodeWarning(null);
           setBannerPrompt('Type Quantity . . .');
@@ -290,6 +295,7 @@ export function PurchaseModal({
         setDpRate('');
         setCommission('');
         setPurchaseRate('');
+        setSaleRate('');
         setCodeSuccess(false);
         setCodeWarning(`Product "${code}" does not exist in database.`);
         setBannerPrompt(`Product "${code}" not found`);
@@ -329,6 +335,8 @@ export function PurchaseModal({
     setCommission(comm > 0 ? String(comm) : '');
     const pRate = p.costPrice ? Number(p.costPrice) : (dp > 0 ? dp : 0);
     setPurchaseRate(pRate > 0 ? String(pRate) : '');
+    const sRate = p.sellingPrice ? Number(p.sellingPrice) : 0;
+    setSaleRate(sRate > 0 ? String(sRate) : '');
     setQuantity('1');
     setCodeSuccess(true);
     setCodeWarning(null);
@@ -494,6 +502,7 @@ export function PurchaseModal({
 
     const rate = Number(purchaseRate) || Number(dpRate) || 0;
     const amount = Number((qty * rate).toFixed(2));
+    const sRate = parseFloat(String(saleRate));
 
     const newItem: PurchaseLineItem = {
       id: Math.random().toString(),
@@ -503,6 +512,8 @@ export function PurchaseModal({
       type: itemType,
       quantity: qty,
       rate,
+      purchaseRate: rate,
+      saleRate: !isNaN(sRate) && sRate > 0 ? sRate : undefined,
       amount,
       remarks: '',
       dpRate: Number(dpRate) || 0,
@@ -521,6 +532,7 @@ export function PurchaseModal({
     setDpRate('');
     setCommission('');
     setPurchaseRate('');
+    setSaleRate('');
     setCodeWarning(null);
     setCodeSuccess(false);
     setBannerPrompt('Type Product Code');
@@ -544,6 +556,7 @@ export function PurchaseModal({
     setDpRate('');
     setCommission('');
     setPurchaseRate('');
+    setSaleRate('');
     setCodeWarning(null);
     setCodeSuccess(false);
     setLineItems([]);
@@ -636,6 +649,7 @@ export function PurchaseModal({
           dpRate: item.dpRate,
           commissionPercent: item.commission,
           purchaseRate: item.rate,
+          saleRate: item.saleRate !== undefined && item.saleRate > 0 ? item.saleRate : undefined,
         })),
       });
 
@@ -1003,20 +1017,46 @@ export function PurchaseModal({
                 </div>
               </div>
 
-              {/* Purchase Rate (Disabled / Auto-calculated) & Add Button */}
+              {/* Purchase Rate (Disabled / Auto-calculated) */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
                   Purchase Rate
                 </label>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    value={purchaseRate}
+                    readOnly
+                    tabIndex={-1}
+                    placeholder="0.00"
+                    className="w-28 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-slate-700 font-bold select-none cursor-not-allowed focus:outline-none placeholder:text-neutral-400"
+                  />
+                  <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-400">Tk</span>
+                </div>
+              </div>
+
+              {/* Sale Rate (Optional) & Add Button */}
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                  Sale Rate
+                </label>
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1">
-                    <input
-                      type="text"
-                      value={purchaseRate}
-                      readOnly
-                      tabIndex={-1}
+                    <PremiumNumberInput
+                      min={0}
+                      step={1}
+                      value={saleRate}
+                      onChange={(val) => setSaleRate(val)}
                       placeholder="0.00"
-                      className="w-28 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-slate-700 font-bold select-none cursor-not-allowed focus:outline-none placeholder:text-neutral-400"
+                      className="w-28"
+                      onFocus={() => setBannerPrompt('Type Sale Rate (Optional)')}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddItem();
+                        }
+                      }}
+                      disabled={isSaving}
                     />
                     <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-400">Tk</span>
                   </div>
@@ -1315,6 +1355,7 @@ export function PurchaseModal({
                     <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 w-20 font-bold">Type</th>
                     <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 w-20 text-right font-bold">Quantity</th>
                     <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 w-24 text-right font-bold">Rate</th>
+                    <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 w-24 text-right font-bold">Sale Rate</th>
                     <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 w-24 text-right font-bold">Amount</th>
                     <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 min-w-[120px] font-bold">Remarks</th>
                     <th className="py-1 px-2 border-r border-neutral-300 dark:border-slate-700 w-16 text-center font-bold">Action</th>
@@ -1325,7 +1366,7 @@ export function PurchaseModal({
                 <tbody className="bg-white dark:bg-slate-900">
                   {lineItems.length === 0 ? (
                     <tr>
-                      <td colSpan={11} className="py-6 text-center text-neutral-500 font-medium italic bg-white dark:bg-slate-900">
+                      <td colSpan={12} className="py-6 text-center text-neutral-500 font-medium italic bg-white dark:bg-slate-900">
                         No purchase items added yet. Type item code above and click Add.
                       </td>
                     </tr>
@@ -1347,6 +1388,9 @@ export function PurchaseModal({
                           <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700">{item.type}</td>
                           <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700 text-right font-bold">{item.quantity}</td>
                           <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700 text-right">{item.rate.toFixed(2)}</td>
+                          <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700 text-right font-semibold text-emerald-700 dark:text-emerald-400">
+                            {item.saleRate ? item.saleRate.toFixed(2) : '—'}
+                          </td>
                           <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700 text-right font-bold">{item.amount.toFixed(2)}</td>
                           <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700">{item.remarks || '—'}</td>
                           <td className="py-0.5 px-2 border-r border-neutral-300 dark:border-slate-700 text-center">

@@ -8,9 +8,8 @@ import { Product, Category, Company, Warehouse } from '@/lib/types';
 import { useLanguage } from '@/lib/context/language-context';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Package, Plus, Search, Edit2, AlertCircle, ChevronLeft, ChevronRight, Building2, HelpCircle, X, Loader2, Check, ShoppingCart, Tag } from 'lucide-react';
+import { Package, Plus, Search, Edit2, AlertCircle, ChevronLeft, ChevronRight, Building2, HelpCircle, X, Loader2, Check, ShoppingCart } from 'lucide-react';
 import { PurchaseModal } from '@/components/purchases/purchase-modal';
-import { SaleRateModal } from '@/components/products/sale-rate-modal';
 
 export default function ProductsPage() {
   const { user } = useAuth();
@@ -46,7 +45,6 @@ export default function ProductsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
   const [purchaseModalCode, setPurchaseModalCode] = useState<string | undefined>(undefined);
-  const [saleRateModalOpen, setSaleRateModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
   const [showConfirmSave, setShowConfirmSave] = useState(false);
@@ -524,15 +522,6 @@ export default function ProductsPage() {
                 >
                   <ShoppingCart className="w-3.5 h-3.5 text-rose-200" />
                   <span>{t('products.purchase')}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSaleRateModalOpen(true)}
-                  className="px-2.5 py-1 text-xs font-bold bg-[#004d00] hover:bg-emerald-900 text-white border border-emerald-600/60 shadow-xs flex items-center gap-1.5 rounded-xs transition-colors cursor-pointer"
-                  title="Manage product sale rates"
-                >
-                  <Tag className="w-3.5 h-3.5 text-emerald-300" />
-                  <span>{t('products.saleRate')}</span>
                 </button>
               </>
             )}
@@ -1235,13 +1224,6 @@ export default function ProductsPage() {
         open={purchaseModalOpen}
         onOpenChange={setPurchaseModalOpen}
         initialProductCode={purchaseModalCode}
-        onSaveSuccess={fetchProducts}
-      />
-
-      {/* Sale Rate Dialog */}
-      <SaleRateModal
-        open={saleRateModalOpen}
-        onOpenChange={setSaleRateModalOpen}
         onSaveSuccess={fetchProducts}
       />
     </div>
