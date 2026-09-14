@@ -27,6 +27,7 @@ export interface SupplierModalProps {
   supplier?: Supplier | null;
   onSuccess?: (supplier?: Supplier) => void;
   onDelete?: (supplier: Supplier) => void;
+  zIndex?: string;
 }
 
 export function SupplierModal({
@@ -35,6 +36,7 @@ export function SupplierModal({
   supplier = null,
   onSuccess,
   onDelete,
+  zIndex,
 }: SupplierModalProps) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
@@ -245,6 +247,7 @@ export function SupplierModal({
       onOpenChange={(val) => !isSaving && !isDeleting && onOpenChange(val)}
       draggable={true}
       closeOnBackdropClick={false}
+      zIndex={zIndex || 'z-50'}
       className="p-0 max-w-lg w-full border-2 border-[#006400] dark:border-emerald-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 overflow-hidden shadow-2xl"
     >
       {/* Top Banner Header with Drag Handle */}

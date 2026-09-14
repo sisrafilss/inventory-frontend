@@ -709,17 +709,23 @@ export function PurchaseModal({
   const handleExecuteSavePurchase = async () => {
     setIsSaving(true);
     try {
+      const effectiveSupplierName =
+        supplierName.trim() || (paymentMode === 'CASH' ? 'Cash Party' : 'Supplier');
+      const effectiveSupplierPhone = supplierPhone.trim() || undefined;
+      const effectiveSupplierAddress = supplierAddress.trim() || undefined;
+      const effectiveSupplierId = selectedSupplier
+        ? selectedSupplier.id
+        : supplierId && supplierId !== '0'
+          ? supplierId.trim()
+          : undefined;
+
       await api.post('/purchases', {
         invoiceNumber: invoiceNumber.trim() || undefined,
         paymentType: paymentMode,
-        supplierId:
-          paymentMode === 'SUPPLIER'
-            ? selectedSupplier?.id || (supplierId !== '0' ? supplierId : undefined)
-            : undefined,
-        supplierName:
-          paymentMode === 'CASH'
-            ? supplierName || 'Cash Party'
-            : selectedSupplier?.name || supplierName || undefined,
+        supplierId: effectiveSupplierId,
+        supplierName: effectiveSupplierName,
+        supplierPhone: effectiveSupplierPhone,
+        supplierAddress: effectiveSupplierAddress,
         warehouseId: selectedWarehouseId || defaultWarehouseId || undefined,
         paidAmount: effectivePaid,
         discount: discountVal,
@@ -734,6 +740,39 @@ export function PurchaseModal({
           looseQuantity: item.looseQuantity,
         })),
       });
+
+      // Immediately update local supplier state if a supplier was selected and edited
+      if (selectedSupplier) {
+        setSuppliersList((prev) =>
+          prev.map((s) =>
+            s.id === selectedSupplier.id
+              ? {
+                  ...s,
+                  name: effectiveSupplierName !== 'Cash Party' ? effectiveSupplierName : s.name,
+                  phone: effectiveSupplierPhone || s.phone,
+                  address: effectiveSupplierAddress || s.address,
+                }
+              : s
+          )
+        );
+        setSelectedSupplier((prev) =>
+          prev
+            ? {
+                ...prev,
+                name: effectiveSupplierName !== 'Cash Party' ? effectiveSupplierName : prev.name,
+                phone: effectiveSupplierPhone || prev.phone,
+                address: effectiveSupplierAddress || prev.address,
+              }
+            : null
+        );
+      }
+
+      // Refresh suppliers list from server
+      api.get<Supplier[]>('/parties/suppliers')
+        .then((sRes) => {
+          if (sRes.data) setSuppliersList(sRes.data);
+        })
+        .catch(() => {});
 
       setShowConfirmSave(false);
       handleRefresh();
@@ -1336,10 +1375,22 @@ export function PurchaseModal({
                       onClick={() => setSupplierLookupOpen(true)}
                       disabled={isSaving}
                       title="Open Supplier Directory to browse and select suppliers"
-                      className="h-6 px-2.5 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 dark:disabled:text-slate-500 disabled:border-neutral-300 dark:disabled:border-slate-700 disabled:cursor-not-allowed disabled:shadow-none shrink-0 cursor-pointer"
+                      className="h-6 px-2 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 dark:disabled:text-slate-500 disabled:border-neutral-300 dark:disabled:border-slate-700 disabled:cursor-not-allowed disabled:shadow-none shrink-0 cursor-pointer"
                     >
                       View
                     </button>
+                    {paymentMode === 'CASH' && (
+                      <button
+                        type="button"
+                        onClick={() => setAddSupplierModalOpen(true)}
+                        disabled={isSaving}
+                        title="Add New Supplier"
+                        className="h-6 px-2 bg-[#006400] hover:bg-emerald-700 text-white border border-[#004d00] font-bold text-xs shadow-sm transition-colors shrink-0 cursor-pointer flex items-center gap-1"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>Add</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -1357,10 +1408,21 @@ export function PurchaseModal({
                 {/* Dropdown list */}
                 {isSupplierDropdownOpen && (
                   <div className="absolute left-20 right-0 top-full mt-1 max-h-60 overflow-y-auto bg-white dark:bg-slate-800 border border-neutral-300 dark:border-slate-600 shadow-xl z-50 py-1">
-                    <div className="px-2.5 py-1 border-b border-neutral-200 dark:border-slate-700 bg-neutral-50 dark:bg-slate-800/90 text-[11px]">
+                    <div className="px-2.5 py-1 border-b border-neutral-200 dark:border-slate-700 bg-neutral-50 dark:bg-slate-800/90 text-[11px] flex items-center justify-between">
                       <span className="font-bold text-neutral-600 dark:text-neutral-300">
                         {filteredSuppliers.length} Suppliers
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsSupplierDropdownOpen(false);
+                          setAddSupplierModalOpen(true);
+                        }}
+                        className="text-[#006400] dark:text-emerald-400 hover:underline font-bold text-[11px] flex items-center gap-1 cursor-pointer"
+                      >
+                        <UserPlus className="w-3 h-3" />
+                        <span>Add New Supplier</span>
+                      </button>
                     </div>
 
                     {filteredSuppliers.length === 0 ? (
@@ -1418,48 +1480,60 @@ export function PurchaseModal({
                 )}
               </div>
 
-              {/* Row 3: Name (Read-only) */}
+              {/* Row 3: Name */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Name
                 </label>
                 <input
                   type="text"
-                  readOnly
-                  tabIndex={-1}
-                  value={supplierName || (paymentMode === 'CASH' && !selectedSupplier ? 'Cash Party' : '')}
+                  readOnly={paymentMode !== 'CASH'}
+                  value={supplierName}
+                  onChange={(e) => setSupplierName(e.target.value)}
                   placeholder={paymentMode === 'CASH' ? 'Cash Party' : 'Supplier Name (auto)'}
-                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 font-medium select-none focus:outline-none cursor-not-allowed truncate placeholder:text-neutral-400"
+                  className={`flex-1 min-w-0 h-6 px-2 text-xs font-medium truncate ${
+                    paymentMode === 'CASH'
+                      ? 'bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 placeholder:text-neutral-400'
+                      : 'bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 select-none focus:outline-none cursor-not-allowed placeholder:text-neutral-400'
+                  }`}
                 />
               </div>
 
-              {/* Row 4: Address (Read-only) */}
+              {/* Row 4: Address */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Address
                 </label>
                 <input
                   type="text"
-                  readOnly
-                  tabIndex={-1}
+                  readOnly={paymentMode !== 'CASH'}
                   value={supplierAddress}
-                  placeholder="Address (auto)"
-                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 font-medium select-none focus:outline-none cursor-not-allowed truncate placeholder:text-neutral-400"
+                  onChange={(e) => setSupplierAddress(e.target.value)}
+                  placeholder={paymentMode === 'CASH' ? 'Supplier Address' : 'Address (auto)'}
+                  className={`flex-1 min-w-0 h-6 px-2 text-xs font-medium truncate ${
+                    paymentMode === 'CASH'
+                      ? 'bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 placeholder:text-neutral-400'
+                      : 'bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 select-none focus:outline-none cursor-not-allowed placeholder:text-neutral-400'
+                  }`}
                 />
               </div>
 
-              {/* Row 5: Phone No (Read-only) */}
+              {/* Row 5: Phone No */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Phone No
                 </label>
                 <input
                   type="text"
-                  readOnly
-                  tabIndex={-1}
+                  readOnly={paymentMode !== 'CASH'}
                   value={supplierPhone}
-                  placeholder="Phone (auto)"
-                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 font-medium select-none focus:outline-none cursor-not-allowed truncate placeholder:text-neutral-400"
+                  onChange={(e) => setSupplierPhone(e.target.value)}
+                  placeholder={paymentMode === 'CASH' ? 'Supplier Phone' : 'Phone (auto)'}
+                  className={`flex-1 min-w-0 h-6 px-2 text-xs font-medium truncate ${
+                    paymentMode === 'CASH'
+                      ? 'bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 placeholder:text-neutral-400'
+                      : 'bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 select-none focus:outline-none cursor-not-allowed placeholder:text-neutral-400'
+                  }`}
                 />
               </div>
 
@@ -1719,6 +1793,7 @@ export function PurchaseModal({
         open={addSupplierModalOpen}
         onOpenChange={setAddSupplierModalOpen}
         onSuccess={handleSupplierCreated}
+        zIndex="z-[75]"
       />
     </>
   );
