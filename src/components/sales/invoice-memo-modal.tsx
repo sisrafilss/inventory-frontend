@@ -22,6 +22,10 @@ export interface MemoSaleItem {
     sku?: string;
     unit?: string;
   };
+  warehouse?: {
+    id?: string;
+    name?: string;
+  } | null;
 }
 
 export interface MemoSale {
@@ -35,6 +39,13 @@ export interface MemoSale {
   netAmount?: number;
   totalPurchaseCost?: number;
   profit?: number;
+  warehouseId?: string | null;
+  warehouse?: {
+    id?: string;
+    name?: string;
+    code?: string;
+  } | null;
+  warehouseName?: string | null;
   customer?: {
     id?: string;
     name?: string;
@@ -124,6 +135,12 @@ export function InvoiceMemoModal({
     memoSale.dueAmount ?? Math.max(0, totalAmount - paidAmount),
   );
   const prevDue = Number(memoSale.customer?.currentDue || 0);
+  const warehouseName =
+    memoSale.warehouse?.name ||
+    memoSale.warehouseName ||
+    (sale as Sale).warehouse?.name ||
+    memoSale.items?.find((i: any) => i.warehouse?.name)?.warehouse?.name ||
+    "Main Warehouse";
 
   const handleResetFileName = () => {
     setFileName(generateDefaultFileName(sale));
@@ -265,7 +282,7 @@ export function InvoiceMemoModal({
 
             <div className="space-y-2 pl-2">
               <div className="flex">
-                <span className="w-12 sm:w-14 font-bold text-black whitespace-nowrap">
+                <span className="w-16 sm:w-20 font-bold text-black whitespace-nowrap">
                   Date:
                 </span>
                 <span className="font-semibold text-black border-b-[1.5px] border-dotted border-black flex-1 pl-1">
@@ -274,12 +291,23 @@ export function InvoiceMemoModal({
                   ).toLocaleDateString("en-GB")}
                 </span>
               </div>
-              <div className="flex pt-[21px] sm:pt-[24px]">
-                <span className="w-12 sm:w-14 font-bold text-black whitespace-nowrap">
+              <div className="flex">
+                <span className="w-16 sm:w-20 font-bold text-black whitespace-nowrap">
                   Mobile:
                 </span>
                 <span className="font-semibold text-black border-b-[1.5px] border-dotted border-black flex-1 pl-1">
                   {memoSale.customer?.phone || memoSale.customerPhone || "N/A"}
+                </span>
+              </div>
+              <div className="flex">
+                <span className="w-16 sm:w-20 font-bold text-black whitespace-nowrap">
+                  Warehouse:
+                </span>
+                <span
+                  className="font-semibold text-black border-b-[1.5px] border-dotted border-black flex-1 pl-1 truncate"
+                  title={warehouseName}
+                >
+                  {warehouseName}
                 </span>
               </div>
             </div>

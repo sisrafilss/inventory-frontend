@@ -22,7 +22,7 @@ import { api } from '@/lib/api/client';
 import { InvoiceMemoModal, MemoSale } from './invoice-memo-modal';
 import { ProductLookupModal } from '../products/product-lookup-modal';
 import { CustomerLookupModal } from '../customers/customer-lookup-modal';
-import { AddCustomerModal } from '../customers/add-customer-modal';
+import { CustomerModal } from '@/components/parties/customer-modal';
 import { formatStock, formatUnitLabel, isPackagedUnit, getDefaultPackSize } from '@/lib/stock-utils';
 
 export interface ManualSaleLineItem {
@@ -307,9 +307,10 @@ export function SaleManualModal({
         setIsCustomerDropdownOpen(false);
         if (selectedCustomer) {
           const displayId =
-            selectedCustomer.id.length > 12
+            selectedCustomer.code ||
+            (selectedCustomer.id.length > 12
               ? selectedCustomer.id.slice(0, 8)
-              : selectedCustomer.id;
+              : selectedCustomer.id);
           setCustomerSearchText(displayId);
         } else if (!customerId) {
           setCustomerSearchText('');
@@ -686,9 +687,11 @@ export function SaleManualModal({
     setCustomerLookupOpen(false);
   };
 
-  const handleCustomerCreated = (c: Customer) => {
-    setCustomersList((prev) => [c, ...prev]);
-    handleSelectCustomer(c);
+  const handleCustomerCreated = (c?: Customer) => {
+    if (c) {
+      setCustomersList((prev) => [c, ...prev]);
+      handleSelectCustomer(c);
+    }
     setAddCustomerModalOpen(false);
   };
 
@@ -837,6 +840,8 @@ export function SaleManualModal({
 
       // Prepare memo data
       if (memoPreview) {
+        const selectedWhObj = warehousesList.find((w) => w.id === targetWarehouseId);
+        const memoWarehouse = created.warehouse || (selectedWhObj ? { id: selectedWhObj.id, name: selectedWhObj.name } : null);
         const memoData: MemoSale = {
           id: created.id,
           referenceNumber: created.referenceNumber || invoiceNumber,
@@ -848,6 +853,9 @@ export function SaleManualModal({
           paymentType: paymentMode === 'CASH' ? 'CASH' : 'CREDIT',
           totalPurchaseCost,
           profit: totalProfit,
+          warehouseId: created.warehouseId || targetWarehouseId || null,
+          warehouse: memoWarehouse,
+          warehouseName: memoWarehouse?.name || selectedWhObj?.name || 'Main Warehouse',
           customerName: created.customerName || effectiveCustName,
           customerPhone: created.customerPhone || (selectedCustomer?.phone || customerPhone.trim()) || undefined,
           customer: {
@@ -1585,7 +1593,10 @@ export function SaleManualModal({
                               )}
                             </div>
                             <div className="flex items-center gap-2 text-[10px] text-neutral-500 font-mono mt-0.5">
-                              <span>ID: #{c.id.slice(0, 8)}</span>
+                              <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                                ID: {c.code || (c.id.length > 12 ? c.id.slice(0, 8) : c.id)}
+                              </span>
+                              {c.companyName && <span>• {c.companyName}</span>}
                               {c.phone && <span>• {c.phone}</span>}
                             </div>
                           </button>
@@ -1972,11 +1983,12 @@ export function SaleManualModal({
       />
 
       {/* Add Customer Modal */}
-      <AddCustomerModal
+      <CustomerModal
         open={addCustomerModalOpen}
         onOpenChange={setAddCustomerModalOpen}
-        onCustomerCreated={handleCustomerCreated}
+        onSuccess={handleCustomerCreated}
         initialSearch={customerSearchText}
+        zIndex="z-[75]"
       />
     </>
   );

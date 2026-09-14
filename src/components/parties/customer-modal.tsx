@@ -27,16 +27,20 @@ export interface CustomerModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   customer?: Customer | null;
+  initialSearch?: string;
   onSuccess?: (customer?: Customer) => void;
   onDelete?: (customer: Customer) => void;
+  zIndex?: string;
 }
 
 export function CustomerModal({
   open,
   onOpenChange,
   customer = null,
+  initialSearch = '',
   onSuccess,
   onDelete,
+  zIndex,
 }: CustomerModalProps) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
@@ -68,6 +72,7 @@ export function CustomerModal({
   const [statusMessage, setStatusMessage] = useState<{ text: string; isError: boolean } | null>(null);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const codeInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch registered companies on open
   useEffect(() => {
@@ -127,13 +132,27 @@ export function CustomerModal({
         setIsActive(customer.isActive !== false);
       } else {
         resetForm();
+        if (initialSearch && initialSearch.trim()) {
+          const trimmed = initialSearch.trim();
+          if (/^[0-9+-\s()]{5,}$/.test(trimmed)) {
+            setPhone(trimmed);
+          } else {
+            setName(trimmed);
+          }
+        }
       }
       setIsCompanyDropdownOpen(false);
       setHighlightedCompanyIdx(0);
       setStatusMessage(null);
       setCodeWarning(null);
       setCodeAvailable(false);
-      setTimeout(() => nameInputRef.current?.focus(), 80);
+      setTimeout(() => {
+        if (!customer && codeInputRef.current) {
+          codeInputRef.current.focus();
+        } else {
+          nameInputRef.current?.focus();
+        }
+      }, 80);
     } else {
       setStatusMessage(null);
       setCodeWarning(null);
@@ -142,7 +161,7 @@ export function CustomerModal({
       setIsDeleting(false);
       setIsCompanyDropdownOpen(false);
     }
-  }, [open, customer]);
+  }, [open, customer, initialSearch]);
 
   // Real-time debounced check when a customer code is typed
   useEffect(() => {
@@ -306,6 +325,7 @@ export function CustomerModal({
       onOpenChange={(val) => !isSaving && !isDeleting && onOpenChange(val)}
       draggable={true}
       closeOnBackdropClick={false}
+      zIndex={zIndex || 'z-50'}
       className="p-0 max-w-lg w-full border-2 border-[#006400] dark:border-emerald-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 overflow-hidden shadow-2xl"
     >
       {/* Top Banner Header with Drag Handle */}
@@ -397,6 +417,7 @@ export function CustomerModal({
             <div className="col-span-8 space-y-1">
               <div className="relative flex items-center">
                 <input
+                  ref={codeInputRef}
                   type="text"
                   required
                   placeholder="e.g. CUST-101, RET-01"

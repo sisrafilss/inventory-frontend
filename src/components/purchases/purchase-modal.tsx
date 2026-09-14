@@ -1404,11 +1404,9 @@ export function PurchaseModal({
                               )}
                             </div>
                             <div className="flex items-center gap-2 text-[10px] text-neutral-500 font-mono mt-0.5">
-                              {s.code ? (
-                                <span className="text-emerald-700 dark:text-emerald-400 font-bold">#{s.code}</span>
-                              ) : (
-                                <span>ID: #{s.id.slice(0, 8)}</span>
-                              )}
+                              <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                                ID: {s.code || (s.id.length > 12 ? s.id.slice(0, 8) : s.id)}
+                              </span>
                               {s.companyName && <span>• {s.companyName}</span>}
                               {s.phone && <span>• {s.phone}</span>}
                             </div>

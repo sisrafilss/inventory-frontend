@@ -272,8 +272,8 @@ export function CustomerLookupModal({
                 >
                   {/* Customer ID */}
                   <td className="py-2 px-3 border-r border-neutral-200 dark:border-slate-800 font-mono text-[11px] text-neutral-700 dark:text-neutral-300">
-                    <span className="bg-neutral-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-neutral-300 dark:border-slate-700">
-                      {c.id.slice(0, 8)}
+                    <span className="bg-neutral-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-neutral-300 dark:border-slate-700 font-bold text-emerald-800 dark:text-emerald-300">
+                      {c.code || c.id.slice(0, 8)}
                     </span>
                   </td>
 
