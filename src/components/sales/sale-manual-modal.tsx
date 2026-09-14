@@ -803,14 +803,16 @@ export function SaleManualModal({
       const targetWarehouseId = selectedWarehouseId || undefined;
       const effectiveCustName =
         customerName.trim() || (paymentMode === 'CASH' ? 'Cash Party' : 'Customer');
+      const effectiveCustPhone = customerPhone.trim() || undefined;
+      const effectiveCustAddress = customerAddress.trim() || undefined;
 
       const payload = {
         referenceNumber: invoiceNumber.trim() || undefined,
         paymentType: paymentMode === 'CASH' ? ('CASH' as const) : ('CREDIT' as const),
         customerId: selectedCustomer ? selectedCustomer.id : undefined,
         customerName: effectiveCustName,
-        customerPhone: (selectedCustomer?.phone || customerPhone.trim()) || undefined,
-        customerAddress: (selectedCustomer?.address || customerAddress.trim()) || undefined,
+        customerPhone: effectiveCustPhone,
+        customerAddress: effectiveCustAddress,
         warehouseId: targetWarehouseId,
         discount: discountVal,
         discountPercent: parseFloat(String(discountPercent)) || undefined,
@@ -829,7 +831,33 @@ export function SaleManualModal({
       const res = await api.post<Sale>('/sales', payload);
       const created = res.data;
 
-      // Refresh customers list so any newly created customer is in the list immediately
+      // Immediately update local customer state if a customer was selected and edited
+      if (selectedCustomer) {
+        setCustomersList((prev) =>
+          prev.map((c) =>
+            c.id === selectedCustomer.id
+              ? {
+                  ...c,
+                  name: effectiveCustName !== 'Cash Party' ? effectiveCustName : c.name,
+                  phone: effectiveCustPhone || c.phone,
+                  address: effectiveCustAddress || c.address,
+                }
+              : c
+          )
+        );
+        setSelectedCustomer((prev) =>
+          prev
+            ? {
+                ...prev,
+                name: effectiveCustName !== 'Cash Party' ? effectiveCustName : prev.name,
+                phone: effectiveCustPhone || prev.phone,
+                address: effectiveCustAddress || prev.address,
+              }
+            : null
+        );
+      }
+
+      // Refresh customers list from server so any newly created or updated customer is in the list
       api.get<Customer[]>('/parties/customers')
         .then((cRes) => {
           if (cRes.data) setCustomersList(cRes.data);
@@ -857,11 +885,11 @@ export function SaleManualModal({
           warehouse: memoWarehouse,
           warehouseName: memoWarehouse?.name || selectedWhObj?.name || 'Main Warehouse',
           customerName: created.customerName || effectiveCustName,
-          customerPhone: created.customerPhone || (selectedCustomer?.phone || customerPhone.trim()) || undefined,
+          customerPhone: created.customerPhone || effectiveCustPhone,
           customer: {
             name: created.customer?.name || effectiveCustName,
-            phone: created.customer?.phone || selectedCustomer?.phone || customerPhone.trim(),
-            address: created.customer?.address || selectedCustomer?.address || customerAddress.trim(),
+            phone: created.customer?.phone || effectiveCustPhone,
+            address: created.customer?.address || effectiveCustAddress,
             currentDue: Number(created.customer?.currentDue ?? (currentDues || 0)),
           },
           items: lineItems.map((item) => ({
@@ -1409,8 +1437,8 @@ export function SaleManualModal({
               </div>
             </div>
 
-            {/* Column 3: Customer / Party Info & Date & Options (w-[325px] fitted cleanly) */}
-            <div className="w-full lg:w-[325px] shrink-0 space-y-1.5 lg:ml-auto">
+            {/* Column 3: Customer / Party Info & Date & Options (w-[350px] fitted cleanly) */}
+            <div className="w-full lg:w-[350px] shrink-0 space-y-1.5 lg:ml-auto">
               {/* Row 1: Date in top right */}
               <div className="flex justify-end h-6 items-center">
                 <div className="flex items-center gap-1 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 px-2 py-0.5 font-mono text-xs shadow-sm">
@@ -1536,20 +1564,43 @@ export function SaleManualModal({
                       onClick={() => setCustomerLookupOpen(true)}
                       disabled={isSaving}
                       title="Open Customer Directory to browse and select customers"
-                      className="h-6 px-2.5 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 dark:disabled:text-slate-500 disabled:border-neutral-300 dark:disabled:border-slate-700 disabled:cursor-not-allowed disabled:shadow-none shrink-0 cursor-pointer"
+                      className="h-6 px-2 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 dark:disabled:text-slate-500 disabled:border-neutral-300 dark:disabled:border-slate-700 disabled:cursor-not-allowed disabled:shadow-none shrink-0 cursor-pointer"
                     >
                       View
                     </button>
+                    {paymentMode === 'CASH' && (
+                      <button
+                        type="button"
+                        onClick={() => setAddCustomerModalOpen(true)}
+                        disabled={isSaving}
+                        title="Add New Customer"
+                        className="h-6 px-2 bg-[#006400] hover:bg-emerald-700 text-white border border-[#004d00] font-bold text-xs shadow-sm transition-colors shrink-0 cursor-pointer flex items-center gap-1"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>Add</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 
                 {/* Dropdown list */}
                 {isCustomerDropdownOpen && (
                   <div className="absolute left-20 right-0 top-full mt-1 max-h-60 overflow-y-auto bg-white dark:bg-slate-800 border border-neutral-300 dark:border-slate-600 shadow-xl z-50 py-1">
-                    <div className="px-2.5 py-1 border-b border-neutral-200 dark:border-slate-700 bg-neutral-50 dark:bg-slate-800/90 text-[11px]">
+                    <div className="px-2.5 py-1 border-b border-neutral-200 dark:border-slate-700 bg-neutral-50 dark:bg-slate-800/90 text-[11px] flex items-center justify-between">
                       <span className="font-bold text-neutral-600 dark:text-neutral-300">
                         {filteredCustomers.length} Customers
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCustomerDropdownOpen(false);
+                          setAddCustomerModalOpen(true);
+                        }}
+                        className="text-[#006400] dark:text-emerald-400 hover:underline font-bold text-[11px] flex items-center gap-1 cursor-pointer"
+                      >
+                        <UserPlus className="w-3 h-3" />
+                        <span>Add New Customer</span>
+                      </button>
                     </div>
 
                     {filteredCustomers.length === 0 ? (
@@ -1607,48 +1658,60 @@ export function SaleManualModal({
                 )}
               </div>
 
-              {/* Row 4: Name (Read-only) */}
+              {/* Row 4: Name */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Name
                 </label>
                 <input
                   type="text"
-                  readOnly
-                  tabIndex={-1}
-                  value={customerName || (paymentMode === 'CASH' && !selectedCustomer ? 'Cash Party' : '')}
+                  readOnly={paymentMode !== 'CASH'}
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
                   placeholder={paymentMode === 'CASH' ? 'Cash Party' : 'Customer Name (auto)'}
-                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 font-medium select-none focus:outline-none cursor-not-allowed truncate placeholder:text-neutral-400"
+                  className={`flex-1 min-w-0 h-6 px-2 text-xs font-medium truncate ${
+                    paymentMode === 'CASH'
+                      ? 'bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 placeholder:text-neutral-400'
+                      : 'bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 select-none focus:outline-none cursor-not-allowed placeholder:text-neutral-400'
+                  }`}
                 />
               </div>
 
-              {/* Row 5: Address (Read-only) */}
+              {/* Row 5: Address */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Address
                 </label>
                 <input
                   type="text"
-                  readOnly
-                  tabIndex={-1}
+                  readOnly={paymentMode !== 'CASH'}
                   value={customerAddress}
-                  placeholder="Address (auto)"
-                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 font-medium select-none focus:outline-none cursor-not-allowed truncate placeholder:text-neutral-400"
+                  onChange={(e) => setCustomerAddress(e.target.value)}
+                  placeholder={paymentMode === 'CASH' ? 'Customer Address' : 'Address (auto)'}
+                  className={`flex-1 min-w-0 h-6 px-2 text-xs font-medium truncate ${
+                    paymentMode === 'CASH'
+                      ? 'bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 placeholder:text-neutral-400'
+                      : 'bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 select-none focus:outline-none cursor-not-allowed placeholder:text-neutral-400'
+                  }`}
                 />
               </div>
 
-              {/* Row 6: Phone No (Read-only) */}
+              {/* Row 6: Phone No */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Phone No
                 </label>
                 <input
                   type="text"
-                  readOnly
-                  tabIndex={-1}
+                  readOnly={paymentMode !== 'CASH'}
                   value={customerPhone}
-                  placeholder="Phone (auto)"
-                  className="flex-1 min-w-0 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 font-medium select-none focus:outline-none cursor-not-allowed truncate placeholder:text-neutral-400"
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder={paymentMode === 'CASH' ? 'Customer Phone' : 'Phone (auto)'}
+                  className={`flex-1 min-w-0 h-6 px-2 text-xs font-medium truncate ${
+                    paymentMode === 'CASH'
+                      ? 'bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 placeholder:text-neutral-400'
+                      : 'bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-slate-700 select-none focus:outline-none cursor-not-allowed placeholder:text-neutral-400'
+                  }`}
                 />
               </div>
 
