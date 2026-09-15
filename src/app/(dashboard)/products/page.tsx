@@ -5,7 +5,6 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/context/auth-context';
 import { api } from '@/lib/api/client';
 import { Product, Category, Company, Warehouse } from '@/lib/types';
-import { useLanguage } from '@/lib/context/language-context';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Package, Plus, Search, Edit2, AlertCircle, ChevronLeft, ChevronRight, Building2, HelpCircle, X, Loader2, Check, ShoppingCart } from 'lucide-react';
@@ -14,7 +13,6 @@ import { formatStock, formatUnitLabel, isPackagedUnit, getDefaultPackSize } from
 
 export default function ProductsPage() {
   const { user } = useAuth();
-  const { t, formatMoney } = useLanguage();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -506,9 +504,9 @@ export default function ProductsPage() {
           <div className="flex items-center gap-2">
             <span className="text-lg">📦</span>
             <h1 className="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2 pointer-events-none">
-              {t('products.title')}
+              Product Catalog
               <span className="hidden sm:inline text-[11px] font-normal text-emerald-200 tracking-normal border border-emerald-500/40 px-1.5 py-0.5 rounded-xs bg-emerald-900/30">
-                {t('products.catalogInventory')}
+                PRODUCT CATALOG & INVENTORY
               </span>
             </h1>
           </div>
@@ -523,7 +521,7 @@ export default function ProductsPage() {
                   title="Add a new product to catalog"
                 >
                   <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                  <span>{t('products.addProduct')}</span>
+                  <span>Add Product</span>
                 </button>
                 <button
                   type="button"
@@ -532,7 +530,7 @@ export default function ProductsPage() {
                   title="Open purchase invoice modal"
                 >
                   <ShoppingCart className="w-3.5 h-3.5 text-rose-200" />
-                  <span>{t('products.purchase')}</span>
+                  <span>Purchase</span>
                 </button>
               </>
             )}
@@ -546,11 +544,11 @@ export default function ProductsPage() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2 p-2 bg-[#dbe7f3] dark:bg-slate-800/60 rounded-xs border border-[#b2c8dc] dark:border-slate-700 shadow-inner shrink-0">
             {/* Search Input */}
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <span className="font-bold text-neutral-800 dark:text-neutral-200 text-xs shrink-0">{t('common.filter')}:</span>
+              <span className="font-bold text-neutral-800 dark:text-neutral-200 text-xs shrink-0">Filter:</span>
               <div className="relative flex-1 sm:w-72">
                 <input
                   type="text"
-                  placeholder={t('products.searchPlaceholder')}
+                  placeholder="Search by product name or SKU..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full pl-7 pr-2 py-1 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400"
@@ -790,7 +788,7 @@ export default function ProductsPage() {
             <div className="bg-[#b0c8de] dark:bg-slate-800/90 px-3 py-1.5 border border-[#9fbcd6] dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono font-semibold text-neutral-800 dark:text-neutral-200 gap-1 shrink-0">
               <div className="flex items-center gap-3">
                 <span className="text-emerald-900 dark:text-emerald-300">
-                  {t('common.loaded')} <strong>{products.length}</strong> {t('common.of')} <strong>{meta.total}</strong>
+                  Loaded <strong>{products.length}</strong> of <strong>{meta.total}</strong>
                 </span>
                 <span>•</span>
                 <span className="text-neutral-900 dark:text-neutral-100">

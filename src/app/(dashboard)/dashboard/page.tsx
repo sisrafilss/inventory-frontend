@@ -3,9 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/context/auth-context';
-import { useLanguage } from '@/lib/context/language-context';
 import { api } from '@/lib/api/client';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatMoney } from '@/lib/utils';
 import {
   LayoutDashboard,
   Boxes,
@@ -26,7 +25,6 @@ import {
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { t, formatMoney } = useLanguage();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +60,7 @@ export default function DashboardPage() {
       <div className="w-full h-full flex-1 min-h-0 flex flex-col items-center justify-center bg-[#c6d8ea] dark:bg-slate-900 border border-[#004d00] dark:border-emerald-900 rounded-xs">
         <div className="w-9 h-9 border-3 border-[#006400] border-t-transparent rounded-full animate-spin" />
         <p className="text-xs text-neutral-800 dark:text-neutral-200 mt-2 font-bold font-mono">
-          {t('common.loading')}
+          Loading...
         </p>
       </div>
     );
@@ -80,7 +78,7 @@ export default function DashboardPage() {
             className="px-4 py-1.5 bg-[#006400] hover:bg-[#004d00] text-white text-xs font-bold rounded-xs shadow-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            <span>{t('common.retry')}</span>
+            <span>Retry</span>
           </button>
         </div>
       </div>
@@ -102,14 +100,14 @@ export default function DashboardPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-bold tracking-wide leading-tight">
-                  {t('dashboard.welcome') || 'EXECUTIVE & OPERATIONS DASHBOARD'}
+                  EXECUTIVE & OPERATIONS DASHBOARD
                 </h1>
                 <span className="text-[10px] bg-emerald-800 text-emerald-100 px-1.5 py-0.5 rounded-xs font-mono font-bold border border-emerald-700">
                   ERP v1.0
                 </span>
               </div>
               <p className="text-[11px] text-emerald-100/90 font-medium">
-                {t('dashboard.welcomeBack')}, <span className="font-bold text-white">{user?.name}</span> ({user?.role || 'OPERATOR'}) • {t('dashboard.overviewSubtitle')}
+                Welcome back, <span className="font-bold text-white">{user?.name}</span> ({user?.role || 'OPERATOR'}) • Operational dashboard & active queues for inventory system
               </p>
             </div>
           </div>
@@ -121,7 +119,7 @@ export default function DashboardPage() {
                 className="px-2.5 py-1 text-xs font-bold bg-white text-[#006400] border border-[#004d00] shadow-xs flex items-center gap-1.5 rounded-xs hover:bg-emerald-50 transition-colors cursor-pointer uppercase tracking-wider"
               >
                 <PlusCircle className="w-3.5 h-3.5 stroke-[3]" />
-                <span>{t('dashboard.quickNewSale')}</span>
+                <span>Quick New Sale</span>
               </button>
             </Link>
             <button
@@ -132,7 +130,7 @@ export default function DashboardPage() {
               title="Refresh Dashboard"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">{t('common.refresh') || 'Refresh'}</span>
+              <span className="hidden sm:inline">Refresh</span>
             </button>
           </div>
         </div>
@@ -192,10 +190,10 @@ export default function DashboardPage() {
               <div className="px-2 py-1 bg-[#eaf1f8] dark:bg-slate-800 border-b border-neutral-300 dark:border-slate-700 flex items-center justify-between text-[11px] font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">
                 <span className="flex items-center gap-1">
                   <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
-                  {t('dashboard.todaySalesValue')}
+                  Today's Sales Value
                 </span>
                 <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 px-1 rounded-xs font-mono font-bold">
-                  {stats.todaySalesCount || 0} {t('dashboard.orders') || 'Orders'}
+                  {stats.todaySalesCount || 0} Orders
                 </span>
               </div>
               <div className="p-2.5 flex-1 flex flex-col justify-between">
@@ -213,7 +211,7 @@ export default function DashboardPage() {
               <div className="px-2 py-1 bg-[#eaf1f8] dark:bg-slate-800 border-b border-neutral-300 dark:border-slate-700 flex items-center justify-between text-[11px] font-bold text-blue-800 dark:text-blue-400 uppercase tracking-wider">
                 <span className="flex items-center gap-1">
                   <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
-                  {t('dashboard.monthSalesTotal')}
+                  Month Sales Total
                 </span>
               </div>
               <div className="p-2.5 flex-1 flex flex-col justify-between">
@@ -231,7 +229,7 @@ export default function DashboardPage() {
               <div className="px-2 py-1 bg-[#eaf1f8] dark:bg-slate-800 border-b border-neutral-300 dark:border-slate-700 flex items-center justify-between text-[11px] font-bold text-purple-800 dark:text-purple-400 uppercase tracking-wider">
                 <span className="flex items-center gap-1">
                   <Boxes className="w-3.5 h-3.5 text-purple-600" />
-                  {t('dashboard.totalStockQuantity')}
+                  Total Stock Quantity
                 </span>
                 <span className="text-[10px] bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 px-1 rounded-xs font-mono font-bold">
                   {stats.productsCount || 0} SKUs
@@ -252,7 +250,7 @@ export default function DashboardPage() {
               <div className="px-2 py-1 bg-[#eaf1f8] dark:bg-slate-800 border-b border-neutral-300 dark:border-slate-700 flex items-center justify-between text-[11px] font-bold text-neutral-800 dark:text-neutral-300 uppercase tracking-wider">
                 <span className="flex items-center gap-1">
                   <Package className="w-3.5 h-3.5 text-neutral-600" />
-                  {t('dashboard.activeProducts')}
+                  Active Products
                 </span>
                 <span className="text-[10px] bg-neutral-200 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 px-1 rounded-xs font-mono font-bold">
                   {stats.categoriesCount || 0} Cats
@@ -273,7 +271,7 @@ export default function DashboardPage() {
               <div className="px-2 py-1 bg-[#eaf1f8] dark:bg-slate-800 border-b border-neutral-300 dark:border-slate-700 flex items-center justify-between text-[11px] font-bold text-teal-800 dark:text-teal-400 uppercase tracking-wider">
                 <span className="flex items-center gap-1">
                   <Layers3 className="w-3.5 h-3.5 text-teal-600" />
-                  {t('dashboard.estCostValuation')}
+                  Est. Cost Valuation
                 </span>
               </div>
               <div className="p-2.5 flex-1 flex flex-col justify-between">
@@ -291,7 +289,7 @@ export default function DashboardPage() {
               <div className="px-2 py-1 bg-[#fef2f2] dark:bg-rose-950/50 border-b border-red-200 dark:border-rose-900 flex items-center justify-between text-[11px] font-bold text-red-800 dark:text-red-400 uppercase tracking-wider">
                 <span className="flex items-center gap-1">
                   <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
-                  {t('dashboard.lowOutOfStock')}
+                  Low & Out of Stock
                 </span>
               </div>
               <div className="p-2.5 flex-1 flex flex-col justify-between">
@@ -318,17 +316,17 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-2">
                   <ShoppingCart className="w-4 h-4 text-emerald-200" />
                   <span className="font-bold text-xs uppercase tracking-wide">
-                    {t('dashboard.recentSalesTitle')}
+                    Recent Sales Activity
                   </span>
                   <span className="text-[10px] bg-[#006400] text-white px-1.5 py-0.2 rounded-xs font-mono font-bold">
-                    {recentSales.length} {t('sales.lines') || 'records'}
+                    {recentSales.length} records
                   </span>
                 </div>
                 <Link
                   href="/sales"
                   className="text-[11px] text-emerald-200 hover:text-white font-bold flex items-center gap-1 transition-colors uppercase tracking-wider"
                 >
-                  <span>{t('dashboard.viewAllSales')}</span>
+                  <span>View All Sales</span>
                   <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
@@ -339,22 +337,22 @@ export default function DashboardPage() {
                   <thead className="sticky top-0 bg-[#eaf1f8] dark:bg-slate-900 shadow-[0_1px_0_#9fbcd6] dark:shadow-[0_1px_0_#334155] z-10 text-neutral-700 dark:text-neutral-300 uppercase tracking-wider text-[11px] font-bold">
                     <tr>
                       <th className="border-r border-b border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-10 text-center">
-                        {t('common.sn')}
+                        SN
                       </th>
                       <th className="border-r border-b border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[130px]">
-                        {t('dashboard.refNumber')}
+                        Ref #
                       </th>
                       <th className="border-r border-b border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[130px]">
-                        {t('common.date')}
+                        Date
                       </th>
                       <th className="border-r border-b border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[130px]">
-                        {t('dashboard.createdBy')}
+                        Created By
                       </th>
                       <th className="border-r border-b border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28 text-center">
-                        {t('common.status')}
+                        Status
                       </th>
                       <th className="border-b border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-right min-w-[120px]">
-                        {t('dashboard.amount')}
+                        Amount
                       </th>
                     </tr>
                   </thead>
@@ -362,7 +360,7 @@ export default function DashboardPage() {
                     {recentSales.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="py-8 text-center text-xs text-neutral-500 italic">
-                          {t('dashboard.noSalesFound')}
+                          No sales records yet.
                         </td>
                       </tr>
                     ) : (
@@ -391,9 +389,7 @@ export default function DashboardPage() {
                                   : 'bg-red-100 dark:bg-rose-950 text-red-800 dark:text-red-300 border-red-300 dark:border-rose-800'
                               }`}
                             >
-                              {sale.status === 'COMPLETED'
-                                ? t('statuses.COMPLETED')
-                                : t('statuses.CANCELLED')}
+                              {sale.status === 'COMPLETED' ? 'Completed' : 'Cancelled'}
                             </span>
                           </td>
                           <td className="px-3 py-2 text-right font-mono font-bold text-neutral-900 dark:text-neutral-100 text-xs">

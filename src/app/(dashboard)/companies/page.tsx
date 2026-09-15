@@ -3,7 +3,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '@/lib/api/client';
 import { useAuth } from '@/lib/context/auth-context';
-import { useLanguage } from '@/lib/context/language-context';
 import { Company } from '@/lib/types';
 import {
   Building2,
@@ -21,7 +20,6 @@ import { CompanyModal } from '@/components/companies/company-modal';
 
 export default function CompaniesPage() {
   const { user } = useAuth();
-  const { t } = useLanguage();
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
 
   // Current Date Display
@@ -156,9 +154,9 @@ export default function CompaniesPage() {
           <div className="flex items-center gap-2">
             <span className="text-lg">🏢</span>
             <h1 className="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2 pointer-events-none">
-              {t('companies.title')}
+              Company / Brand Management
               <span className="text-[11px] font-mono font-normal text-emerald-200 uppercase tracking-widest hidden sm:inline border border-emerald-500/40 px-1.5 py-0.5 rounded-xs bg-emerald-900/30">
-                [{t('companies.badge')}]
+                [MANUFACTURER REGISTRY]
               </span>
             </h1>
           </div>
@@ -167,7 +165,7 @@ export default function CompaniesPage() {
             {/* Live Date Box */}
             <div className="hidden md:flex items-center gap-1.5 bg-[#004d00]/60 border border-emerald-600/40 px-2 py-0.5 rounded-xs text-[11px] font-mono text-emerald-100 shadow-inner">
               <CalendarIcon className="w-3.5 h-3.5 text-emerald-300" />
-              <span>{t('common.date')} {currentDate}</span>
+              <span>Date {currentDate}</span>
             </div>
 
             {/* Add Company Modal Trigger Button */}
@@ -178,7 +176,7 @@ export default function CompaniesPage() {
               title="Add a new company / brand"
             >
               <Plus className="w-3.5 h-3.5 text-[#006400] stroke-[3]" />
-              <span>{t('companies.addCompany')}</span>
+              <span>Add Company</span>
             </button>
           </div>
         </div>
@@ -217,12 +215,12 @@ export default function CompaniesPage() {
             {/* Search Input */}
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className="font-bold text-neutral-800 dark:text-neutral-200 text-xs shrink-0">
-                {t('common.filter')}:
+                Filter:
               </span>
               <div className="relative flex-1 sm:w-80">
                 <input
                   type="text"
-                  placeholder={t('companies.searchPlaceholder')}
+                  placeholder="Search by company name, code, or description..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full pl-7 pr-2 py-1 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400"
@@ -235,7 +233,7 @@ export default function CompaniesPage() {
                   onClick={() => setSearch('')}
                   className="text-xs text-neutral-600 hover:text-neutral-900 dark:hover:text-neutral-200 underline cursor-pointer"
                 >
-                  {t('common.clear')}
+                  Clear
                 </button>
               )}
             </div>
@@ -244,7 +242,7 @@ export default function CompaniesPage() {
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
               <div className="flex items-center gap-1">
                 <span className="text-[11px] font-semibold text-neutral-700 dark:text-neutral-300 mr-1">
-                  {t('common.status')}:
+                  Status:
                 </span>
                 <button
                   type="button"
@@ -255,7 +253,7 @@ export default function CompaniesPage() {
                       : 'bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border-neutral-400 dark:border-slate-600 hover:bg-neutral-100'
                   }`}
                 >
-                  {t('common.all')} ({companies.length})
+                  All ({companies.length})
                 </button>
                 <button
                   type="button"
@@ -266,7 +264,7 @@ export default function CompaniesPage() {
                       : 'bg-white dark:bg-slate-800 text-emerald-800 dark:text-emerald-400 border-neutral-400 dark:border-slate-600 hover:bg-emerald-50'
                   }`}
                 >
-                  {t('common.active')} ({activeCount})
+                  Active ({activeCount})
                 </button>
                 <button
                   type="button"
@@ -277,7 +275,7 @@ export default function CompaniesPage() {
                       : 'bg-white dark:bg-slate-800 text-rose-800 dark:text-rose-400 border-neutral-400 dark:border-slate-600 hover:bg-rose-50'
                   }`}
                 >
-                  {t('common.inactive')} ({inactiveCount})
+                  Inactive ({inactiveCount})
                 </button>
               </div>
 
@@ -292,7 +290,7 @@ export default function CompaniesPage() {
                       title="Edit selected company"
                     >
                       <Edit2 className="w-3 h-3" />
-                      <span>{t('common.edit')}</span>
+                      <span>Edit</span>
                     </button>
                     {isAdmin && (
                       <button
@@ -302,7 +300,7 @@ export default function CompaniesPage() {
                         title="Delete selected company"
                       >
                         <Trash2 className="w-3 h-3" />
-                        <span>{t('common.delete')}</span>
+                        <span>Delete</span>
                       </button>
                     )}
                   </>
@@ -316,7 +314,7 @@ export default function CompaniesPage() {
                   title="Reload company list from database"
                 >
                   <RotateCcw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-                  <span>{t('common.refresh')}</span>
+                  <span>Refresh</span>
                 </button>
               </div>
             </div>
@@ -329,28 +327,28 @@ export default function CompaniesPage() {
                 <thead className="sticky top-0 bg-[#eaf1f8] dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border-b border-neutral-400 dark:border-slate-700 font-bold select-none text-xs z-10">
                   <tr>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-12 text-center">
-                      {t('common.sn')}
+                      SN
                     </th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center">
-                      {t('companies.code')}
+                      Brand Code
                     </th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[200px]">
-                      {t('companies.name')}
+                      Company / Brand Name
                     </th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[220px]">
-                      {t('products.description')}
+                      Description
                     </th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center">
-                      {t('companies.totalProducts')}
+                      Total Products
                     </th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-20 text-center">
-                      {t('companies.status')}
+                      Status
                     </th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28 text-center font-mono">
                       System ID
                     </th>
                     <th className="px-3 py-1.5 w-24 text-center">
-                      {t('common.actions')}
+                      Actions
                     </th>
                   </tr>
                 </thead>
@@ -531,26 +529,26 @@ export default function CompaniesPage() {
           <div className="bg-[#b0c8de] dark:bg-slate-800/90 px-3 py-1.5 border border-[#9fbcd6] dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono font-semibold text-neutral-800 dark:text-neutral-200 gap-1 shrink-0">
             <div className="flex items-center gap-3">
               <span className="text-blue-900 dark:text-blue-300">
-                {t('common.loaded')} <strong>{visibleCompanies.length}</strong> {t('common.of')} <strong>{filteredCompanies.length}</strong>
+                Loaded <strong>{visibleCompanies.length}</strong> of <strong>{filteredCompanies.length}</strong>
               </span>
               <span>•</span>
               <span className="text-emerald-900 dark:text-emerald-300">
-                {t('common.active')}: <strong>{activeCount}</strong>
+                Active: <strong>{activeCount}</strong>
               </span>
               <span>•</span>
               <span className="text-rose-900 dark:text-rose-400">
-                {t('common.inactive')}: <strong>{inactiveCount}</strong>
+                Inactive: <strong>{inactiveCount}</strong>
               </span>
             </div>
 
             <div className="flex items-center gap-3 text-neutral-700 dark:text-neutral-300">
               {selectedCompany ? (
                 <span className="bg-[#006400] text-white px-2 py-0.5 rounded-xs font-bold">
-                  {t('common.selected')}: {selectedCompany.name} {selectedCompany.code ? `[#${selectedCompany.code}]` : ''}
+                  Selected: {selectedCompany.name} {selectedCompany.code ? `[#${selectedCompany.code}]` : ''}
                 </span>
               ) : (
                 <span className="italic text-neutral-600 dark:text-neutral-400">
-                  {t('companies.tip')}
+                  Tip: Double-click a row to edit company details directly.
                 </span>
               )}
             </div>

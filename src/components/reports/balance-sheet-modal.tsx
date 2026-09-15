@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api/client';
-import { useLanguage } from '@/lib/context/language-context';
 import { Dialog } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,8 +71,6 @@ interface BalanceSheetModalProps {
 }
 
 export function BalanceSheetModal({ open, onOpenChange }: BalanceSheetModalProps) {
-  const { formatMoney } = useLanguage();
-
   // Helper to format date YYYY-MM-DD
   const formatDateForInput = (d: Date) => {
     const year = d.getFullYear();

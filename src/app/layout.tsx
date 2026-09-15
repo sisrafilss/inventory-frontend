@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/lib/context/auth-context';
-import { LanguageProvider } from '@/lib/context/language-context';
 import { ThemeProvider } from '@/lib/context/theme-context';
 import { Toaster } from "@/components/ui/sonner";
 
@@ -44,8 +43,8 @@ export default function RootLayout({
       <body>
         <ThemeProvider>
           <AuthProvider>
-            <LanguageProvider>{children}</LanguageProvider>
-<Toaster position="bottom-right" richColors closeButton />
+            {children}
+            <Toaster position="bottom-right" richColors closeButton />
           </AuthProvider>
         </ThemeProvider>
       </body>

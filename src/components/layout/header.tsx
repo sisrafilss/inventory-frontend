@@ -2,9 +2,7 @@
 
 import React from 'react';
 import { useAuth } from '@/lib/context/auth-context';
-import { useLanguage } from '@/lib/context/language-context';
 import { Badge } from '../ui/badge';
-import { LanguageSwitcher } from '../ui/language-switcher';
 import { ThemeSwitcher } from '../ui/theme-switcher';
 import { Menu, LogOut, Shield, Phone } from 'lucide-react';
 import { AppLogo } from '@/components/ui/app-logo';
@@ -17,7 +15,6 @@ interface HeaderProps {
 
 export function Header({ onToggleSidebar, onOpenMobileMenu, isSidebarOpen }: HeaderProps) {
   const { user, logout } = useAuth();
-  const { t } = useLanguage();
 
   if (!user) return null;
 
@@ -38,8 +35,8 @@ export function Header({ onToggleSidebar, onOpenMobileMenu, isSidebarOpen }: Hea
         <div className="flex items-center gap-2">
           <AppLogo size="sm" showText={false} />
           <span className="text-sm sm:text-base font-bold text-white tracking-wide flex items-center gap-1.5">
-            <span className="hidden sm:inline">{t('common.appName')} — {t('common.appSubtitle')}</span>
-            <span className="sm:hidden">{t('common.appName')}</span>
+            <span className="hidden sm:inline">ProStock ERP — Inventory & Accounts Solution</span>
+            <span className="sm:hidden">ProStock ERP</span>
           </span>
         </div>
       </div>
@@ -63,13 +60,10 @@ export function Header({ onToggleSidebar, onOpenMobileMenu, isSidebarOpen }: Hea
         {/* Theme Switcher Button */}
         <ThemeSwitcher size="sm" />
 
-        {/* Language Switcher Button */}
-        <LanguageSwitcher size="sm" />
-
         {/* Role Badge */}
         <div className="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-xs bg-[#800000] text-white text-[10px] font-mono font-bold tracking-wider uppercase border border-rose-900 shadow-xs">
           <Shield className="w-3 h-3 text-rose-200" />
-          <span>{t(`roles.${user.role}`)}</span>
+          <span>{user.role === 'SUPER_ADMIN' ? 'Super Admin' : user.role === 'ADMIN' ? 'Admin' : 'Manager'}</span>
         </div>
 
         {/* User Email */}
@@ -84,7 +78,7 @@ export function Header({ onToggleSidebar, onOpenMobileMenu, isSidebarOpen }: Hea
           title="Sign out of system"
         >
           <LogOut className="w-3.5 h-3.5 text-rose-600" />
-          <span className="hidden sm:inline">{t('nav.logout')}</span>
+          <span className="hidden sm:inline">Logout</span>
         </button>
       </div>
     </header>

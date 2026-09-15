@@ -4,7 +4,6 @@ import { toast } from 'sonner';
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '@/lib/api/client';
 import { useAuth } from '@/lib/context/auth-context';
-import { useLanguage } from '@/lib/context/language-context';
 import { Warehouse, Product } from '@/lib/types';
 import {
   Warehouse as WarehouseIcon,
@@ -25,7 +24,6 @@ import { WarehouseModal } from '@/components/warehouses/warehouse-modal';
 
 export default function WarehousesPage() {
   const { user } = useAuth();
-  const { t } = useLanguage();
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
 
   // Current Date Display
@@ -232,9 +230,9 @@ export default function WarehousesPage() {
           <div className="flex items-center gap-2">
             <span className="text-lg">🏬</span>
             <h1 className="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2 pointer-events-none">
-              {t('warehouses.title')}
+              Warehouse & Godown Management
               <span className="hidden sm:inline text-[11px] font-normal text-emerald-200 tracking-normal border border-emerald-500/40 px-1.5 py-0.5 rounded-xs bg-emerald-900/30">
-                {t('warehouses.badge')}
+                PHYSICAL STORAGE & DISTRIBUTION NODES
               </span>
             </h1>
           </div>
@@ -242,7 +240,7 @@ export default function WarehousesPage() {
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="hidden md:flex items-center gap-1.5 bg-[#004d00]/60 border border-emerald-600/40 px-2 py-0.5 rounded-xs text-[11px] font-mono text-emerald-100 shadow-inner">
               <CalendarIcon className="w-3.5 h-3.5 text-emerald-300" />
-              <span>{t('common.date')} {currentDate}</span>
+              <span>Date {currentDate}</span>
             </div>
 
             {/* Add Warehouse Modal Trigger Button */}
@@ -253,7 +251,7 @@ export default function WarehousesPage() {
               title="Add a new warehouse / godown"
             >
               <Plus className="w-3.5 h-3.5 text-[#006400] stroke-[3]" />
-              <span>{t('warehouses.addWarehouse')}</span>
+              <span>Add Warehouse</span>
             </button>
 
             {/* Transfer Stock Button */}
@@ -304,12 +302,12 @@ export default function WarehousesPage() {
             {/* Search Input */}
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className="font-bold text-neutral-800 dark:text-neutral-200 text-xs shrink-0">
-                {t('common.filter')}:
+                Filter:
               </span>
               <div className="relative flex-1 sm:w-80">
                 <input
                   type="text"
-                  placeholder={t('warehouses.searchPlaceholder')}
+                  placeholder="Search by godown name, code, or location..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full pl-7 pr-2 py-1 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400"
@@ -322,7 +320,7 @@ export default function WarehousesPage() {
                   onClick={() => setSearch('')}
                   className="text-xs text-neutral-600 hover:text-neutral-900 dark:hover:text-neutral-200 underline cursor-pointer"
                 >
-                  {t('common.clear')}
+                  Clear
                 </button>
               )}
             </div>
@@ -331,7 +329,7 @@ export default function WarehousesPage() {
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
               <div className="flex items-center gap-1">
                 <span className="text-[11px] font-semibold text-neutral-700 dark:text-neutral-300 mr-1">
-                  {t('common.status')}:
+                  Status:
                 </span>
                 <button
                   type="button"
@@ -342,7 +340,7 @@ export default function WarehousesPage() {
                       : 'bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border-neutral-400 dark:border-slate-600 hover:bg-neutral-100'
                   }`}
                 >
-                  {t('common.all')} ({warehouses.length})
+                  All ({warehouses.length})
                 </button>
                 <button
                   type="button"
@@ -353,7 +351,7 @@ export default function WarehousesPage() {
                       : 'bg-white dark:bg-slate-800 text-emerald-800 dark:text-emerald-400 border-neutral-400 dark:border-slate-600 hover:bg-emerald-50'
                   }`}
                 >
-                  {t('common.active')} ({activeCount})
+                  Active ({activeCount})
                 </button>
                 <button
                   type="button"
@@ -364,7 +362,7 @@ export default function WarehousesPage() {
                       : 'bg-white dark:bg-slate-800 text-rose-800 dark:text-rose-400 border-neutral-400 dark:border-slate-600 hover:bg-rose-50'
                   }`}
                 >
-                  {t('common.inactive')} ({inactiveCount})
+                  Inactive ({inactiveCount})
                 </button>
               </div>
 
@@ -379,7 +377,7 @@ export default function WarehousesPage() {
                       title="Edit selected warehouse"
                     >
                       <Edit2 className="w-3 h-3" />
-                      <span>{t('common.edit')}</span>
+                      <span>Edit</span>
                     </button>
                     <button
                       type="button"
@@ -388,7 +386,7 @@ export default function WarehousesPage() {
                       title="Delete selected warehouse"
                     >
                       <Trash2 className="w-3 h-3" />
-                      <span>{t('common.delete')}</span>
+                      <span>Delete</span>
                     </button>
                   </>
                 )}
@@ -401,7 +399,7 @@ export default function WarehousesPage() {
                   title="Reload warehouse list from database"
                 >
                   <RotateCcw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-                  <span>{t('common.refresh')}</span>
+                  <span>Refresh</span>
                 </button>
               </div>
             </div>
@@ -414,31 +412,31 @@ export default function WarehousesPage() {
                 <thead className="sticky top-0 bg-[#eaf1f8] dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border-b border-neutral-400 dark:border-slate-700 font-bold select-none text-xs z-10">
                   <tr>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-12 text-center">
-                      {t('common.sn')}
+                      SN
                     </th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center">
-                      {t('warehouses.code')}
+                      Godown Code
                     </th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[200px]">
-                      {t('warehouses.name')}
+                      Godown Name
                     </th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[220px]">
-                      {t('warehouses.location')}
+                      Location / Address
                     </th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28 text-center">
-                      {t('warehouses.totalStock')}
+                      Total Stock Items
                     </th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center">
-                      {t('warehouses.defaultBadge')}
+                      Default Godown
                     </th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-20 text-center">
-                      {t('warehouses.status')}
+                      Status
                     </th>
                     <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28 text-center font-mono">
                       System ID
                     </th>
                     <th className="px-3 py-1.5 w-28 text-center">
-                      {t('common.actions')}
+                      Actions
                     </th>
                   </tr>
                 </thead>
@@ -660,15 +658,15 @@ export default function WarehousesPage() {
           <div className="bg-[#b0c8de] dark:bg-slate-800/90 px-3 py-1.5 border border-[#9fbcd6] dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono font-semibold text-neutral-800 dark:text-neutral-200 gap-1 shrink-0">
             <div className="flex items-center gap-3">
               <span className="text-blue-900 dark:text-blue-300">
-                {t('common.loaded')} <strong>{visibleWarehouses.length}</strong> {t('common.of')} <strong>{filteredWarehouses.length}</strong>
+                Loaded <strong>{visibleWarehouses.length}</strong> of <strong>{filteredWarehouses.length}</strong>
               </span>
               <span>•</span>
               <span className="text-emerald-900 dark:text-emerald-300">
-                {t('common.active')}: <strong>{activeCount}</strong>
+                Active: <strong>{activeCount}</strong>
               </span>
               <span>•</span>
               <span className="text-rose-900 dark:text-rose-400">
-                {t('common.inactive')}: <strong>{inactiveCount}</strong>
+                Inactive: <strong>{inactiveCount}</strong>
               </span>
               {defaultWarehouse && (
                 <>
@@ -683,11 +681,11 @@ export default function WarehousesPage() {
             <div className="flex items-center gap-3 text-neutral-700 dark:text-neutral-300">
               {selectedWarehouse ? (
                 <span className="bg-[#006400] text-white px-2 py-0.5 rounded-xs font-bold">
-                  {t('common.selected')}: {selectedWarehouse.name} {selectedWarehouse.code ? `[#${selectedWarehouse.code}]` : ''}
+                  Selected: {selectedWarehouse.name} {selectedWarehouse.code ? `[#${selectedWarehouse.code}]` : ''}
                 </span>
               ) : (
                 <span className="italic text-neutral-600 dark:text-neutral-400">
-                  {t('warehouses.tip')}
+                  Tip: Double-click a row to edit warehouse details directly.
                 </span>
               )}
             </div>

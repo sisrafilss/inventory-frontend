@@ -3,12 +3,10 @@
 import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/context/auth-context';
-import { useLanguage } from '@/lib/context/language-context';
 import { api } from '@/lib/api/client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { ThemeSwitcher } from '@/components/ui/theme-switcher';
 import { KeyRound, Lock, AlertCircle, CheckCircle2 } from 'lucide-react';
 
@@ -21,7 +19,6 @@ function ChangePasswordContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { user, refreshUser } = useAuth();
-  const { t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
   const isRequired = searchParams.get('required') === 'true' || user?.mustChangePassword;
@@ -31,12 +28,12 @@ function ChangePasswordContent() {
     setError(null);
 
     if (newPassword !== confirmPassword) {
-      setError(t('auth.passwordMismatch'));
+      setError('New passwords do not match');
       return;
     }
 
     if (newPassword.length < 6) {
-      setError(t('auth.passwordMinLength'));
+      setError('Password must be at least 6 characters');
       return;
     }
 
@@ -65,7 +62,6 @@ function ChangePasswordContent() {
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/40 relative">
       <div className="absolute top-4 right-4 flex items-center gap-2">
         <ThemeSwitcher />
-        <LanguageSwitcher />
       </div>
 
       <Card className="w-full max-w-md shadow-md border-border">
@@ -73,11 +69,11 @@ function ChangePasswordContent() {
           <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto mb-2 font-bold text-xl">
             <KeyRound className="w-6 h-6" />
           </div>
-          <CardTitle className="text-xl font-bold text-center">{t('auth.changePasswordTitle')}</CardTitle>
+          <CardTitle className="text-xl font-bold text-center">Change Password</CardTitle>
           <CardDescription className="text-center">
             {isRequired
-              ? t('auth.forcedPasswordDesc')
-              : t('auth.changePasswordDesc')}
+              ? 'You must change your initial password before proceeding'
+              : 'Update your account password'}
           </CardDescription>
         </CardHeader>
 
@@ -93,13 +89,13 @@ function ChangePasswordContent() {
             {success && (
               <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-2.5 text-sm text-emerald-800 font-medium">
                 <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
-                <span>{t('auth.passwordChangedSuccess')}</span>
+                <span>Password updated successfully! Redirecting...</span>
               </div>
             )}
 
             <div className="space-y-1">
               <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-muted-foreground" /> {t('auth.currentPassword')}
+                <Lock className="w-3.5 h-3.5 text-muted-foreground" /> Current Password
               </label>
               <Input
                 type="password"
@@ -112,7 +108,7 @@ function ChangePasswordContent() {
 
             <div className="space-y-1">
               <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <KeyRound className="w-3.5 h-3.5 text-muted-foreground" /> {t('auth.newPassword')}
+                <KeyRound className="w-3.5 h-3.5 text-muted-foreground" /> New Password
               </label>
               <Input
                 type="password"
@@ -125,7 +121,7 @@ function ChangePasswordContent() {
 
             <div className="space-y-1">
               <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <KeyRound className="w-3.5 h-3.5 text-muted-foreground" /> {t('auth.confirmPassword')}
+                <KeyRound className="w-3.5 h-3.5 text-muted-foreground" /> Confirm New Password
               </label>
               <Input
                 type="password"
@@ -143,7 +139,7 @@ function ChangePasswordContent() {
               className="w-full h-10 font-semibold"
               disabled={isSubmitting || success}
             >
-              {isSubmitting ? t('auth.savingPassword') : t('auth.saveNewPassword')}
+              {isSubmitting ? 'Saving...' : 'Save New Password'}
             </Button>
           </CardFooter>
         </form>

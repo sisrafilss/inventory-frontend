@@ -3,7 +3,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '@/lib/api/client';
 import { useAuth } from '@/lib/context/auth-context';
-import { useLanguage } from '@/lib/context/language-context';
 import { Supplier, Customer } from '@/lib/types';
 import {
   Users,
@@ -34,7 +33,6 @@ import { PartyPaymentModal } from '@/components/parties/party-payment-modal';
 
 export default function PartiesPage() {
   const { user } = useAuth();
-  const { t, formatMoney } = useLanguage();
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
 
   // Current Date Display (DD-MM-YYYY)
@@ -293,9 +291,9 @@ export default function PartiesPage() {
           <div className="flex items-center gap-2">
             <span className="text-lg">👥</span>
             <h1 className="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2 pointer-events-none">
-              {t('parties.title')}
+              Party Directory — Suppliers & Customers
               <span className="text-[11px] font-mono font-normal text-emerald-200 uppercase tracking-widest hidden sm:inline border border-emerald-500/40 px-1.5 py-0.5 rounded-xs bg-emerald-900/30">
-                [{t('parties.badge')}]
+                [COMMERCIAL ACCOUNTS DIRECTORY]
               </span>
             </h1>
           </div>
@@ -304,7 +302,7 @@ export default function PartiesPage() {
             {/* Live Date Box */}
             <div className="hidden md:flex items-center gap-1.5 bg-[#004d00]/60 border border-emerald-600/40 px-2 py-0.5 rounded-xs text-[11px] font-mono text-emerald-100 shadow-inner">
               <CalendarIcon className="w-3.5 h-3.5 text-emerald-300" />
-              <span>{t('common.date')} {currentDate}</span>
+              <span>Date {currentDate}</span>
             </div>
 
             {/* Add Supplier Button */}
@@ -320,7 +318,7 @@ export default function PartiesPage() {
             >
               <Plus className="w-3.5 h-3.5 stroke-[3]" />
               <Truck className="w-3.5 h-3.5" />
-              <span>{t('parties.suppliers')} (+)</span>
+              <span>Suppliers (+)</span>
             </button>
 
             {/* Add Customer Button */}
@@ -336,7 +334,7 @@ export default function PartiesPage() {
             >
               <Plus className="w-3.5 h-3.5 stroke-[3]" />
               <Users className="w-3.5 h-3.5" />
-              <span>{t('parties.customers')} (+)</span>
+              <span>Customers (+)</span>
             </button>
           </div>
         </div>
@@ -642,7 +640,7 @@ export default function PartiesPage() {
                   title="Reload list from database"
                 >
                   <RotateCcw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-                  <span>{t('common.refresh')}</span>
+                  <span>Refresh</span>
                 </button>
               </div>
             </div>
@@ -1140,11 +1138,11 @@ export default function PartiesPage() {
               </span>
               <span>•</span>
               <span className="text-emerald-900 dark:text-emerald-300">
-                {t('common.active')}: <strong>{currentActiveCount}</strong>
+                Active: <strong>{currentActiveCount}</strong>
               </span>
               <span>•</span>
               <span className="text-rose-900 dark:text-rose-400">
-                {t('common.inactive')}: <strong>{currentInactiveCount}</strong>
+                Inactive: <strong>{currentInactiveCount}</strong>
               </span>
               <span>•</span>
               <span className="text-amber-900 dark:text-amber-300">

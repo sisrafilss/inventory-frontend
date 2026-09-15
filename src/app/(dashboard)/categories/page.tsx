@@ -2,14 +2,12 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '@/lib/api/client';
-import { useLanguage } from '@/lib/context/language-context';
 import { Category } from '@/lib/types';
 import { Layers, Plus, Edit2, Search, X } from 'lucide-react';
 import { CategoryModal } from '@/components/categories/category-modal';
 import { Dialog } from '@/components/ui/dialog';
 
 export default function CategoriesPage() {
-  const { t } = useLanguage();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +92,7 @@ export default function CategoriesPage() {
         <div className="flex items-center gap-2">
           <Layers className="w-5 h-5 text-emerald-300" />
           <h1 className="text-sm font-bold text-white tracking-wide uppercase">
-            {t('categories.title')}
+            Product Categories
           </h1>
         </div>
         <div className="flex items-center gap-2">
@@ -103,7 +101,7 @@ export default function CategoriesPage() {
             className="h-6 px-3 bg-[#e6f2ff] text-[#006400] font-bold text-[11px] uppercase tracking-wider rounded-none hover:bg-white transition-colors border border-transparent hover:border-[#006400] flex items-center gap-1 shadow-sm"
           >
             <Plus className="w-3.5 h-3.5" />
-            {t('categories.addCategory')}
+            Add Category
           </button>
         </div>
       </div>
@@ -117,7 +115,7 @@ export default function CategoriesPage() {
               <Search className="w-4 h-4 absolute left-2 top-1 text-neutral-500" />
               <input
                 type="text"
-                placeholder={t('categories.searchPlaceholder')}
+                placeholder="Search categories by name..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full h-6 pl-8 pr-2 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-[#006400]"
@@ -125,15 +123,15 @@ export default function CategoriesPage() {
             </div>
             
             <div className="flex items-center gap-1.5 ml-2 border-l border-neutral-400 dark:border-slate-600 pl-2">
-              <span className="text-[11px] font-semibold text-neutral-700 dark:text-neutral-300">{t('common.status')}:</span>
+              <span className="text-[11px] font-semibold text-neutral-700 dark:text-neutral-300">Status:</span>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="h-6 px-1.5 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-[#006400]"
               >
-                <option value="ALL">{t('common.all')}</option>
-                <option value="ACTIVE">{t('common.active')}</option>
-                <option value="INACTIVE">{t('common.inactive')}</option>
+                <option value="ALL">All</option>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
               </select>
             </div>
           </div>
@@ -159,25 +157,25 @@ export default function CategoriesPage() {
               <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
                 <thead className="sticky top-0 bg-[#eaf1f8] dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border-b border-neutral-400 dark:border-slate-700 font-bold select-none text-xs z-10">
                   <tr>
-                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-12 text-center">{t('common.sn')}</th>
-                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-64">{t('categories.categoryName')}</th>
-                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5">{t('products.description')}</th>
-                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32 text-center">{t('categories.totalProducts')}</th>
-                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center">{t('common.status')}</th>
-                    <th className="px-3 py-1.5 w-16 text-center">{t('common.actions')}</th>
+                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-12 text-center">SN</th>
+                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-64">Category Name</th>
+                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5">Description</th>
+                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32 text-center">Total Products</th>
+                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center">Status</th>
+                    <th className="px-3 py-1.5 w-16 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="text-neutral-800 dark:text-neutral-200">
                   {loading && visibleCategories.length === 0 ? (
                     <tr>
                        <td colSpan={6} className="py-12 text-center text-neutral-500 font-medium">
-                        {t('common.loading')}
+                        Loading...
                       </td>
                     </tr>
                   ) : visibleCategories.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="py-12 text-center text-neutral-500 font-medium">
-                        {t('categories.noCategories')}
+                        No categories found.
                       </td>
                     </tr>
                   ) : (
@@ -260,26 +258,26 @@ export default function CategoriesPage() {
           <div className="bg-[#b0c8de] dark:bg-slate-800/90 px-3 py-1.5 border-t border-[#9fbcd6] dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono font-semibold text-neutral-800 dark:text-neutral-200 gap-1 shrink-0">
             <div className="flex items-center gap-3">
               <span className="text-blue-900 dark:text-blue-300">
-                {t('common.loaded')} <strong>{visibleCategories.length}</strong> {t('common.of')} <strong>{filteredCategories.length}</strong>
+                Loaded <strong>{visibleCategories.length}</strong> of <strong>{filteredCategories.length}</strong>
               </span>
               <span>•</span>
               <span className="text-emerald-900 dark:text-emerald-300">
-                {t('common.active')}: <strong>{activeCount}</strong>
+                Active: <strong>{activeCount}</strong>
               </span>
               <span>•</span>
               <span className="text-rose-900 dark:text-rose-400">
-                {t('common.inactive')}: <strong>{inactiveCount}</strong>
+                Inactive: <strong>{inactiveCount}</strong>
               </span>
             </div>
             
             <div className="flex items-center gap-3 text-neutral-700 dark:text-neutral-300">
               {selectedCategory ? (
                 <span className="bg-[#006400] text-white px-2 py-0.5 rounded-xs font-bold">
-                  {t('common.selected')}: {selectedCategory.name}
+                  Selected: {selectedCategory.name}
                 </span>
               ) : (
                 <span className="italic text-neutral-600 dark:text-neutral-400 font-sans">
-                  {t('categories.tip')}
+                  Tip: Double-click a row to view full details
                 </span>
               )}
             </div>

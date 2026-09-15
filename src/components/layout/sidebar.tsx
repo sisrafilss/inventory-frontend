@@ -4,7 +4,6 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/context/auth-context';
-import { useLanguage } from '@/lib/context/language-context';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
@@ -39,7 +38,6 @@ interface SidebarProps {
 export function Sidebar({ onClose, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
-  const { t } = useLanguage();
 
   if (!user) return null;
 
@@ -49,84 +47,98 @@ export function Sidebar({ onClose, onCloseMobile }: SidebarProps) {
   const navItems = [
     {
       key: 'dashboard',
+      label: 'Dashboard',
       href: '/dashboard',
       icon: LayoutDashboard,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
       key: 'allSales',
+      label: 'Sales Register',
       href: '/sales',
       icon: ShoppingCart,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
       key: 'products',
+      label: 'Product Catalog',
       href: '/products',
       icon: Package,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
       key: 'categories',
+      label: 'Categories',
       href: '/categories',
       icon: Layers,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
       key: 'companies',
+      label: 'Companies',
       href: '/companies',
       icon: Building2,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
       key: 'warehouses',
+      label: 'Warehouses',
       href: '/warehouses',
       icon: Warehouse,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
       key: 'parties',
+      label: 'Parties (Cust/Supp)',
       href: '/parties',
       icon: Contact,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
       key: 'expenses',
+      label: 'Expenses',
       href: '/expenses',
       icon: Receipt,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
       key: 'payments',
+      label: 'Payments / Dues',
       href: '/payments',
       icon: BadgeDollarSign,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
       key: 'inventory',
+      label: 'Inventory / Stock',
       href: '/inventory',
       icon: Boxes,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
       key: 'users',
+      label: 'User Management',
       href: '/users',
       icon: Users,
       roles: ['SUPER_ADMIN', 'ADMIN'],
     },
     {
       key: 'reports',
+      label: 'Reports & Ledger',
       href: '/reports',
       icon: BarChart3,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
       key: 'auditLogs',
+      label: 'Audit Trail',
       href: '/audit-logs',
       icon: ShieldCheck,
       roles: ['SUPER_ADMIN', 'ADMIN'],
     },
     {
       key: 'profile',
+      label: 'My Profile',
       href: '/profile',
       icon: UserIcon,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
@@ -158,7 +170,7 @@ export function Sidebar({ onClose, onCloseMobile }: SidebarProps) {
       <nav className="flex-1 px-2 py-2.5 space-y-0.5 overflow-y-auto">
         {filteredNav.map((item) => {
           const Icon = item.icon;
-          const title = t(`nav.${item.key}`);
+          const title = item.label;
           const isActive =
             pathname === item.href ||
             (item.href !== '/dashboard' && pathname.startsWith(item.href) && item.href !== '/sales');
@@ -191,7 +203,7 @@ export function Sidebar({ onClose, onCloseMobile }: SidebarProps) {
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold truncate text-white leading-tight">{user.name}</p>
             <p className="text-[10px] text-emerald-400 truncate uppercase font-mono font-semibold">
-              {t(`roles.${user.role}`)}
+              {user.role === 'SUPER_ADMIN' ? 'Super Admin' : user.role === 'ADMIN' ? 'Admin' : 'Manager'}
             </p>
           </div>
         </div>

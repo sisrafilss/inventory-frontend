@@ -4,13 +4,11 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/context/auth-context';
-import { useLanguage } from '@/lib/context/language-context';
 import { api } from '@/lib/api/client';
 import { User } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { ThemeSwitcher } from '@/components/ui/theme-switcher';
 import { Lock, Mail, AlertCircle, Phone } from 'lucide-react';
 import { AppLogo } from '@/components/ui/app-logo';
@@ -21,7 +19,6 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user, login } = useAuth();
-  const { t } = useLanguage();
   const router = useRouter();
 
   React.useEffect(() => {
@@ -59,10 +56,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/40 relative">
-      {/* Top right theme and language switchers */}
+      {/* Top right theme switcher */}
       <div className="absolute top-4 right-4 flex items-center gap-2">
         <ThemeSwitcher />
-        <LanguageSwitcher />
       </div>
 
       <Card className="w-full max-w-md shadow-lg border border-neutral-200 dark:border-slate-800 overflow-hidden">
@@ -71,9 +67,9 @@ export default function LoginPage() {
 
         <CardHeader className="text-center space-y-1">
           <AppLogo size="lg" className="justify-center mb-1" />
-          <CardTitle className="text-2xl font-bold">{t('auth.signIn')}</CardTitle>
+          <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
           <CardDescription>
-            {t('auth.signInDesc')}
+            Enter your email and password to access the system
           </CardDescription>
         </CardHeader>
 
@@ -88,7 +84,7 @@ export default function LoginPage() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5 text-[#006400] dark:text-emerald-400" /> {t('auth.email')}
+                <Mail className="w-3.5 h-3.5 text-[#006400] dark:text-emerald-400" /> Email Address
               </label>
               <Input
                 type="email"
@@ -103,7 +99,7 @@ export default function LoginPage() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-[#006400] dark:text-emerald-400" /> {t('auth.password')}
+                <Lock className="w-3.5 h-3.5 text-[#006400] dark:text-emerald-400" /> Password
               </label>
               <Input
                 type="password"
@@ -123,7 +119,7 @@ export default function LoginPage() {
               className="w-full h-10 font-semibold bg-[#006400] hover:bg-[#004d00] text-white shadow-sm transition-colors cursor-pointer"
               disabled={isSubmitting}
             >
-              {isSubmitting ? t('auth.signingIn') : t('auth.signIn')}
+              {isSubmitting ? 'Signing in...' : 'Sign In'}
             </Button>
             <Button
               type="button"

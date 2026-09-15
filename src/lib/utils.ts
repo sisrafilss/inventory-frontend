@@ -13,6 +13,15 @@ export function formatCurrency(amount: number | string): string {
   }).format(num || 0);
 }
 
+export function formatMoney(amount: number | string): string {
+  const num = typeof amount === "string" ? parseFloat(amount) : amount;
+  const val = (num || 0).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `৳${val}`;
+}
+
 export function formatDate(dateStr: string | Date): string {
   if (!dateStr) return "N/A";
   const d = new Date(dateStr);

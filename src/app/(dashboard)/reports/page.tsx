@@ -3,8 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api/client';
 import { useAuth } from '@/lib/context/auth-context';
-import { useLanguage } from '@/lib/context/language-context';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatMoney } from '@/lib/utils';
 import {
   BarChart3,
   Search,
@@ -18,7 +17,6 @@ import { DailyReportModal } from '@/components/reports/daily-report-modal';
 
 export default function ReportsPage() {
   const { user } = useAuth();
-  const { t, formatMoney } = useLanguage();
 
   const [activeReport, setActiveReport] = useState<string>('daily-sales');
   const [data, setData] = useState<any>(null);
@@ -80,19 +78,19 @@ export default function ReportsPage() {
   }, [activeReport]);
 
   const reportTabs = [
-    { id: 'daily-sales', label: t('reports.dailySales') },
-    { id: 'due-list', label: t('reports.dueList') },
-    { id: 'warehouse-stock', label: t('reports.warehouseStock') },
-    { id: 'daily-purchases', label: t('reports.dailyPurchases') },
-    { id: 'daily-costs', label: t('reports.dailyCosts') },
-    { id: 'inventory', label: t('reports.catalogStock') },
-    { id: 'sales', label: t('reports.salesHistory') },
-    { id: 'cash', label: t('reports.cashHandover') },
-    { id: 'adjustments', label: t('reports.stockAdjustments') },
+    { id: 'daily-sales', label: 'Daily Sales Statement' },
+    { id: 'due-list', label: 'Due List (AP & AR)' },
+    { id: 'warehouse-stock', label: 'Warehouse Stock' },
+    { id: 'daily-purchases', label: 'Daily Purchases' },
+    { id: 'daily-costs', label: 'Daily Costs / Expenses' },
+    { id: 'inventory', label: 'Catalog Stock Status' },
+    { id: 'sales', label: 'Sales History' },
+    { id: 'cash', label: 'Cash Handover' },
+    { id: 'adjustments', label: 'Stock Adjustments' },
     ...(isAdmin
       ? [
-          { id: 'profit-by-invoice', label: t('reports.profitByInvoice') + ' (Admin)' },
-          { id: 'balance-sheet', label: t('reports.balanceSheet') + ' (Admin)' },
+          { id: 'profit-by-invoice', label: 'Profit by Invoice (Admin)' },
+          { id: 'balance-sheet', label: 'Balance Sheet (Admin)' },
         ]
       : []),
   ];
@@ -105,7 +103,7 @@ export default function ReportsPage() {
         <div className="bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 border-b border-[#004d00] dark:border-emerald-900 flex flex-wrap items-center justify-between shrink-0 gap-2">
           <div className="flex items-center gap-2 text-white">
             <BarChart3 className="w-5 h-5 text-emerald-200" />
-            <h1 className="text-lg font-bold tracking-wide">{t('reports.pageTitle')}</h1>
+            <h1 className="text-lg font-bold tracking-wide">Reports & Commercial Analytics</h1>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -114,7 +112,7 @@ export default function ReportsPage() {
               className="px-2.5 py-1 text-xs font-bold bg-white text-[#006400] border border-[#004d00] shadow-xs flex items-center gap-1.5 rounded-xs hover:bg-emerald-50 transition-colors cursor-pointer uppercase tracking-wider"
             >
               <Receipt className="w-3.5 h-3.5 stroke-[3]" />
-              <span>{t('reports.dailyReportBtn')}</span>
+              <span>Daily Report (Print)</span>
             </button>
             <button
               type="button"
@@ -122,7 +120,7 @@ export default function ReportsPage() {
               className="px-2.5 py-1 text-xs font-bold bg-[#004d00] text-white border border-[#003300] shadow-xs flex items-center gap-1.5 rounded-xs hover:bg-[#003300] transition-colors cursor-pointer uppercase tracking-wider"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 stroke-[3]" />
-              <span>{t('reports.balanceSheetBtn')}</span>
+              <span>Balance Sheet</span>
             </button>
           </div>
         </div>

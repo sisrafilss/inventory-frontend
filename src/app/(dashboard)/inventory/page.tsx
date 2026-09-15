@@ -4,8 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/context/auth-context';
 import { api } from '@/lib/api/client';
 import { Product, StockMovement, StockMovementType } from '@/lib/types';
-import { formatDate } from '@/lib/utils';
-import { useLanguage } from '@/lib/context/language-context';
+import { formatDate, formatMoney } from '@/lib/utils';
 import { Dialog } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ProductCombobox } from '@/components/ui/product-combobox';
@@ -26,7 +25,6 @@ import {
 
 export default function InventoryPage() {
   const { user } = useAuth();
-  const { t, formatMoney } = useLanguage();
   const canAdjust = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'MANAGER';
   
   const [activeTab, setActiveTab] = useState<'overview' | 'history'>('overview');
@@ -244,7 +242,7 @@ export default function InventoryPage() {
         <div className="bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 border-b border-[#004d00] dark:border-emerald-900 flex flex-wrap items-center justify-between shrink-0 gap-2">
           <div className="flex items-center gap-2 text-white">
             <Boxes className="w-5 h-5 text-emerald-200" />
-            <h1 className="text-lg font-bold tracking-wide">{t('inventory.title')}</h1>
+            <h1 className="text-lg font-bold tracking-wide">Inventory & Stock Control</h1>
           </div>
           {canAdjust && (
             <div className="flex items-center gap-2">
@@ -254,7 +252,7 @@ export default function InventoryPage() {
                 className="px-2.5 py-1 text-xs font-bold bg-white text-[#006400] border border-[#004d00] shadow-xs flex items-center gap-1.5 rounded-xs hover:bg-emerald-50 transition-colors cursor-pointer uppercase tracking-wider"
               >
                 <PlusCircle className="w-3.5 h-3.5 stroke-[3]" />
-                <span>{t('inventory.adjustStock')}</span>
+                <span>Adjust Stock</span>
               </button>
             </div>
           )}
