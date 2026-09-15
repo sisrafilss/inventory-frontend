@@ -33,3 +33,47 @@ export function formatDate(dateStr: string | Date): string {
     minute: "2-digit",
   });
 }
+
+export function calculateEffectivePackSize(unit: string, packSize?: number | string): number {
+  if (unit === "Dozens") return 12;
+  if (unit === "Pairs") return 2;
+  const parsed = Number(packSize);
+  return parsed > 0 ? parsed : 1;
+}
+
+export interface ProductFormData {
+  name: string;
+  sku: string;
+  categoryId: string;
+  companyId: string;
+  warehouseId: string;
+  unit: string;
+  packSize: number | string;
+  dpRate: number;
+  costPrice: number;
+  sellingPrice: number;
+  quantity: number | string;
+  reorderLevel: number;
+  description: string;
+  isActive: boolean;
+}
+
+export function getDefaultProductForm(defaultCompanyId = ""): ProductFormData {
+  return {
+    name: "",
+    sku: "",
+    categoryId: "",
+    companyId: defaultCompanyId,
+    warehouseId: "",
+    unit: "Pieces",
+    packSize: 1,
+    dpRate: 0,
+    costPrice: 0,
+    sellingPrice: 0,
+    quantity: "0",
+    reorderLevel: 10,
+    description: "None",
+    isActive: true,
+  };
+}
+

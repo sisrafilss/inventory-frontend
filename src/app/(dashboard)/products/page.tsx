@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Package, Plus, Search, Edit2, AlertCircle, ChevronLeft, ChevronRight, Building2, HelpCircle, X, Loader2, Check, ShoppingCart } from 'lucide-react';
 import { PurchaseModal } from '@/components/purchases/purchase-modal';
 import { formatStock, formatUnitLabel, isPackagedUnit, getDefaultPackSize } from '@/lib/stock-utils';
+import { calculateEffectivePackSize, getDefaultProductForm } from '@/lib/utils';
 
 export default function ProductsPage() {
   const { user } = useAuth();
@@ -51,22 +52,7 @@ export default function ProductsPage() {
   const [codeExistsWarning, setCodeExistsWarning] = useState<string | null>(null);
   const [isCheckingCode, setIsCheckingCode] = useState(false);
   const [codeIsAvailable, setCodeIsAvailable] = useState(false);
-  const [form, setForm] = useState({
-    name: '',
-    sku: '',
-    categoryId: '',
-    companyId: '',
-    warehouseId: '',
-    unit: 'Pieces',
-    packSize: 1 as number | string,
-    dpRate: 0,
-    costPrice: 0,
-    sellingPrice: 0,
-    quantity: '' as number | string,
-    reorderLevel: 10,
-    description: 'None',
-    isActive: true,
-  });
+  const [form, setForm] = useState(getDefaultProductForm());
   const [isSaving, setIsSaving] = useState(false);
 
   const fetchMetadata = async () => {
@@ -288,7 +274,7 @@ export default function ProductsPage() {
     }
   };
 
-  const handleOpenCreate = () => {
+  const resetModalState = () => {
     setEditingProduct(null);
     setShowTableProducts(false);
     setModalProductsList([]);
@@ -297,22 +283,11 @@ export default function ProductsPage() {
     setCodeExistsWarning(null);
     setIsCheckingCode(false);
     setCodeIsAvailable(false);
-    setForm({
-      name: '',
-      sku: '',
-      categoryId: '',
-      companyId: companies[0]?.id || '',
-      warehouseId: '',
-      unit: 'Pieces',
-      packSize: 1,
-      dpRate: 0,
-      costPrice: 0,
-      sellingPrice: 0,
-      quantity: '0',
-      reorderLevel: 10,
-      description: 'None',
-      isActive: true,
-    });
+    setForm(getDefaultProductForm(companies[0]?.id || ''));
+  };
+
+  const handleOpenCreate = () => {
+    resetModalState();
     setModalOpen(true);
   };
 
@@ -366,26 +341,7 @@ export default function ProductsPage() {
   };
 
   const handleRefreshModal = () => {
-    setEditingProduct(null);
-    setCodeExistsWarning(null);
-    setIsCheckingCode(false);
-    setCodeIsAvailable(false);
-    setForm({
-      name: '',
-      sku: '',
-      categoryId: '',
-      companyId: companies[0]?.id || '',
-      warehouseId: '',
-      unit: 'Pieces',
-      packSize: 1,
-      dpRate: 0,
-      costPrice: 0,
-      sellingPrice: 0,
-      quantity: '0',
-      reorderLevel: 10,
-      description: 'None',
-      isActive: true,
-    });
+    resetModalState();
   };
 
   const displayModalProducts = React.useMemo(() => {
@@ -412,9 +368,9 @@ export default function ProductsPage() {
   const executeSaveProduct = async () => {
     setIsSaving(true);
     try {
+      const isEditing = !!editingProduct;
       let savedProduct: Product;
-      const effectivePackSize =
-        form.unit === 'Dozens' ? 12 : form.unit === 'Pairs' ? 2 : (Number(form.packSize) || 1);
+      const effectivePackSize = calculateEffectivePackSize(form.unit, form.packSize);
 
       if (editingProduct) {
         const res = await api.patch<Product>(`/products/${editingProduct.id}`, {
@@ -447,16 +403,12 @@ export default function ProductsPage() {
         });
         savedProduct = res.data;
       }
-      if (!savedProduct.company && savedProduct.companyId) {
-        const comp = companies.find((c) => c.id === savedProduct.companyId);
-        if (comp) savedProduct.company = comp;
-      }
-      setEditingProduct(savedProduct);
-      setShowTableProducts(true);
+
       setShowConfirmSave(false);
-      await fetchInitialModalProducts(savedProduct);
-      fetchProducts();
-      toast.success('Product saved successfully to catalog!');
+      setModalOpen(false);
+      resetModalState();
+      await fetchProducts();
+      toast.success(isEditing ? 'Product updated successfully!' : 'Product saved successfully to catalog!');
     } catch (err: any) {
       toast.error(err.message || 'Failed to save product.');
     } finally {
@@ -475,8 +427,9 @@ export default function ProductsPage() {
     try {
       setIsSaving(true);
       await api.delete(`/products/${editingProduct.id}`);
-      setEditingProduct(null);
-      handleOpenCreate();
+      setShowConfirmSave(false);
+      setModalOpen(false);
+      resetModalState();
       await fetchProducts();
       toast.success('Product deleted successfully.');
     } catch (err: any) {
@@ -814,7 +767,12 @@ export default function ProductsPage() {
       {/* Item Add / Edit Dialog (Exact design matching reference video & screenshot) */}
       <Dialog
         open={modalOpen}
-        onOpenChange={setModalOpen}
+        onOpenChange={(open) => {
+          setModalOpen(open);
+          if (!open) {
+            resetModalState();
+          }
+        }}
         draggable={true}
         closeOnBackdropClick={false}
         className="p-0 max-w-4xl w-full border-2 border-[#800000] dark:border-rose-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 overflow-hidden shadow-2xl"
@@ -825,10 +783,15 @@ export default function ProductsPage() {
           title="Click and drag to move window"
           className="relative bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 select-none border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none"
         >
-          <h2 className="text-xl font-bold text-white tracking-wide pointer-events-none select-none">Item Add</h2>
+          <h2 className="text-xl font-bold text-white tracking-wide pointer-events-none select-none">
+            {editingProduct ? 'Item Edit' : 'Item Add'}
+          </h2>
           <button
             type="button"
-            onClick={() => setModalOpen(false)}
+            onClick={() => {
+              setModalOpen(false);
+              resetModalState();
+            }}
             disabled={isSaving}
             className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/90 hover:text-white hover:bg-black/20 p-1 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Close"
@@ -1044,7 +1007,10 @@ export default function ProductsPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setModalOpen(false)}
+                onClick={() => {
+                  setModalOpen(false);
+                  resetModalState();
+                }}
                 disabled={isSaving}
                 className="w-28 sm:w-32 h-7 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-bold text-xs tracking-wider shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
