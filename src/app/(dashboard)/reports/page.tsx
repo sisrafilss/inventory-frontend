@@ -16,8 +16,12 @@ import { BalanceSheetModal } from '@/components/reports/balance-sheet-modal';
 import { DailyReportModal } from '@/components/reports/daily-report-modal';
 import { BIAnalyticsBuilder } from '@/components/reports/bi-analytics-builder';
 import { CustomerLedgerModal } from '@/components/reports/customer-ledger-modal';
-import { StockAgingReorderModal } from '@/components/reports/stock-aging-reorder-modal';
-import { User, Clock, AlertTriangle, Zap } from 'lucide-react';
+import { User, Clock, AlertTriangle, Zap, Warehouse, Eye, Edit2, Barcode as BarcodeIcon, Building2, Package, Layers, Boxes, TrendingUp, DollarSign, Printer, RefreshCw } from 'lucide-react';
+import { ProductDetailsModal } from '@/components/products/product-details-modal';
+import { ProductEditModal } from '@/components/products/product-edit-modal';
+import { BarcodePrintModal } from '@/components/products/barcode-print-modal';
+import { Product } from '@/lib/types';
+import { formatStock, formatUnitLabel } from '@/lib/stock-utils';
 
 export default function ReportsPage() {
   const { user } = useAuth();
@@ -36,6 +40,29 @@ export default function ReportsPage() {
   const [endDate, setEndDate] = useState('');
   const [invoiceLookup, setInvoiceLookup] = useState('');
   const [dueListSrGroup, setDueListSrGroup] = useState<string>('ALL');
+
+  // Warehouse Stock Report States
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('ALL');
+  const [warehouseStockSearch, setWarehouseStockSearch] = useState<string>('');
+  const [warehouseStockStatus, setWarehouseStockStatus] = useState<string>('ALL');
+  const [selectedStockRowId, setSelectedStockRowId] = useState<string | null>(null);
+  const [detailProduct, setDetailProduct] = useState<Product | null>(null);
+  const [editProduct, setEditProduct] = useState<Product | null>(null);
+  const [barcodeProduct, setBarcodeProduct] = useState<Product | null>(null);
+  const [availableWarehouses, setAvailableWarehouses] = useState<{ id: string; name: string; address?: string | null }[]>([]);
+
+  // Load available warehouses for selector
+  useEffect(() => {
+    if (activeReport === 'warehouse-stock') {
+      api.get<any[]>('/warehouses')
+        .then((res) => {
+          if (res.data) {
+            setAvailableWarehouses(res.data.map((w: any) => ({ id: w.id, name: w.name, address: w.address })));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [activeReport]);
 
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
 
@@ -58,6 +85,9 @@ export default function ReportsPage() {
         }
       } else if (activeReport === 'warehouse-stock') {
         endpoint = '/reports/warehouse-stock';
+        if (selectedWarehouseId && selectedWarehouseId !== 'ALL') {
+          params.warehouseId = selectedWarehouseId;
+        }
       } else if (activeReport === 'daily-purchases') {
         endpoint = '/reports/daily-purchases';
       } else if (activeReport === 'daily-costs') {
@@ -86,7 +116,7 @@ export default function ReportsPage() {
 
   useEffect(() => {
     fetchReport();
-  }, [activeReport, dueListSrGroup]);
+  }, [activeReport, dueListSrGroup, selectedWarehouseId]);
 
   const reportTabs = [
     { id: 'bi-analytics', label: '📊 BI Analytics & Custom Builder' },
@@ -251,6 +281,86 @@ export default function ReportsPage() {
                 >
                   Reload
                 </button>
+              </div>
+            ) : activeReport === 'warehouse-stock' ? (
+              <div className="flex flex-wrap items-center justify-between gap-2 w-full">
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <Warehouse className="w-3.5 h-3.5 text-[#006400] dark:text-emerald-400" />
+                    <span>Godown / Warehouse:</span>
+                  </label>
+                  <select
+                    value={selectedWarehouseId}
+                    onChange={(e) => setSelectedWarehouseId(e.target.value)}
+                    className="h-7 px-2 text-xs border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400] font-bold text-neutral-900 dark:text-neutral-100"
+                  >
+                    <option value="ALL">All Warehouses / Godowns (সকল গুদাম)</option>
+                    {availableWarehouses.map((wh) => (
+                      <option key={wh.id} value={wh.id}>
+                        {wh.name} {wh.address ? `(${wh.address})` : ''}
+                      </option>
+                    ))}
+                  </select>
+
+                  <div className="relative ml-2">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
+                    <input
+                      type="text"
+                      placeholder="Search product, SKU, barcode, company..."
+                      value={warehouseStockSearch}
+                      onChange={(e) => setWarehouseStockSearch(e.target.value)}
+                      className="w-60 h-7 pl-7 pr-6 text-xs border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
+                    />
+                    {warehouseStockSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setWarehouseStockSearch('')}
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 text-xs px-1"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  <label className="font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider ml-1">
+                    Status:
+                  </label>
+                  <select
+                    value={warehouseStockStatus}
+                    onChange={(e) => setWarehouseStockStatus(e.target.value)}
+                    className="h-7 px-2 text-xs border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400] font-medium"
+                  >
+                    <option value="ALL">All Stock Statuses</option>
+                    <option value="IN_STOCK">In Stock (পর্যাপ্ত)</option>
+                    <option value="LOW_STOCK">Low Stock (সতর্কতা)</option>
+                    <option value="OUT_OF_STOCK">Out of Stock (শূন্য)</option>
+                  </select>
+
+                  {(warehouseStockSearch || warehouseStockStatus !== 'ALL') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWarehouseStockSearch('');
+                        setWarehouseStockStatus('ALL');
+                      }}
+                      className="h-7 px-2 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 text-neutral-700 dark:text-neutral-300 font-bold text-xs rounded-xs hover:bg-neutral-50 transition-colors shadow-xs cursor-pointer"
+                    >
+                      Reset Filters
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={fetchReport}
+                    disabled={loading}
+                    className="h-7 px-3 bg-[#006400] hover:bg-emerald-800 text-white border border-[#004d00] font-bold text-xs rounded-xs shadow-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+                    <span>Reload Stock</span>
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="flex flex-wrap items-center gap-2">
@@ -467,39 +577,416 @@ export default function ReportsPage() {
                 </div>
               )}
 
-              {/* === WAREHOUSE STOCK === */}
-              {activeReport === 'warehouse-stock' && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {data.map((wh: any, i: number) => (
-                    <div key={i} className="bg-white dark:bg-slate-950 border border-neutral-400 dark:border-slate-600 shadow-sm rounded-xs">
-                      <div className="bg-[#004d00] text-white p-2 font-bold uppercase tracking-wider text-xs border-b border-neutral-400 dark:border-slate-600 flex justify-between">
-                        <span>{wh.warehouseName}</span>
-                        <span>{formatMoney(wh.totalStockValue)}</span>
+              {/* === WAREHOUSE STOCK SPREADSHEET VIEW === */}
+              {activeReport === 'warehouse-stock' && (() => {
+                const warehouseList = Array.isArray(data) ? data : [];
+                const allStockEntries: any[] = [];
+                warehouseList.forEach((wh: any) => {
+                  (wh.stocks || []).forEach((s: any) => {
+                    allStockEntries.push({
+                      ...s,
+                      warehouseName: wh.warehouseName,
+                      warehouseLocation: wh.location || wh.address,
+                    });
+                  });
+                });
+
+                const totalCostValue = warehouseList.reduce((acc: number, wh: any) => acc + Number(wh.totalCostValue || 0), 0);
+                const totalRetailValue = warehouseList.reduce((acc: number, wh: any) => acc + Number(wh.totalRetailValue || 0), 0);
+                const totalQuantity = warehouseList.reduce((acc: number, wh: any) => acc + Number(wh.totalQuantity || 0), 0);
+                const inStockCount = warehouseList.reduce((acc: number, wh: any) => acc + Number(wh.inStockItems || 0), 0);
+                const lowStockCount = warehouseList.reduce((acc: number, wh: any) => acc + Number(wh.lowStockItems || 0), 0);
+                const outOfStockCount = warehouseList.reduce((acc: number, wh: any) => acc + Number(wh.outOfStockItems || 0), 0);
+                const potentialMargin = totalRetailValue - totalCostValue;
+                const marginPercent = totalRetailValue > 0 ? ((potentialMargin / totalRetailValue) * 100).toFixed(1) : '0.0';
+
+                const displayStocks = allStockEntries.filter((s: any) => {
+                  if (warehouseStockStatus !== 'ALL' && s.stockStatus !== warehouseStockStatus) {
+                    return false;
+                  }
+                  if (warehouseStockSearch.trim()) {
+                    const q = warehouseStockSearch.toLowerCase();
+                    const matchName = s.productName?.toLowerCase().includes(q);
+                    const matchSku = s.sku?.toLowerCase().includes(q);
+                    const matchBarcode = s.barcode?.toLowerCase().includes(q);
+                    const matchCompany = s.company?.toLowerCase().includes(q);
+                    const matchWh = s.warehouseName?.toLowerCase().includes(q);
+                    if (!matchName && !matchSku && !matchBarcode && !matchCompany && !matchWh) {
+                      return false;
+                    }
+                  }
+                  return true;
+                });
+
+                const currentWhObj = availableWarehouses.find((w) => w.id === selectedWarehouseId);
+
+                return (
+                  <div className="space-y-3">
+                    {/* Warehouse Tabs Pills */}
+                    <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-white dark:bg-slate-950 border border-neutral-300 dark:border-slate-700 rounded-xs shadow-xs">
+                      <span className="text-[11px] font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider px-2 flex items-center gap-1">
+                        <Warehouse className="w-3.5 h-3.5 text-[#006400] dark:text-emerald-400" />
+                        <span>Godown:</span>
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedWarehouseId('ALL')}
+                        className={`px-3 py-1 text-xs font-bold rounded-xs transition-colors border cursor-pointer flex items-center gap-1.5 ${
+                          selectedWarehouseId === 'ALL'
+                            ? 'bg-[#006400] text-white border-[#004d00] shadow-xs'
+                            : 'bg-neutral-100 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-slate-600 hover:bg-neutral-200 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        <span>All Godowns (সকল গুদাম)</span>
+                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                          selectedWarehouseId === 'ALL' ? 'bg-emerald-900 text-emerald-200' : 'bg-neutral-200 dark:bg-slate-700 text-neutral-700 dark:text-neutral-300'
+                        }`}>
+                          {allStockEntries.length}
+                        </span>
+                      </button>
+
+                      {availableWarehouses.map((wh) => {
+                        const isSelected = selectedWarehouseId === wh.id;
+                        const whData = warehouseList.find((w: any) => w.warehouseId === wh.id);
+                        const itemCount = whData?.stocks?.length ?? 0;
+                        return (
+                          <button
+                            key={wh.id}
+                            type="button"
+                            onClick={() => setSelectedWarehouseId(wh.id)}
+                            className={`px-3 py-1 text-xs font-bold rounded-xs transition-colors border cursor-pointer flex items-center gap-1.5 ${
+                              isSelected
+                                ? 'bg-[#006400] text-white border-[#004d00] shadow-xs'
+                                : 'bg-neutral-100 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-slate-600 hover:bg-neutral-200 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            <span>{wh.name}</span>
+                            {whData && (
+                              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                                isSelected ? 'bg-emerald-900 text-emerald-200' : 'bg-neutral-200 dark:bg-slate-700 text-neutral-700 dark:text-neutral-300'
+                              }`}>
+                                {itemCount}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Financial KPI Summary Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                      {/* Card 1: Warehouse Scope & Stock Status */}
+                      <div className="bg-white dark:bg-slate-950 border border-neutral-400 dark:border-slate-700 p-3 shadow-xs rounded-xs border-l-4 border-l-[#006400] flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] uppercase font-bold text-neutral-600 dark:text-neutral-400 tracking-wider flex items-center gap-1">
+                              <Warehouse className="w-3.5 h-3.5 text-[#006400] dark:text-emerald-400" />
+                              Warehouse Scope
+                            </span>
+                            <span className="text-[10px] font-mono font-bold text-neutral-500">
+                              {displayStocks.length} Lines Listed
+                            </span>
+                          </div>
+                          <h3 className="text-sm font-bold text-neutral-900 dark:text-white mt-1 truncate" title={currentWhObj ? currentWhObj.name : 'All Warehouses Combined'}>
+                            {currentWhObj ? currentWhObj.name : 'All Warehouses (Combined)'}
+                          </h3>
+                          {currentWhObj?.address && (
+                            <p className="text-[10px] text-neutral-500 truncate">{currentWhObj.address}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-neutral-200 dark:border-slate-800 text-[10px] font-bold">
+                          <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
+                            In Stock: {inStockCount}
+                          </span>
+                          <span className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
+                            Low: {lowStockCount}
+                          </span>
+                          <span className="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300">
+                            Out: {outOfStockCount}
+                          </span>
+                        </div>
                       </div>
-                      <div className="overflow-x-auto max-h-64 overflow-y-auto custom-scrollbar">
-                        <table className="w-full text-[10px] text-left border-collapse">
-                          <thead className="sticky top-0 bg-[#eaf1f8] dark:bg-slate-900 border-b border-neutral-300 dark:border-slate-700 shadow-[0_1px_0_#9fbcd6] z-10">
+
+                      {/* Card 2: Total Units */}
+                      <div className="bg-white dark:bg-slate-950 border border-neutral-400 dark:border-slate-700 p-3 shadow-xs rounded-xs border-l-4 border-l-amber-500 flex flex-col justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-neutral-600 dark:text-neutral-400 tracking-wider flex items-center gap-1">
+                            <Boxes className="w-3.5 h-3.5 text-amber-600" />
+                            Total Stock Units
+                          </span>
+                          <h4 className="text-xl font-bold font-mono text-neutral-900 dark:text-white mt-1 leading-none">
+                            {totalQuantity.toLocaleString()} <span className="text-xs font-normal text-neutral-500 font-sans">Units</span>
+                          </h4>
+                        </div>
+                        <div className="text-[10px] text-neutral-500 font-mono mt-2 pt-2 border-t border-neutral-200 dark:border-slate-800 flex justify-between">
+                          <span>Tracked Products:</span>
+                          <span className="font-bold text-neutral-800 dark:text-neutral-200">{allStockEntries.length} Items</span>
+                        </div>
+                      </div>
+
+                      {/* Card 3: Purchase Value (Cost) */}
+                      <div className="bg-white dark:bg-slate-950 border border-neutral-400 dark:border-slate-700 p-3 shadow-xs rounded-xs border-l-4 border-l-blue-600 flex flex-col justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-neutral-600 dark:text-neutral-400 tracking-wider flex items-center gap-1">
+                            <DollarSign className="w-3.5 h-3.5 text-blue-600" />
+                            Total Purchase Valuation (Cost)
+                          </span>
+                          <h4 className="text-xl font-bold font-mono text-blue-700 dark:text-blue-400 mt-1 leading-none">
+                            {formatMoney(totalCostValue)}
+                          </h4>
+                        </div>
+                        <div className="text-[10px] text-neutral-500 font-mono mt-2 pt-2 border-t border-neutral-200 dark:border-slate-800">
+                          Total stock purchase / investment cost
+                        </div>
+                      </div>
+
+                      {/* Card 4: Retail Value & Potential Margin */}
+                      <div className="bg-white dark:bg-slate-950 border border-neutral-400 dark:border-slate-700 p-3 shadow-xs rounded-xs border-l-4 border-l-emerald-600 flex flex-col justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-neutral-600 dark:text-neutral-400 tracking-wider flex items-center gap-1">
+                            <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+                            Total Retail Valuation (Sale)
+                          </span>
+                          <h4 className="text-xl font-bold font-mono text-emerald-700 dark:text-emerald-400 mt-1 leading-none">
+                            {formatMoney(totalRetailValue)}
+                          </h4>
+                        </div>
+                        <div className="text-[10px] font-mono mt-2 pt-2 border-t border-neutral-200 dark:border-slate-800 flex justify-between items-center">
+                          <span className="text-neutral-500">Exp. Gross Margin:</span>
+                          <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                            {formatMoney(potentialMargin)} ({marginPercent}%)
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Classic ERP Spreadsheet Table */}
+                    <div className="bg-white dark:bg-slate-950 border border-neutral-400 dark:border-slate-700 shadow-sm rounded-xs overflow-hidden flex flex-col">
+                      <div className="bg-[#006400] text-white px-3 py-1.5 flex items-center justify-between border-b border-[#004d00]">
+                        <div className="flex items-center gap-2">
+                          <FileSpreadsheet className="w-4 h-4 text-emerald-200" />
+                          <h2 className="text-xs font-bold uppercase tracking-wide">
+                            {currentWhObj ? `${currentWhObj.name} Stock Spreadsheet` : 'All Warehouses Stock Spreadsheet'}
+                          </h2>
+                        </div>
+                        <div className="text-[11px] font-mono opacity-90">
+                          Displaying <strong>{displayStocks.length}</strong> of {allStockEntries.length} items
+                        </div>
+                      </div>
+
+                      <div className="overflow-x-auto max-h-[580px] overflow-y-auto custom-scrollbar">
+                        <table className="w-full text-xs text-left border-collapse whitespace-nowrap">
+                          <thead className="sticky top-0 bg-[#eaf1f8] dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border-b border-neutral-300 dark:border-slate-700 font-bold select-none z-10">
                             <tr>
-                              <th className="p-1.5 border-r border-neutral-300 dark:border-slate-700">SKU</th>
-                              <th className="p-1.5 border-r border-neutral-300 dark:border-slate-700">Product</th>
-                              <th className="p-1.5 text-right">Qty</th>
+                              <th className="p-2 border-r border-neutral-300 dark:border-slate-700 text-center w-10">SN</th>
+                              <th className="p-2 border-r border-neutral-300 dark:border-slate-700 w-28">Item Code</th>
+                              <th className="p-2 border-r border-neutral-300 dark:border-slate-700 w-32">Barcode</th>
+                              <th className="p-2 border-r border-neutral-300 dark:border-slate-700 min-w-[220px]">Product Name & Company</th>
+                              {selectedWarehouseId === 'ALL' && (
+                                <th className="p-2 border-r border-neutral-300 dark:border-slate-700 w-32">Godown</th>
+                              )}
+                              <th className="p-2 border-r border-neutral-300 dark:border-slate-700 text-center w-20">Unit</th>
+                              <th className="p-2 border-r border-neutral-300 dark:border-slate-700 text-center w-28">Stock Qty</th>
+                              <th className="p-2 border-r border-neutral-300 dark:border-slate-700 text-right w-28">Purchase Rate (৳)</th>
+                              <th className="p-2 border-r border-neutral-300 dark:border-slate-700 text-right w-32">Total Cost (৳)</th>
+                              <th className="p-2 border-r border-neutral-300 dark:border-slate-700 text-right w-28">Sale Rate (৳)</th>
+                              <th className="p-2 border-r border-neutral-300 dark:border-slate-700 text-right w-32">Total Retail (৳)</th>
+                              <th className="p-2 border-r border-neutral-300 dark:border-slate-700 text-center w-24">Status</th>
+                              <th className="p-2 text-center w-32">Action</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
-                            {wh.stocks?.map((s: any, j: number) => (
-                              <tr key={j} className="hover:bg-neutral-50 dark:hover:bg-slate-800/50">
-                                <td className="p-1.5 border-r border-neutral-300 dark:border-slate-700 font-mono">{s.productSku}</td>
-                                <td className="p-1.5 border-r border-neutral-300 dark:border-slate-700 font-semibold">{s.productName}</td>
-                                <td className="p-1.5 font-mono text-right font-bold">{s.quantity}</td>
+                            {displayStocks.length === 0 ? (
+                              <tr>
+                                <td colSpan={selectedWarehouseId === 'ALL' ? 13 : 12} className="p-8 text-center text-neutral-500 font-medium">
+                                  <div className="flex flex-col items-center justify-center gap-1.5">
+                                    <Package className="w-8 h-8 text-neutral-400" />
+                                    <span>No stock records found matching your filters.</span>
+                                    {(warehouseStockSearch || warehouseStockStatus !== 'ALL') && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setWarehouseStockSearch('');
+                                          setWarehouseStockStatus('ALL');
+                                        }}
+                                        className="mt-1 text-xs text-[#006400] font-bold underline cursor-pointer"
+                                      >
+                                        Clear all filters
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
                               </tr>
-                            ))}
+                            ) : (
+                              displayStocks.map((s: any, idx: number) => {
+                                const isSelected = selectedStockRowId === s.id;
+                                const fullProduct: Product = s.product || {
+                                  id: s.productId,
+                                  name: s.productName,
+                                  sku: s.sku,
+                                  barcode: s.barcode,
+                                  unit: s.unit,
+                                  packSize: s.packSize,
+                                  costPrice: s.costPrice,
+                                  sellingPrice: s.sellingPrice,
+                                  reorderLevel: s.reorderLevel,
+                                  quantity: s.quantity,
+                                  stockStatus: s.stockStatus,
+                                  isActive: s.isActive,
+                                  description: s.description,
+                                };
+
+                                return (
+                                  <tr
+                                    key={s.id || idx}
+                                    onClick={() => setSelectedStockRowId(s.id)}
+                                    onDoubleClick={() => setDetailProduct(fullProduct)}
+                                    title="Double click to view product specifications"
+                                    className={`transition-colors cursor-pointer ${
+                                      isSelected
+                                        ? 'bg-[#0056b3] text-white font-semibold'
+                                        : idx % 2 === 0
+                                        ? 'bg-white dark:bg-slate-900 hover:bg-[#c6d8ea]/50 dark:hover:bg-slate-800/80'
+                                        : 'bg-[#f4f8fc] dark:bg-slate-900/50 hover:bg-[#c6d8ea]/50 dark:hover:bg-slate-800/80'
+                                    }`}
+                                  >
+                                    <td className={`p-2 border-r border-neutral-300 dark:border-slate-700 text-center font-mono ${
+                                      isSelected ? 'text-blue-200' : 'text-neutral-500'
+                                    }`}>
+                                      {idx + 1}
+                                    </td>
+                                    <td className={`p-2 border-r border-neutral-300 dark:border-slate-700 font-mono font-bold ${
+                                      isSelected ? 'text-white' : 'text-neutral-800 dark:text-neutral-100'
+                                    }`}>
+                                      {s.sku}
+                                    </td>
+                                    <td className={`p-2 border-r border-neutral-300 dark:border-slate-700 font-mono text-[11px] ${
+                                      isSelected ? 'text-emerald-200' : 'text-emerald-700 dark:text-emerald-400 font-bold'
+                                    }`}>
+                                      {s.barcode || '—'}
+                                    </td>
+                                    <td className={`p-2 border-r border-neutral-300 dark:border-slate-700 font-semibold ${
+                                      isSelected ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'
+                                    }`}>
+                                      <div>{s.productName}</div>
+                                      <div className={`text-[10px] font-normal flex items-center gap-1.5 mt-0.5 ${
+                                        isSelected ? 'text-blue-100' : 'text-neutral-500'
+                                      }`}>
+                                        {s.company && s.company !== 'N/A' && (
+                                          <span className="font-medium">{s.company}</span>
+                                        )}
+                                        {s.category && s.category !== 'N/A' && (
+                                          <>
+                                            <span>•</span>
+                                            <span>{s.category}</span>
+                                          </>
+                                        )}
+                                      </div>
+                                    </td>
+                                    {selectedWarehouseId === 'ALL' && (
+                                      <td className={`p-2 border-r border-neutral-300 dark:border-slate-700 font-medium ${
+                                        isSelected ? 'text-blue-100' : 'text-neutral-700 dark:text-neutral-300'
+                                      }`}>
+                                        {s.warehouseName}
+                                      </td>
+                                    )}
+                                    <td className={`p-2 border-r border-neutral-300 dark:border-slate-700 text-center ${
+                                      isSelected ? 'text-blue-100' : 'text-neutral-600 dark:text-neutral-400'
+                                    }`}>
+                                      {formatUnitLabel(s.unit)}
+                                      {s.packSize && s.packSize > 1 ? ` (${s.packSize})` : ''}
+                                    </td>
+                                    <td className="p-2 border-r border-neutral-300 dark:border-slate-700 text-center font-mono font-bold">
+                                      <span className={`text-sm ${
+                                        s.quantity <= 0
+                                          ? isSelected ? 'text-rose-200' : 'text-rose-600'
+                                          : s.quantity <= s.reorderLevel
+                                          ? isSelected ? 'text-amber-200' : 'text-amber-600'
+                                          : isSelected ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'
+                                      }`}>
+                                        {formatStock(s.quantity, s.unit, s.packSize)}
+                                      </span>
+                                    </td>
+                                    <td className={`p-2 border-r border-neutral-300 dark:border-slate-700 text-right font-mono ${
+                                      isSelected ? 'text-blue-100' : 'text-neutral-600 dark:text-neutral-400'
+                                    }`}>
+                                      ৳{Number(s.costPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    </td>
+                                    <td className={`p-2 border-r border-neutral-300 dark:border-slate-700 text-right font-mono font-bold ${
+                                      isSelected ? 'text-white' : 'text-blue-700 dark:text-blue-400'
+                                    }`}>
+                                      ৳{Number(s.totalCostValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    </td>
+                                    <td className={`p-2 border-r border-neutral-300 dark:border-slate-700 text-right font-mono font-bold ${
+                                      isSelected ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'
+                                    }`}>
+                                      ৳{Number(s.sellingPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    </td>
+                                    <td className={`p-2 border-r border-neutral-300 dark:border-slate-700 text-right font-mono font-bold ${
+                                      isSelected ? 'text-white' : 'text-emerald-700 dark:text-emerald-400'
+                                    }`}>
+                                      ৳{Number(s.totalRetailValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    </td>
+                                    <td className="p-2 border-r border-neutral-300 dark:border-slate-700 text-center">
+                                      <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-bold uppercase border ${
+                                        s.stockStatus === 'IN_STOCK'
+                                          ? isSelected
+                                            ? 'bg-emerald-600 text-white border-emerald-500'
+                                            : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800'
+                                          : s.stockStatus === 'LOW_STOCK'
+                                          ? isSelected
+                                            ? 'bg-amber-600 text-white border-amber-500'
+                                            : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800'
+                                          : isSelected
+                                          ? 'bg-rose-600 text-white border-rose-500'
+                                          : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-800'
+                                      }`}>
+                                        {s.stockStatus === 'IN_STOCK' ? 'IN STOCK' : s.stockStatus === 'LOW_STOCK' ? 'LOW STOCK' : 'OUT OF STOCK'}
+                                      </span>
+                                    </td>
+                                    <td className="p-2 text-center" onClick={(e) => e.stopPropagation()}>
+                                      <div className="flex items-center justify-center gap-1">
+                                        <button
+                                          type="button"
+                                          onClick={() => setDetailProduct(fullProduct)}
+                                          className="h-6 px-1.5 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 border border-blue-500 hover:bg-blue-50 rounded-xs font-bold text-[11px] flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                                          title="View Product Specifications"
+                                        >
+                                          <Eye className="w-3 h-3" />
+                                          <span className="hidden sm:inline">Details</span>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setEditProduct(fullProduct)}
+                                          className="h-6 px-1.5 bg-white dark:bg-slate-800 text-emerald-800 dark:text-emerald-300 border border-emerald-600 hover:bg-emerald-50 rounded-xs font-bold text-[11px] flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                                          title="Edit Product"
+                                        >
+                                          <Edit2 className="w-3 h-3" />
+                                          <span className="hidden sm:inline">Edit</span>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setBarcodeProduct(fullProduct)}
+                                          className="h-6 px-1.5 bg-white dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-400 hover:bg-neutral-100 rounded-xs font-bold text-[11px] flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                                          title="Print Barcode Labels"
+                                        >
+                                          <BarcodeIcon className="w-3 h-3 text-emerald-700" />
+                                          <span className="hidden sm:inline">Barcode</span>
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })
+                            )}
                           </tbody>
                         </table>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                );
+              })()}
 
               {/* === PROFIT BY INVOICE (ADMIN) === */}
               {activeReport === 'profit-by-invoice' && isAdmin && (
@@ -641,6 +1128,32 @@ export default function ReportsPage() {
         open={isStockAgingModalOpen}
         onOpenChange={setIsStockAgingModalOpen}
         initialTab={stockAgingTab}
+      />
+
+      {/* Product Details Modal */}
+      <ProductDetailsModal
+        open={!!detailProduct}
+        onOpenChange={(open) => !open && setDetailProduct(null)}
+        product={detailProduct}
+        onEdit={(p) => setEditProduct(p)}
+        onPrintBarcode={(p) => setBarcodeProduct(p)}
+      />
+
+      {/* Product Edit Modal */}
+      <ProductEditModal
+        open={!!editProduct}
+        onOpenChange={(open) => !open && setEditProduct(null)}
+        product={editProduct}
+        onSuccess={() => {
+          fetchReport();
+        }}
+      />
+
+      {/* Barcode Print Modal */}
+      <BarcodePrintModal
+        isOpen={!!barcodeProduct}
+        onClose={() => setBarcodeProduct(null)}
+        product={barcodeProduct}
       />
     </div>
   );
