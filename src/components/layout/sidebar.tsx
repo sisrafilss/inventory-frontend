@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/context/auth-context';
 import { cn } from '@/lib/utils';
 import {
@@ -27,6 +27,8 @@ import {
   X,
   Phone,
   ChevronLeft,
+  ChevronRight,
+  ChevronDown,
   RotateCcw,
 } from 'lucide-react';
 import { AppLogo } from '@/components/ui/app-logo';
@@ -36,9 +38,108 @@ interface SidebarProps {
   onCloseMobile?: () => void;
 }
 
+function ReportsSubMenu({
+  role,
+  onCloseMobile,
+}: {
+  role: string;
+  onCloseMobile?: () => void;
+}) {
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get('tab') || 'bi-analytics';
+
+  const reportGroups = [
+    {
+      group: 'Stock & Godown',
+      items: [
+        { label: 'Warehouse Stock', tab: 'warehouse-stock' },
+        { label: 'Stock Alerts & Aging', tab: 'reorder-aging' },
+        { label: 'Catalog Stock', tab: 'inventory' },
+        { label: 'Stock Adjustments', tab: 'adjustments' },
+      ],
+    },
+    {
+      group: 'Sales & Commercial',
+      items: [
+        { label: 'Daily Sales', tab: 'daily-sales' },
+        { label: 'Sales History', tab: 'sales' },
+        { label: 'SR Performance', tab: 'user-performance' },
+        ...(role !== 'MANAGER'
+          ? [{ label: 'Profit by Invoice', tab: 'profit-by-invoice' }]
+          : []),
+      ],
+    },
+    {
+      group: 'Dues & Ledger',
+      items: [
+        { label: 'Due List (AP & AR)', tab: 'due-list' },
+        { label: 'Customer Ledger', tab: 'customer-ledger' },
+        { label: 'Daily Purchases', tab: 'daily-purchases' },
+      ],
+    },
+    {
+      group: 'Financials & Cash',
+      items: [
+        ...(role !== 'MANAGER'
+          ? [{ label: 'Balance Sheet', tab: 'balance-sheet' }]
+          : []),
+        { label: 'Daily Expenses', tab: 'daily-costs' },
+        { label: 'Cash Handover', tab: 'cash' },
+      ],
+    },
+    {
+      group: 'Analytics',
+      items: [{ label: 'BI Custom Builder', tab: 'bi-analytics' }],
+    },
+  ];
+
+  return (
+    <div className="pl-2.5 py-1 space-y-1.5 border-l border-emerald-900/60 ml-3.5 my-1">
+      {reportGroups.map((grp) => (
+        <div key={grp.group} className="space-y-0.5">
+          <div className="px-2 pt-1 text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-400/70">
+            {grp.group}
+          </div>
+          {grp.items.map((sub) => {
+            const isActive = currentTab === sub.tab;
+            return (
+              <Link
+                key={sub.tab}
+                href={`/reports?tab=${sub.tab}`}
+                onClick={onCloseMobile}
+                className={cn(
+                  'flex items-center gap-2 px-2 py-1 text-[11px] rounded-xs transition-colors',
+                  isActive
+                    ? 'bg-[#006400] text-white font-bold shadow-xs'
+                    : 'text-emerald-100/70 hover:bg-white/10 hover:text-white'
+                )}
+              >
+                <span
+                  className={cn(
+                    'w-1.5 h-1.5 rounded-full shrink-0',
+                    isActive ? 'bg-emerald-300' : 'bg-emerald-600/40'
+                  )}
+                />
+                <span className="truncate">{sub.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function Sidebar({ onClose, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const [reportsExpanded, setReportsExpanded] = useState(pathname.startsWith('/reports'));
+
+  useEffect(() => {
+    if (pathname.startsWith('/reports')) {
+      setReportsExpanded(true);
+    }
+  }, [pathname]);
 
   if (!user) return null;
 
@@ -182,6 +283,54 @@ export function Sidebar({ onClose, onCloseMobile }: SidebarProps) {
           const isActive =
             pathname === item.href ||
             (item.href !== '/dashboard' && pathname.startsWith(item.href) && item.href !== '/sales');
+
+          if (item.key === 'reports') {
+            return (
+              <div key={item.href + item.key} className="space-y-0.5">
+                <div
+                  className={cn(
+                    'flex items-center justify-between px-2.5 py-1.5 text-xs font-semibold rounded-xs transition-colors',
+                    isActive
+                      ? 'bg-[#006400] text-white border-l-3 border-emerald-400 shadow-xs'
+                      : 'text-emerald-100/75 hover:bg-white/10 hover:text-white'
+                  )}
+                >
+                  <Link
+                    href={item.href}
+                    onClick={() => {
+                      setReportsExpanded(true);
+                      onCloseMobile?.();
+                    }}
+                    className="flex items-center gap-2.5 flex-1 min-w-0"
+                  >
+                    <Icon className={cn('w-3.5 h-3.5 shrink-0', isActive ? 'text-emerald-300' : 'text-emerald-200/70')} />
+                    <span className="truncate">{title}</span>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setReportsExpanded((prev) => !prev);
+                    }}
+                    className="p-1 hover:bg-black/20 rounded text-emerald-300 cursor-pointer"
+                    title={reportsExpanded ? 'Collapse report options' : 'Expand report options'}
+                  >
+                    {reportsExpanded ? (
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    ) : (
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
+
+                {reportsExpanded && (
+                  <Suspense fallback={null}>
+                    <ReportsSubMenu role={role} onCloseMobile={onCloseMobile} />
+                  </Suspense>
+                )}
+              </div>
+            );
+          }
 
           return (
             <Link

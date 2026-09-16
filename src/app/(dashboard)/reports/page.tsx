@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api/client';
 import { useAuth } from '@/lib/context/auth-context';
 import { formatDate, formatMoney } from '@/lib/utils';
@@ -10,7 +11,8 @@ import {
   Calendar,
   FileSpreadsheet,
   Receipt,
-  Loader2
+  Loader2,
+  ShoppingCart,
 } from 'lucide-react';
 import { BalanceSheetModal } from '@/components/reports/balance-sheet-modal';
 import { DailyReportModal } from '@/components/reports/daily-report-modal';
@@ -24,10 +26,77 @@ import { BarcodePrintModal } from '@/components/products/barcode-print-modal';
 import { Product } from '@/lib/types';
 import { formatStock, formatUnitLabel } from '@/lib/stock-utils';
 
-export default function ReportsPage() {
-  const { user } = useAuth();
+const REPORT_CATEGORIES = [
+  {
+    id: 'inventory',
+    label: 'Stock & Godowns',
+    icon: Boxes,
+    reports: [
+      { id: 'warehouse-stock', label: 'Warehouse Stock', desc: 'গুদাম ভিত্তিক স্টক ও হিসাব' },
+      { id: 'inventory', label: 'Catalog Stock Status', desc: 'সকল পণ্যের মজুদ স্থিতি' },
+      { id: 'reorder-aging', label: 'Stock Alerts & Aging', desc: 'মজুদ সতর্কতা ও মেয়াদ' },
+      { id: 'adjustments', label: 'Stock Adjustments', desc: 'স্টক সমন্বয় ও সংশোধন' },
+    ],
+  },
+  {
+    id: 'sales',
+    label: 'Sales & Commercial',
+    icon: ShoppingCart,
+    reports: [
+      { id: 'daily-sales', label: 'Daily Sales Statement', desc: 'দৈনিক বিক্রয় বিবরণী' },
+      { id: 'sales', label: 'Sales History', desc: 'সকল বিক্রয় চালান ইতিহাস' },
+      { id: 'user-performance', label: 'Salesperson Performance', desc: 'বিক্রয় প্রতিনিধি কার্যক্ষমতা' },
+      { id: 'profit-by-invoice', label: 'Profit by Invoice (Admin)', desc: 'চালান ভিত্তিক মুনাফা', adminOnly: true },
+    ],
+  },
+  {
+    id: 'dues',
+    label: 'Dues & Ledger',
+    icon: Receipt,
+    reports: [
+      { id: 'due-list', label: 'Due List (AP & AR)', desc: 'গ্রাহক ও সাপ্লায়ার বাকি তালিকা' },
+      { id: 'customer-ledger', label: 'Customer Ledger Statement', desc: 'গ্রাহক লেজার খতিয়ান' },
+      { id: 'daily-purchases', label: 'Daily Purchases', desc: 'দৈনিক ক্রয় বিবরণী' },
+    ],
+  },
+  {
+    id: 'financials',
+    label: 'Financials & Cash',
+    icon: DollarSign,
+    reports: [
+      { id: 'balance-sheet', label: 'Executive Balance Sheet (Admin)', desc: 'ব্যবসায়িক স্থিতিপত্র', adminOnly: true },
+      { id: 'daily-costs', label: 'Daily Costs / Expenses', desc: 'দৈনিক পরিচালন খরচ' },
+      { id: 'cash', label: 'Cash Handover', desc: 'দৈনিক নগদ ক্যাশ হিসাব' },
+    ],
+  },
+  {
+    id: 'analytics',
+    label: 'BI Analytics',
+    icon: BarChart3,
+    reports: [
+      { id: 'bi-analytics', label: 'BI Analytics & Custom Builder', desc: 'কাস্টম চার্ট ও অ্যানালিটিক্স' },
+    ],
+  },
+];
 
-  const [activeReport, setActiveReport] = useState<string>('bi-analytics');
+function ReportsPageContent() {
+  const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const urlTab = searchParams.get('tab');
+
+  const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
+
+  const categories = REPORT_CATEGORIES.map((cat) => ({
+    ...cat,
+    reports: cat.reports.filter((r) => !r.adminOnly || isAdmin),
+  })).filter((cat) => cat.reports.length > 0);
+
+  const [activeReport, setActiveReport] = useState<string>(urlTab || 'warehouse-stock');
+  const [selectedCategory, setSelectedCategory] = useState<string>(() => {
+    const initTab = urlTab || 'warehouse-stock';
+    const found = categories.find((cat) => cat.reports.some((r) => r.id === initTab));
+    return found ? found.id : 'inventory';
+  });
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isBalanceSheetModalOpen, setIsBalanceSheetModalOpen] = useState(false);
@@ -64,8 +133,6 @@ export default function ReportsPage() {
         .catch(() => {});
     }
   }, [activeReport]);
-
-  const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
 
   const fetchReport = async () => {
     setLoading(true);
@@ -115,31 +182,66 @@ export default function ReportsPage() {
     }
   };
 
+  // Sync when urlTab changes (e.g. from sidebar clicks)
   useEffect(() => {
-    fetchReport();
-  }, [activeReport, dueListSrGroup, selectedWarehouseId]);
+    if (urlTab) {
+      if (urlTab === 'customer-ledger') {
+        setIsCustomerLedgerOpen(true);
+        return;
+      }
+      if (urlTab === 'reorder-aging') {
+        setStockAgingTab('reorder');
+        setIsStockAgingModalOpen(true);
+        return;
+      }
+      if (urlTab === 'user-performance') {
+        setStockAgingTab('user');
+        setIsStockAgingModalOpen(true);
+        return;
+      }
+      setActiveReport(urlTab);
+      const parent = categories.find((cat) => cat.reports.some((r) => r.id === urlTab));
+      if (parent) {
+        setSelectedCategory(parent.id);
+      }
+    }
+  }, [urlTab]);
 
-  const reportTabs = [
-    { id: 'bi-analytics', label: '📊 BI Analytics & Custom Builder' },
-    { id: 'reorder-aging', label: '⚠️ Reorder Alerts & Stock Aging' },
-    { id: 'customer-ledger', label: '📖 Customer Ledger Statement' },
-    { id: 'user-performance', label: '👥 Salesperson Performance' },
-    { id: 'daily-sales', label: 'Daily Sales Statement' },
-    { id: 'due-list', label: 'Due List (AP & AR)' },
-    { id: 'warehouse-stock', label: 'Warehouse Stock' },
-    { id: 'daily-purchases', label: 'Daily Purchases' },
-    { id: 'daily-costs', label: 'Daily Costs / Expenses' },
-    { id: 'inventory', label: 'Catalog Stock Status' },
-    { id: 'sales', label: 'Sales History' },
-    { id: 'cash', label: 'Cash Handover' },
-    { id: 'adjustments', label: 'Stock Adjustments' },
-    ...(isAdmin
-      ? [
-          { id: 'profit-by-invoice', label: 'Profit by Invoice (Admin)' },
-          { id: 'balance-sheet', label: 'Balance Sheet (Admin)' },
-        ]
-      : []),
-  ];
+  const handleSelectReport = (tabId: string) => {
+    if (tabId === 'customer-ledger') {
+      setIsCustomerLedgerOpen(true);
+      return;
+    }
+    if (tabId === 'reorder-aging') {
+      setStockAgingTab('reorder');
+      setIsStockAgingModalOpen(true);
+      return;
+    }
+    if (tabId === 'user-performance') {
+      setStockAgingTab('user');
+      setIsStockAgingModalOpen(true);
+      return;
+    }
+    setActiveReport(tabId);
+    const parent = categories.find((cat) => cat.reports.some((r) => r.id === tabId));
+    if (parent) {
+      setSelectedCategory(parent.id);
+    }
+    window.history.replaceState(null, '', `/reports?tab=${tabId}`);
+  };
+
+  const handleSelectCategory = (catId: string) => {
+    setSelectedCategory(catId);
+    const cat = categories.find((c) => c.id === catId);
+    if (cat && !cat.reports.some((r) => r.id === activeReport)) {
+      handleSelectReport(cat.reports[0].id);
+    }
+  };
+
+  const activeCategoryObj =
+    categories.find((cat) => cat.id === selectedCategory) ||
+    categories.find((cat) => cat.reports.some((r) => r.id === activeReport)) ||
+    categories[0];
 
   return (
     <div className="w-full h-full flex-1 min-h-0 flex flex-col">
@@ -149,16 +251,23 @@ export default function ReportsPage() {
         <div className="bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 border-b border-[#004d00] dark:border-emerald-900 flex flex-wrap items-center justify-between shrink-0 gap-2">
           <div className="flex items-center gap-2 text-white">
             <BarChart3 className="w-5 h-5 text-emerald-200" />
-            <h1 className="text-lg font-bold tracking-wide">Reports & Commercial Analytics</h1>
+            <h1 className="text-sm sm:text-base font-bold tracking-wide flex items-center gap-2">
+              <span>Reports & Commercial Analytics</span>
+              <span className="hidden sm:inline text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-900/80 border border-emerald-400/40 text-emerald-200">
+                {activeCategoryObj.label}
+              </span>
+            </h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => setIsCustomerLedgerOpen(true)}
-              className="px-2.5 py-1 text-xs font-bold bg-white text-emerald-800 border border-emerald-500 shadow-xs flex items-center gap-1.5 rounded-xs hover:bg-emerald-50 transition-colors cursor-pointer uppercase tracking-wider"
+              className="px-2 py-1 text-xs font-bold bg-white text-emerald-800 border border-emerald-500 shadow-xs flex items-center gap-1.5 rounded-xs hover:bg-emerald-50 transition-colors cursor-pointer uppercase tracking-wider"
+              title="Open Customer Ledger Statement"
             >
               <User className="w-3.5 h-3.5 stroke-[3]" />
-              <span>Customer Ledger</span>
+              <span className="hidden md:inline">Customer Ledger</span>
+              <span className="md:hidden">Ledger</span>
             </button>
             <button
               type="button"
@@ -166,61 +275,117 @@ export default function ReportsPage() {
                 setStockAgingTab('reorder');
                 setIsStockAgingModalOpen(true);
               }}
-              className="px-2.5 py-1 text-xs font-bold bg-[#800000] text-white border border-rose-800 shadow-xs flex items-center gap-1.5 rounded-xs hover:bg-rose-900 transition-colors cursor-pointer uppercase tracking-wider"
+              className="px-2 py-1 text-xs font-bold bg-[#800000] text-white border border-rose-800 shadow-xs flex items-center gap-1.5 rounded-xs hover:bg-rose-900 transition-colors cursor-pointer uppercase tracking-wider"
+              title="Open Stock Alerts & Aging"
             >
               <AlertTriangle className="w-3.5 h-3.5 stroke-[3]" />
-              <span>Stock Alerts & Aging</span>
+              <span className="hidden md:inline">Stock Alerts</span>
+              <span className="md:hidden">Alerts</span>
             </button>
             <button
               type="button"
               onClick={() => setIsDailyReportModalOpen(true)}
-              className="px-2.5 py-1 text-xs font-bold bg-white text-[#006400] border border-[#004d00] shadow-xs flex items-center gap-1.5 rounded-xs hover:bg-emerald-50 transition-colors cursor-pointer uppercase tracking-wider"
+              className="px-2 py-1 text-xs font-bold bg-white text-[#006400] border border-[#004d00] shadow-xs flex items-center gap-1.5 rounded-xs hover:bg-emerald-50 transition-colors cursor-pointer uppercase tracking-wider"
+              title="Print Daily Summary Report"
             >
               <Receipt className="w-3.5 h-3.5 stroke-[3]" />
-              <span>Daily Report (Print)</span>
+              <span className="hidden md:inline">Daily Report</span>
+              <span className="md:hidden">Daily</span>
             </button>
-            <button
-              type="button"
-              onClick={() => setIsBalanceSheetModalOpen(true)}
-              className="px-2.5 py-1 text-xs font-bold bg-[#004d00] text-white border border-[#003300] shadow-xs flex items-center gap-1.5 rounded-xs hover:bg-[#003300] transition-colors cursor-pointer uppercase tracking-wider"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 stroke-[3]" />
-              <span>Balance Sheet</span>
-            </button>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setIsBalanceSheetModalOpen(true)}
+                className="px-2 py-1 text-xs font-bold bg-[#004d00] text-white border border-emerald-600 shadow-xs flex items-center gap-1.5 rounded-xs hover:bg-[#003800] transition-colors cursor-pointer uppercase tracking-wider"
+                title="Open Executive Balance Sheet"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 stroke-[3]" />
+                <span className="hidden md:inline">Balance Sheet</span>
+                <span className="md:hidden">Sheet</span>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Tab Bar */}
-        <div className="bg-[#eaf1f8] dark:bg-slate-800/80 px-2 pt-2 border-b border-neutral-300 dark:border-slate-700 shrink-0 flex flex-wrap gap-1 items-end">
-          {reportTabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                if (tab.id === 'customer-ledger') {
-                  setIsCustomerLedgerOpen(true);
-                  return;
-                }
-                if (tab.id === 'reorder-aging') {
-                  setStockAgingTab('reorder');
-                  setIsStockAgingModalOpen(true);
-                  return;
-                }
-                if (tab.id === 'user-performance') {
-                  setStockAgingTab('user');
-                  setIsStockAgingModalOpen(true);
-                  return;
-                }
-                setActiveReport(tab.id);
-              }}
-              className={`px-3 py-1.5 text-xs font-bold transition-colors uppercase tracking-wider rounded-t-sm border border-b-0 ${
-                activeReport === tab.id
-                  ? 'bg-white dark:bg-slate-950 text-[#0056b3] border-neutral-400 dark:border-slate-600 relative top-[1px]'
-                  : 'bg-neutral-100 dark:bg-slate-900 text-neutral-600 dark:text-neutral-400 border-transparent hover:bg-white dark:hover:bg-slate-800'
-              }`}
+        {/* Category Modules Bar - Row 1 */}
+        <div className="bg-[#dbe7f3] dark:bg-slate-900 px-3 py-1.5 border-b border-neutral-300 dark:border-slate-700 flex flex-wrap items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar py-0.5">
+            <span className="text-[10px] font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider mr-1 shrink-0">
+              Module:
+            </span>
+            {categories.map((cat) => {
+              const isCatActive = activeCategoryObj.id === cat.id;
+              const Icon = cat.icon;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => handleSelectCategory(cat.id)}
+                  className={`px-3 py-1 text-xs font-bold rounded-xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0 border ${
+                    isCatActive
+                      ? 'bg-[#006400] text-white border-[#004d00] shadow-xs'
+                      : 'bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-slate-700 hover:bg-neutral-100 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <span>{cat.label}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                      isCatActive
+                        ? 'bg-emerald-950 text-emerald-200'
+                        : 'bg-neutral-200 dark:bg-slate-700 text-neutral-600 dark:text-neutral-400'
+                    }`}
+                  >
+                    {cat.reports.length}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Jump To Dropdown */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[11px] font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider hidden sm:inline">
+              Jump To:
+            </span>
+            <select
+              value={activeReport}
+              onChange={(e) => handleSelectReport(e.target.value)}
+              className="h-7 px-2 text-xs border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 font-bold text-neutral-900 dark:text-neutral-100 focus:outline-none focus:border-[#006400] shadow-xs cursor-pointer"
             >
-              {tab.label}
-            </button>
-          ))}
+              {categories.map((cat) => (
+                <optgroup key={cat.id} label={cat.label}>
+                  {cat.reports.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Active Module Sub-Reports Tab Bar - Row 2 */}
+        <div className="bg-[#eaf1f8] dark:bg-slate-800/80 px-3 pt-2 border-b border-neutral-300 dark:border-slate-700 shrink-0 flex items-end gap-1.5 overflow-x-auto custom-scrollbar">
+          {activeCategoryObj.reports.map((tab) => {
+            const isTabActive = activeReport === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => handleSelectReport(tab.id)}
+                className={`px-3.5 py-1.5 text-xs font-bold transition-all uppercase tracking-wider rounded-t-xs border border-b-0 cursor-pointer shrink-0 ${
+                  isTabActive
+                    ? 'bg-white dark:bg-slate-950 text-[#0056b3] dark:text-blue-400 border-neutral-400 dark:border-slate-600 relative top-[1px] shadow-xs'
+                    : 'bg-neutral-100 dark:bg-slate-900 text-neutral-600 dark:text-neutral-400 border-transparent hover:bg-white/80 dark:hover:bg-slate-800'
+                }`}
+                title={tab.desc}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Filter Bar */}
@@ -623,58 +788,6 @@ export default function ReportsPage() {
 
                 return (
                   <div className="space-y-3">
-                    {/* Warehouse Tabs Pills */}
-                    <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-white dark:bg-slate-950 border border-neutral-300 dark:border-slate-700 rounded-xs shadow-xs">
-                      <span className="text-[11px] font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider px-2 flex items-center gap-1">
-                        <Warehouse className="w-3.5 h-3.5 text-[#006400] dark:text-emerald-400" />
-                        <span>Godown:</span>
-                      </span>
-
-                      <button
-                        type="button"
-                        onClick={() => setSelectedWarehouseId('ALL')}
-                        className={`px-3 py-1 text-xs font-bold rounded-xs transition-colors border cursor-pointer flex items-center gap-1.5 ${
-                          selectedWarehouseId === 'ALL'
-                            ? 'bg-[#006400] text-white border-[#004d00] shadow-xs'
-                            : 'bg-neutral-100 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-slate-600 hover:bg-neutral-200 dark:hover:bg-slate-700'
-                        }`}
-                      >
-                        <span>All Godowns (সকল গুদাম)</span>
-                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                          selectedWarehouseId === 'ALL' ? 'bg-emerald-900 text-emerald-200' : 'bg-neutral-200 dark:bg-slate-700 text-neutral-700 dark:text-neutral-300'
-                        }`}>
-                          {allStockEntries.length}
-                        </span>
-                      </button>
-
-                      {availableWarehouses.map((wh) => {
-                        const isSelected = selectedWarehouseId === wh.id;
-                        const whData = warehouseList.find((w: any) => w.warehouseId === wh.id);
-                        const itemCount = whData?.stocks?.length ?? 0;
-                        return (
-                          <button
-                            key={wh.id}
-                            type="button"
-                            onClick={() => setSelectedWarehouseId(wh.id)}
-                            className={`px-3 py-1 text-xs font-bold rounded-xs transition-colors border cursor-pointer flex items-center gap-1.5 ${
-                              isSelected
-                                ? 'bg-[#006400] text-white border-[#004d00] shadow-xs'
-                                : 'bg-neutral-100 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-slate-600 hover:bg-neutral-200 dark:hover:bg-slate-700'
-                            }`}
-                          >
-                            <span>{wh.name}</span>
-                            {whData && (
-                              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                                isSelected ? 'bg-emerald-900 text-emerald-200' : 'bg-neutral-200 dark:bg-slate-700 text-neutral-700 dark:text-neutral-300'
-                              }`}>
-                                {itemCount}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-
                     {/* Financial KPI Summary Cards */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                       {/* Card 1: Warehouse Scope & Stock Status */}
@@ -1157,5 +1270,20 @@ export default function ReportsPage() {
         product={barcodeProduct}
       />
     </div>
+  );
+}
+
+export default function ReportsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-48 gap-2 text-neutral-500 font-bold">
+          <Loader2 className="w-5 h-5 animate-spin text-[#006400]" />
+          <span>Loading Reports...</span>
+        </div>
+      }
+    >
+      <ReportsPageContent />
+    </Suspense>
   );
 }
