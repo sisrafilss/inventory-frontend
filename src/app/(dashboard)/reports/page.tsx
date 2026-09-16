@@ -14,11 +14,12 @@ import {
 } from 'lucide-react';
 import { BalanceSheetModal } from '@/components/reports/balance-sheet-modal';
 import { DailyReportModal } from '@/components/reports/daily-report-modal';
+import { BIAnalyticsBuilder } from '@/components/reports/bi-analytics-builder';
 
 export default function ReportsPage() {
   const { user } = useAuth();
 
-  const [activeReport, setActiveReport] = useState<string>('daily-sales');
+  const [activeReport, setActiveReport] = useState<string>('bi-analytics');
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isBalanceSheetModalOpen, setIsBalanceSheetModalOpen] = useState(false);
@@ -82,6 +83,7 @@ export default function ReportsPage() {
   }, [activeReport, dueListSrGroup]);
 
   const reportTabs = [
+    { id: 'bi-analytics', label: '📊 BI Analytics & Custom Builder' },
     { id: 'daily-sales', label: 'Daily Sales Statement' },
     { id: 'due-list', label: 'Due List (AP & AR)' },
     { id: 'warehouse-stock', label: 'Warehouse Stock' },
@@ -241,7 +243,9 @@ export default function ReportsPage() {
 
         {/* Report Content */}
         <div className="flex-1 min-h-0 overflow-auto bg-[#f4f8fc] dark:bg-slate-900 custom-scrollbar p-3">
-          {loading ? (
+          {activeReport === 'bi-analytics' ? (
+            <BIAnalyticsBuilder />
+          ) : loading ? (
             <div className="flex items-center justify-center h-48 gap-2 text-neutral-500 font-bold">
               <Loader2 className="w-5 h-5 animate-spin text-[#006400]" />
               Generating Report Data...
