@@ -27,6 +27,7 @@ import {
   X,
   Phone,
   ChevronLeft,
+  RotateCcw,
 } from 'lucide-react';
 import { AppLogo } from '@/components/ui/app-logo';
 
@@ -57,6 +58,13 @@ export function Sidebar({ onClose, onCloseMobile }: SidebarProps) {
       label: 'Sales Register',
       href: '/sales',
       icon: ShoppingCart,
+      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
+    },
+    {
+      key: 'returns',
+      label: 'Returns & Refunds',
+      href: '/returns',
+      icon: RotateCcw,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
