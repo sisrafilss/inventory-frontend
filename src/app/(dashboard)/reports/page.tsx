@@ -16,6 +16,7 @@ import { BalanceSheetModal } from '@/components/reports/balance-sheet-modal';
 import { DailyReportModal } from '@/components/reports/daily-report-modal';
 import { BIAnalyticsBuilder } from '@/components/reports/bi-analytics-builder';
 import { CustomerLedgerModal } from '@/components/reports/customer-ledger-modal';
+import { StockAgingReorderModal } from '@/components/reports/stock-aging-reorder-modal';
 import { User, Clock, AlertTriangle, Zap, Warehouse, Eye, Edit2, Barcode as BarcodeIcon, Building2, Package, Layers, Boxes, TrendingUp, DollarSign, Printer, RefreshCw } from 'lucide-react';
 import { ProductDetailsModal } from '@/components/products/product-details-modal';
 import { ProductEditModal } from '@/components/products/product-edit-modal';
