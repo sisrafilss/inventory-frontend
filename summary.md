@@ -4,6 +4,13 @@
 
 ---
 
+## 🚀 Vercel Production Live Deployment Links (ভার্সেল প্রোডাকশন লাইভ লিংক)
+- 🌐 **Frontend Application**: [https://frontend-two-pearl-44.vercel.app](https://frontend-two-pearl-44.vercel.app)
+- ⚙️ **Backend API Service**: [https://backend-omega-plum-99.vercel.app](https://backend-omega-plum-99.vercel.app)
+- 🗄️ **Production Cloud Database**: Neon PostgreSQL Database (`neondb`)
+
+---
+
 ## 📌 ওভারভিউ (Overview)
 গতকাল থেকে আজ পর্যন্ত ডেভেলপমেন্ট (`dev`) ব্রাঞ্চে সিস্টেমের বেশ কিছু গুরুত্বপূর্ণ ও যুগান্তকারী ফিচার যুক্ত করা হয়েছে। এতে প্রোডাক্ট ট্র্যাকিং, রিফান্ড ও রিটার্ন ব্যবস্থাপনা, বারকোড স্ক্যানিং ও প্রিন্টিং, কাস্টম রিপোর্ট তৈরি, প্রফিট মার্জিন বিশ্লেষণ, কাস্টমার খতিয়ান (Ledger), রিঅর্ডার অ্যালার্ট এবং স্টক এজিং সহ ব্যবসায়িক সিদ্ধান্তের জন্য প্রয়োজনীয় সকল সুবিধা যোগ করা হয়েছে।
 
