@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api/client';
 import { toast } from 'sonner';
-import { X, Plus, Trash2, RotateCcw, AlertCircle } from 'lucide-react';
+import { X, Plus, Trash2, RotateCcw } from 'lucide-react';
 
 interface CreateSalesReturnModalProps {
   isOpen: boolean;
@@ -51,7 +51,7 @@ export function CreateSalesReturnModal({
         setWarehouseId(whRes.data[0].id);
       }
     } catch (err: any) {
-      toast.error('Failed to load initial dropdown data');
+      toast.error('Failed to load dropdown options');
     }
   };
 
@@ -87,7 +87,7 @@ export function CreateSalesReturnModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (items.some((it) => !it.productId || it.quantity <= 0)) {
-      toast.error('Please select valid products and positive quantities for all item rows.');
+      toast.error('Please select valid products and positive quantities.');
       return;
     }
 
@@ -109,11 +109,11 @@ export function CreateSalesReturnModal({
         })),
       });
 
-      toast.success('Sales Return processed successfully!');
+      toast.success('Sales Return recorded successfully!');
       onSuccess();
       onClose();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to process sales return');
+      toast.error(err.message || 'Failed to record sales return');
     } finally {
       setLoading(false);
     }
@@ -124,34 +124,33 @@ export function CreateSalesReturnModal({
   const subtotal = calculateSubtotal();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-[#004d00] text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="bg-[#f0f4f8] dark:bg-slate-900 border border-[#004d00] dark:border-emerald-900 rounded-xs shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden select-none">
+        {/* Banner Header */}
+        <div className="flex items-center justify-between px-4 py-2 bg-[#006400] dark:bg-emerald-950 text-white border-b border-[#004d00]">
           <div className="flex items-center gap-2">
-            <RotateCcw className="w-5 h-5 text-emerald-300" />
-            <h2 className="text-sm font-bold tracking-wide">New Sales Return (Customer Return)</h2>
+            <RotateCcw className="w-4 h-4 text-white" />
+            <h2 className="text-xs font-bold tracking-wide uppercase">New Sales Return (Customer Return)</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded hover:bg-white/10 text-slate-200 transition-colors"
+            className="p-1 rounded hover:bg-white/10 text-white transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Body Form */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-3 text-xs">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {/* Customer Select */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block font-bold text-neutral-800 dark:text-neutral-200 mb-1">
                 Customer (Optional)
               </label>
               <select
                 value={customerId}
                 onChange={(e) => setCustomerId(e.target.value)}
-                className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded focus:ring-1 focus:ring-emerald-500"
+                className="w-full px-2 py-1.5 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-700 rounded-xs font-medium"
               >
                 <option value="">Walk-in Customer / Generic</option>
                 {customers.map((c) => (
@@ -162,15 +161,14 @@ export function CreateSalesReturnModal({
               </select>
             </div>
 
-            {/* Warehouse Select */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Receiving Warehouse
+              <label className="block font-bold text-neutral-800 dark:text-neutral-200 mb-1">
+                Warehouse
               </label>
               <select
                 value={warehouseId}
                 onChange={(e) => setWarehouseId(e.target.value)}
-                className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded focus:ring-1 focus:ring-emerald-500"
+                className="w-full px-2 py-1.5 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-700 rounded-xs font-medium"
               >
                 {warehouses.map((w) => (
                   <option key={w.id} value={w.id}>
@@ -180,34 +178,33 @@ export function CreateSalesReturnModal({
               </select>
             </div>
 
-            {/* Refund Type */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block font-bold text-neutral-800 dark:text-neutral-200 mb-1">
                 Refund Method
               </label>
               <select
                 value={refundType}
                 onChange={(e) => setRefundType(e.target.value as any)}
-                className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded focus:ring-1 focus:ring-emerald-500 font-semibold text-emerald-700 dark:text-emerald-400"
+                className="w-full px-2 py-1.5 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-700 rounded-xs font-bold text-emerald-800 dark:text-emerald-300"
               >
                 <option value="CASH">Cash Refund</option>
-                <option value="CREDIT_ADJUSTMENT">Adjust Customer Due Balance</option>
+                <option value="CREDIT_ADJUSTMENT">Adjust Customer Due</option>
               </select>
             </div>
           </div>
 
           {/* Items Section */}
-          <div className="border border-slate-200 dark:border-slate-800 rounded p-3 bg-slate-50/50 dark:bg-slate-900/50">
+          <div className="border border-neutral-400 dark:border-slate-700 rounded-xs p-3 bg-white dark:bg-slate-850 shadow-sm">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                Returned Products
-              </h3>
+              <span className="font-extrabold text-neutral-900 dark:text-neutral-100 uppercase tracking-wide">
+                Returned Products List
+              </span>
               <button
                 type="button"
                 onClick={addItemRow}
-                className="flex items-center gap-1 text-xs px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-medium transition-colors"
+                className="flex items-center gap-1 text-xs px-2 py-1 bg-[#006400] hover:bg-[#004d00] text-white font-bold rounded-xs cursor-pointer shadow-xs"
               >
-                <Plus className="w-3.5 h-3.5" /> Add Product
+                <Plus className="w-3.5 h-3.5" /> Add Row
               </button>
             </div>
 
@@ -215,13 +212,13 @@ export function CreateSalesReturnModal({
               {items.map((item, idx) => (
                 <div
                   key={idx}
-                  className="flex flex-col sm:flex-row items-center gap-2 bg-white dark:bg-slate-800 p-2 border border-slate-200 dark:border-slate-700 rounded"
+                  className="flex flex-col sm:flex-row items-center gap-2 bg-[#eaf1f8] dark:bg-slate-800 p-2 border border-neutral-300 dark:border-slate-700 rounded-xs"
                 >
                   <div className="flex-1 min-w-[200px] w-full">
                     <select
                       value={item.productId}
                       onChange={(e) => handleProductChange(idx, e.target.value)}
-                      className="w-full px-2 py-1 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded"
+                      className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-700 rounded-xs font-medium"
                       required
                     >
                       <option value="">Select Product...</option>
@@ -241,7 +238,7 @@ export function CreateSalesReturnModal({
                       placeholder="Qty"
                       value={item.quantity}
                       onChange={(e) => handleItemChange(idx, 'quantity', parseFloat(e.target.value) || 0)}
-                      className="w-full px-2 py-1 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded"
+                      className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-700 rounded-xs font-bold text-center"
                       required
                     />
                   </div>
@@ -254,12 +251,12 @@ export function CreateSalesReturnModal({
                       placeholder="Unit Price"
                       value={item.unitPrice}
                       onChange={(e) => handleItemChange(idx, 'unitPrice', parseFloat(e.target.value) || 0)}
-                      className="w-full px-2 py-1 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded"
+                      className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-700 rounded-xs font-bold text-right"
                       required
                     />
                   </div>
 
-                  <div className="w-full sm:w-28 text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                  <div className="w-full sm:w-28 text-right font-mono font-bold text-emerald-900 dark:text-emerald-300">
                     ৳{(item.quantity * item.unitPrice || 0).toFixed(2)}
                   </div>
 
@@ -267,7 +264,7 @@ export function CreateSalesReturnModal({
                     <button
                       type="button"
                       onClick={() => removeItemRow(idx)}
-                      className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-colors"
+                      className="p-1 text-red-600 hover:text-red-800 rounded cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -277,62 +274,55 @@ export function CreateSalesReturnModal({
             </div>
           </div>
 
-          {/* Reason & Refund Amount Summary */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+          {/* Reason & Subtotal Summary */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Reason for Return
+              <label className="block font-bold text-neutral-800 dark:text-neutral-200 mb-1">
+                Return Reason
               </label>
               <textarea
                 rows={2}
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="e.g. Defective item, customer changed mind, wrong size"
-                className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded"
+                placeholder="e.g. Defective item, customer exchanged size"
+                className="w-full px-2 py-1.5 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-700 rounded-xs"
               />
             </div>
 
-            <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded p-3 flex flex-col justify-between">
-              <div className="flex justify-between items-center text-xs text-slate-600 dark:text-slate-400">
-                <span>Items Total:</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200">
-                  ৳{subtotal.toFixed(2)}
-                </span>
+            <div className="bg-[#b0c8de]/40 dark:bg-slate-800 p-3 border border-neutral-400 dark:border-slate-700 rounded-xs flex flex-col justify-between">
+              <div className="flex justify-between items-center font-bold text-neutral-700 dark:text-neutral-300">
+                <span>Subtotal Items Total:</span>
+                <span className="font-mono">৳{subtotal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between items-center text-xs mt-1">
-                <span className="font-bold text-emerald-800 dark:text-emerald-300">
-                  Actual Refund Amount:
-                </span>
+              <div className="flex justify-between items-center font-extrabold text-emerald-900 dark:text-emerald-300 pt-1 border-t border-neutral-300 dark:border-slate-700 mt-1">
+                <span>Final Refund Amount:</span>
                 <input
                   type="number"
                   step="any"
                   min="0"
                   value={refundAmount || subtotal}
                   onChange={(e) => setRefundAmount(parseFloat(e.target.value) || 0)}
-                  className="w-28 text-right font-bold text-emerald-700 dark:text-emerald-400 bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 px-2 py-1 rounded text-xs"
+                  className="w-28 text-right font-mono font-bold text-emerald-900 bg-white border border-neutral-400 px-2 py-0.5 rounded-xs"
                 />
               </div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 italic">
-                * Stock will be restored back to warehouse.
-              </p>
             </div>
           </div>
 
-          {/* Buttons */}
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+          {/* Footer Buttons */}
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-neutral-300 dark:border-slate-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded"
+              className="h-7 px-3 bg-white dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-400 rounded-xs font-bold hover:bg-neutral-100 cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-1.5 text-xs font-bold text-white bg-[#006400] hover:bg-[#004d00] rounded shadow transition-colors disabled:opacity-50"
+              className="h-7 px-4 bg-[#006400] hover:bg-[#004d00] text-white font-bold rounded-xs cursor-pointer shadow-sm disabled:opacity-50"
             >
-              {loading ? 'Processing...' : 'Confirm Sales Return'}
+              {loading ? 'Saving...' : 'Confirm Sales Return'}
             </button>
           </div>
         </form>

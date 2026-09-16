@@ -55,7 +55,7 @@ export function Sidebar({ onClose, onCloseMobile }: SidebarProps) {
     },
     {
       key: 'allSales',
-      label: 'Sales Register',
+      label: 'Sales',
       href: '/sales',
       icon: ShoppingCart,
       roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
