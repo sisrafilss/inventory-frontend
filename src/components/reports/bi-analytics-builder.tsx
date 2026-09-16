@@ -95,6 +95,7 @@ const DEFAULT_ACTIVE_COLUMN_IDS = [
 export function BIAnalyticsBuilder() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
+  const [momData, setMomData] = useState<any>(null);
 
   // Filter States
   const [datePreset, setDatePreset] = useState<'7d' | '30d' | 'mtd' | 'ytd' | 'custom'>('30d');
@@ -173,8 +174,12 @@ export function BIAnalyticsBuilder() {
         warehouseId: selectedWarehouseId || undefined,
         categoryId: selectedCategoryId || undefined,
       };
-      const res = await api.get<any>('/reports/bi-analytics', params);
+      const [res, momRes] = await Promise.all([
+        api.get<any>('/reports/bi-analytics', params),
+        api.get<any>('/reports/mom-comparison'),
+      ]);
       setData(res.data);
+      setMomData(momRes.data);
     } catch (err: any) {
       toast.error('Failed to load BI Analytics data');
     } finally {
@@ -504,6 +509,99 @@ export function BIAnalyticsBuilder() {
           </div>
         </div>
       </div>
+
+      {/* MoM Comparison Box */}
+      {momData && (
+        <div className="bg-[#eaf1f8] dark:bg-slate-800/90 p-3.5 rounded border border-neutral-300 dark:border-slate-700 shadow-sm space-y-2.5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-neutral-300 dark:border-slate-700 pb-2">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+              <h3 className="font-bold text-xs uppercase tracking-wide text-neutral-800 dark:text-neutral-100">
+                Month-over-Month Performance Comparison (বিগত মাস বনাম বর্তমান মাস)
+              </h3>
+            </div>
+            <div className="text-[11px] font-mono text-neutral-600 dark:text-neutral-300">
+              Comparing <strong>{momData.previousMonthName}</strong> ➔ <strong>{momData.currentMonthName}</strong>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+            {/* Revenue Comparison */}
+            <div className="bg-white dark:bg-slate-900 p-2.5 rounded border border-neutral-300 dark:border-slate-700 shadow-xs">
+              <div className="text-[10px] font-bold text-neutral-500 uppercase">Sales Revenue</div>
+              <div className="flex items-baseline justify-between mt-1">
+                <span className="font-mono font-bold text-sm text-neutral-900 dark:text-neutral-100">
+                  {formatMoney(momData.currentMonth.revenue)}
+                </span>
+                <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 ${
+                  momData.growth.revenueGrowth >= 0 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                }`}>
+                  {momData.growth.revenueGrowth >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                  {momData.growth.revenueGrowth >= 0 ? `+${momData.growth.revenueGrowth}%` : `${momData.growth.revenueGrowth}%`}
+                </span>
+              </div>
+              <div className="text-[10px] text-neutral-500 mt-1">
+                Prev Month: {formatMoney(momData.previousMonth.revenue)}
+              </div>
+            </div>
+
+            {/* Net Profit Comparison */}
+            <div className="bg-white dark:bg-slate-900 p-2.5 rounded border border-neutral-300 dark:border-slate-700 shadow-xs">
+              <div className="text-[10px] font-bold text-neutral-500 uppercase">Net Profit</div>
+              <div className="flex items-baseline justify-between mt-1">
+                <span className="font-mono font-bold text-sm text-emerald-700 dark:text-emerald-400">
+                  {formatMoney(momData.currentMonth.profit)}
+                </span>
+                <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 ${
+                  momData.growth.profitGrowth >= 0 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                }`}>
+                  {momData.growth.profitGrowth >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                  {momData.growth.profitGrowth >= 0 ? `+${momData.growth.profitGrowth}%` : `${momData.growth.profitGrowth}%`}
+                </span>
+              </div>
+              <div className="text-[10px] text-neutral-500 mt-1">
+                Prev Month: {formatMoney(momData.previousMonth.profit)}
+              </div>
+            </div>
+
+            {/* Invoices Count Comparison */}
+            <div className="bg-white dark:bg-slate-900 p-2.5 rounded border border-neutral-300 dark:border-slate-700 shadow-xs">
+              <div className="text-[10px] font-bold text-neutral-500 uppercase">Total Sales Orders</div>
+              <div className="flex items-baseline justify-between mt-1">
+                <span className="font-mono font-bold text-sm text-neutral-900 dark:text-neutral-100">
+                  {momData.currentMonth.salesCount} Invoices
+                </span>
+                <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 ${
+                  momData.growth.salesCountGrowth >= 0 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                }`}>
+                  {momData.growth.salesCountGrowth >= 0 ? `+${momData.growth.salesCountGrowth}%` : `${momData.growth.salesCountGrowth}%`}
+                </span>
+              </div>
+              <div className="text-[10px] text-neutral-500 mt-1">
+                Prev Month: {momData.previousMonth.salesCount} Invoices
+              </div>
+            </div>
+
+            {/* Units Sold Comparison */}
+            <div className="bg-white dark:bg-slate-900 p-2.5 rounded border border-neutral-300 dark:border-slate-700 shadow-xs">
+              <div className="text-[10px] font-bold text-neutral-500 uppercase">Units Volume Sold</div>
+              <div className="flex items-baseline justify-between mt-1">
+                <span className="font-mono font-bold text-sm text-neutral-900 dark:text-neutral-100">
+                  {momData.currentMonth.unitsSold.toLocaleString()} Pcs
+                </span>
+                <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 ${
+                  momData.growth.unitsSoldGrowth >= 0 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                }`}>
+                  {momData.growth.unitsSoldGrowth >= 0 ? `+${momData.growth.unitsSoldGrowth}%` : `${momData.growth.unitsSoldGrowth}%`}
+                </span>
+              </div>
+              <div className="text-[10px] text-neutral-500 mt-1">
+                Prev Month: {momData.previousMonth.unitsSold.toLocaleString()} Pcs
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 3. BI Visual Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

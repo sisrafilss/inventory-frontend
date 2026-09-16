@@ -15,6 +15,9 @@ import {
 import { BalanceSheetModal } from '@/components/reports/balance-sheet-modal';
 import { DailyReportModal } from '@/components/reports/daily-report-modal';
 import { BIAnalyticsBuilder } from '@/components/reports/bi-analytics-builder';
+import { CustomerLedgerModal } from '@/components/reports/customer-ledger-modal';
+import { StockAgingReorderModal } from '@/components/reports/stock-aging-reorder-modal';
+import { User, Clock, AlertTriangle, Zap } from 'lucide-react';
 
 export default function ReportsPage() {
   const { user } = useAuth();
@@ -24,6 +27,9 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [isBalanceSheetModalOpen, setIsBalanceSheetModalOpen] = useState(false);
   const [isDailyReportModalOpen, setIsDailyReportModalOpen] = useState(false);
+  const [isCustomerLedgerOpen, setIsCustomerLedgerOpen] = useState(false);
+  const [isStockAgingModalOpen, setIsStockAgingModalOpen] = useState(false);
+  const [stockAgingTab, setStockAgingTab] = useState<'reorder' | 'aging' | 'velocity' | 'user'>('reorder');
 
   // Filters
   const [startDate, setStartDate] = useState('');
@@ -84,6 +90,9 @@ export default function ReportsPage() {
 
   const reportTabs = [
     { id: 'bi-analytics', label: '📊 BI Analytics & Custom Builder' },
+    { id: 'reorder-aging', label: '⚠️ Reorder Alerts & Stock Aging' },
+    { id: 'customer-ledger', label: '📖 Customer Ledger Statement' },
+    { id: 'user-performance', label: '👥 Salesperson Performance' },
     { id: 'daily-sales', label: 'Daily Sales Statement' },
     { id: 'due-list', label: 'Due List (AP & AR)' },
     { id: 'warehouse-stock', label: 'Warehouse Stock' },
@@ -114,6 +123,25 @@ export default function ReportsPage() {
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onClick={() => setIsCustomerLedgerOpen(true)}
+              className="px-2.5 py-1 text-xs font-bold bg-white text-emerald-800 border border-emerald-500 shadow-xs flex items-center gap-1.5 rounded-xs hover:bg-emerald-50 transition-colors cursor-pointer uppercase tracking-wider"
+            >
+              <User className="w-3.5 h-3.5 stroke-[3]" />
+              <span>Customer Ledger</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setStockAgingTab('reorder');
+                setIsStockAgingModalOpen(true);
+              }}
+              className="px-2.5 py-1 text-xs font-bold bg-[#800000] text-white border border-rose-800 shadow-xs flex items-center gap-1.5 rounded-xs hover:bg-rose-900 transition-colors cursor-pointer uppercase tracking-wider"
+            >
+              <AlertTriangle className="w-3.5 h-3.5 stroke-[3]" />
+              <span>Stock Alerts & Aging</span>
+            </button>
+            <button
+              type="button"
               onClick={() => setIsDailyReportModalOpen(true)}
               className="px-2.5 py-1 text-xs font-bold bg-white text-[#006400] border border-[#004d00] shadow-xs flex items-center gap-1.5 rounded-xs hover:bg-emerald-50 transition-colors cursor-pointer uppercase tracking-wider"
             >
@@ -136,7 +164,23 @@ export default function ReportsPage() {
           {reportTabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveReport(tab.id)}
+              onClick={() => {
+                if (tab.id === 'customer-ledger') {
+                  setIsCustomerLedgerOpen(true);
+                  return;
+                }
+                if (tab.id === 'reorder-aging') {
+                  setStockAgingTab('reorder');
+                  setIsStockAgingModalOpen(true);
+                  return;
+                }
+                if (tab.id === 'user-performance') {
+                  setStockAgingTab('user');
+                  setIsStockAgingModalOpen(true);
+                  return;
+                }
+                setActiveReport(tab.id);
+              }}
               className={`px-3 py-1.5 text-xs font-bold transition-colors uppercase tracking-wider rounded-t-sm border border-b-0 ${
                 activeReport === tab.id
                   ? 'bg-white dark:bg-slate-950 text-[#0056b3] border-neutral-400 dark:border-slate-600 relative top-[1px]'
@@ -586,6 +630,18 @@ export default function ReportsPage() {
 
       <BalanceSheetModal open={isBalanceSheetModalOpen} onOpenChange={setIsBalanceSheetModalOpen} />
       <DailyReportModal open={isDailyReportModalOpen} onOpenChange={setIsDailyReportModalOpen} />
+      {/* Customer Ledger Modal */}
+      <CustomerLedgerModal
+        open={isCustomerLedgerOpen}
+        onOpenChange={setIsCustomerLedgerOpen}
+      />
+
+      {/* Advanced Stock & Performance Modal */}
+      <StockAgingReorderModal
+        open={isStockAgingModalOpen}
+        onOpenChange={setIsStockAgingModalOpen}
+        initialTab={stockAgingTab}
+      />
     </div>
   );
 }
