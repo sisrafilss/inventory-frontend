@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/context/auth-context';
 import { Sidebar } from '@/components/layout/sidebar';
@@ -16,17 +16,78 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
 
-  // Initialize desktop sidebar state from localStorage
+  const DEFAULT_SIDEBAR_WIDTH = 230;
+  const MIN_SIDEBAR_WIDTH = 190;
+
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
+  const [sidebarWidth, setSidebarWidth] = useState<number>(DEFAULT_SIDEBAR_WIDTH);
+  const [isResizing, setIsResizing] = useState(false);
+  const sidebarWidthRef = useRef(sidebarWidth);
+
+  // Initialize desktop sidebar state & custom width from localStorage
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('sidebar_expanded');
-      if (saved !== null) {
-        setDesktopSidebarOpen(saved === 'true');
+      const savedExpanded = localStorage.getItem('sidebar_expanded');
+      if (savedExpanded !== null) {
+        setDesktopSidebarOpen(savedExpanded === 'true');
+      }
+      const savedWidth = localStorage.getItem('erp_sidebar_width');
+      if (savedWidth) {
+        const parsed = parseInt(savedWidth, 10);
+        const maxAllowed = Math.floor(window.innerWidth / 2);
+        if (!isNaN(parsed) && parsed >= MIN_SIDEBAR_WIDTH) {
+          const clamped = Math.min(parsed, maxAllowed);
+          setSidebarWidth(clamped);
+          sidebarWidthRef.current = clamped;
+        }
       }
     } catch {}
   }, []);
+
+  // Clamp width if window size drops
+  useEffect(() => {
+    const handleWindowResize = () => {
+      const maxAllowed = Math.floor(window.innerWidth / 2);
+      setSidebarWidth((prev) => {
+        if (prev > maxAllowed) {
+          const next = Math.max(MIN_SIDEBAR_WIDTH, maxAllowed);
+          sidebarWidthRef.current = next;
+          return next;
+        }
+        return prev;
+      });
+    };
+    window.addEventListener('resize', handleWindowResize);
+    return () => window.removeEventListener('resize', handleWindowResize);
+  }, []);
+
+  // Drag-to-resize event handling
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const maxAllowed = Math.floor(window.innerWidth / 2);
+      const newWidth = Math.max(MIN_SIDEBAR_WIDTH, Math.min(e.clientX, maxAllowed));
+      setSidebarWidth(newWidth);
+      sidebarWidthRef.current = newWidth;
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      try {
+        localStorage.setItem('erp_sidebar_width', String(sidebarWidthRef.current));
+      } catch {}
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
 
   const toggleSidebar = () => {
     if (typeof window !== 'undefined' && window.innerWidth < 1024) {
@@ -108,17 +169,60 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#e8f0f8] dark:bg-slate-950">
-      {/* Desktop / Large Screen Collapsible Sidebar */}
+      {/* Desktop / Large Screen Resizable Collapsible Sidebar */}
       <div
         className={cn(
-          'hidden lg:flex lg:flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden',
-          desktopSidebarOpen ? 'w-56 opacity-100' : 'w-0 opacity-0 pointer-events-none'
+          'relative hidden lg:flex lg:flex-shrink-0 overflow-hidden',
+          isResizing ? 'transition-none select-none' : 'transition-[width,opacity] duration-200 ease-in-out',
+          desktopSidebarOpen ? 'opacity-100' : 'w-0 opacity-0 pointer-events-none'
         )}
+        style={{
+          width: desktopSidebarOpen ? `${sidebarWidth}px` : '0px',
+        }}
       >
-        <div className="w-56 h-full flex flex-col">
+        <div className="w-full h-full flex flex-col min-w-0 overflow-hidden">
           <Sidebar onClose={closeSidebar} />
         </div>
+
+        {/* Drag-to-Resize Handle */}
+        {desktopSidebarOpen && (
+          <div
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setIsResizing(true);
+            }}
+            onDoubleClick={() => {
+              const reset = DEFAULT_SIDEBAR_WIDTH;
+              setSidebarWidth(reset);
+              sidebarWidthRef.current = reset;
+              try {
+                localStorage.setItem('erp_sidebar_width', String(reset));
+              } catch {}
+            }}
+            title="Drag to resize sidebar (Double click to reset)"
+            className={cn(
+              'absolute top-0 right-0 w-2 h-full cursor-col-resize z-30 group transition-all select-none',
+              'hover:bg-emerald-500/50',
+              isResizing ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]' : 'bg-transparent'
+            )}
+          >
+            {/* Visual handle indicator */}
+            <div className="absolute top-1/2 -translate-y-1/2 right-[2px] flex flex-col gap-1 items-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="w-0.5 h-1.5 rounded-full bg-emerald-300" />
+              <span className="w-0.5 h-1.5 rounded-full bg-emerald-300" />
+              <span className="w-0.5 h-1.5 rounded-full bg-emerald-300" />
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Global transparent overlay while dragging so mouse events are not swallowed */}
+      {isResizing && (
+        <div
+          className="fixed inset-0 z-[99999] cursor-col-resize select-none"
+          style={{ cursor: 'col-resize', userSelect: 'none' }}
+        />
+      )}
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
