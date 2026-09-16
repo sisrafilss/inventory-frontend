@@ -18,8 +18,11 @@ import {
   Building2,
   ChevronDown,
   Check,
+  Plus,
+  Trash,
+  Layers,
 } from 'lucide-react';
-import { Customer, Company } from '@/lib/types';
+import { Customer, Company, CustomerSrDue } from '@/lib/types';
 import { api } from '@/lib/api/client';
 import { useAuth } from '@/lib/context/auth-context';
 
@@ -54,6 +57,12 @@ export function CustomerModal({
   const [openingDue, setOpeningDue] = useState<number>(0);
   const [isActive, setIsActive] = useState(true);
 
+  // SR Group & Multi-SR dues state
+  const [existingSrGroups, setExistingSrGroups] = useState<string[]>([]);
+  const [srDues, setSrDues] = useState<Array<{ id?: string; srName: string; due: number | string }>>([
+    { srName: '', due: '' },
+  ]);
+
   // Companies dropdown & search states
   const [companies, setCompanies] = useState<Company[]>([]);
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
@@ -74,7 +83,7 @@ export function CustomerModal({
   const nameInputRef = useRef<HTMLInputElement>(null);
   const codeInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch registered companies on open
+  // Fetch registered companies and SR groups on open
   useEffect(() => {
     if (!open) return;
     let active = true;
@@ -88,6 +97,16 @@ export function CustomerModal({
       .catch((err) => {
         console.error('Failed to load companies:', err);
       });
+
+    api
+      .get<string[]>('/parties/customers/sr-groups')
+      .then((res) => {
+        if (active && res.data) {
+          setExistingSrGroups(res.data);
+        }
+      })
+      .catch(() => {});
+
     return () => {
       active = false;
     };
@@ -130,6 +149,25 @@ export function CustomerModal({
         setAddress(customer.address || '');
         setOpeningDue(Number(customer.openingDue) || 0);
         setIsActive(customer.isActive !== false);
+
+        if (customer.srDues && customer.srDues.length > 0) {
+          setSrDues(
+            customer.srDues.map((d) => ({
+              id: d.id,
+              srName: d.srName,
+              due: Number(d.currentDue ?? d.openingDue) || 0,
+            }))
+          );
+        } else if (customer.srGroup) {
+          setSrDues([
+            {
+              srName: customer.srGroup,
+              due: Number(customer.currentDue ?? customer.openingDue) || 0,
+            },
+          ]);
+        } else {
+          setSrDues([{ srName: '', due: '' }]);
+        }
       } else {
         resetForm();
         if (initialSearch && initialSearch.trim()) {
@@ -226,11 +264,38 @@ export function CustomerModal({
     setEmail('');
     setAddress('');
     setOpeningDue(0);
+    setSrDues([{ srName: '', due: '' }]);
     setIsActive(true);
     setStatusMessage(null);
     setCodeWarning(null);
     setCodeAvailable(false);
   };
+
+  const addSrDueRow = () => {
+    setSrDues((prev) => [...prev, { srName: '', due: '' }]);
+  };
+
+  const removeSrDueRow = (index: number) => {
+    setSrDues((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      return next.length > 0 ? next : [{ srName: '', due: '' }];
+    });
+  };
+
+  const updateSrDueRow = (index: number, field: 'srName' | 'due', value: string) => {
+    setSrDues((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
+  };
+
+  const totalSrDue = useMemo(() => {
+    return srDues.reduce((sum, item) => {
+      const val = parseFloat(String(item.due));
+      return sum + (isNaN(val) ? 0 : val);
+    }, 0);
+  }, [srDues]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -263,6 +328,21 @@ export function CustomerModal({
     setIsSaving(true);
     setStatusMessage(null);
 
+    const validSrDues = srDues
+      .filter((d) => d.srName && d.srName.trim())
+      .map((d) => ({
+        srName: d.srName.trim(),
+        openingDue: parseFloat(String(d.due)) || 0,
+        currentDue: parseFloat(String(d.due)) || 0,
+      }));
+
+    const computedOpeningDue =
+      validSrDues.length > 0
+        ? validSrDues.reduce((sum, d) => sum + d.openingDue, 0)
+        : Number(openingDue) || 0;
+
+    const primarySrGroup = validSrDues[0]?.srName || undefined;
+
     const payload = {
       code: trimmedCode,
       name: trimmedName,
@@ -270,7 +350,9 @@ export function CustomerModal({
       phone: phone.trim() || undefined,
       email: email.trim() || undefined,
       address: address.trim() || undefined,
-      openingDue: Number(openingDue) || 0,
+      srGroup: primarySrGroup,
+      srDues: validSrDues,
+      openingDue: computedOpeningDue,
       isActive,
     };
 
@@ -700,7 +782,84 @@ export function CustomerModal({
             </div>
           </div>
 
-          {/* Opening Due (৳) - Only editable on new registration */}
+          {/* Group SR & Dues (গ্রুপ এসআর ও বাকি) */}
+          <div className="border border-emerald-300 dark:border-emerald-800 bg-[#ebf3fa] dark:bg-slate-900/80 p-2.5 rounded-xs space-y-2">
+            <div className="flex items-center justify-between border-b border-emerald-200 dark:border-emerald-800/80 pb-1">
+              <div className="flex items-center gap-1.5 font-bold text-emerald-950 dark:text-emerald-200 text-xs">
+                <Layers className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
+                <span>SR Group & Due (গ্রুপ এসআর ও বাকি)</span>
+              </div>
+              <button
+                type="button"
+                onClick={addSrDueRow}
+                disabled={isSaving}
+                className="px-2 py-0.5 bg-[#006400] hover:bg-emerald-800 text-white rounded-xs text-[11px] font-bold flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                title="Add another SR group for this customer"
+              >
+                <Plus className="w-3 h-3" />
+                <span>Add SR</span>
+              </button>
+            </div>
+
+            {/* Datalist for existing SR groups */}
+            <datalist id="sr-group-list">
+              {existingSrGroups.map((grp) => (
+                <option key={grp} value={grp} />
+              ))}
+            </datalist>
+
+            <div className="space-y-1.5">
+              {srDues.map((row, idx) => (
+                <div key={idx} className="flex items-center gap-1.5">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      list="sr-group-list"
+                      placeholder="SR / Group Name (e.g. ACI Foods SR, Lily SR)"
+                      value={row.srName}
+                      onChange={(e) => updateSrDueRow(idx, 'srName', e.target.value)}
+                      disabled={isSaving}
+                      className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100"
+                    />
+                  </div>
+                  <div className="w-28">
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      placeholder="Due ৳"
+                      value={row.due}
+                      onChange={(e) => updateSrDueRow(idx, 'due', e.target.value)}
+                      disabled={isSaving}
+                      className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs text-right font-mono font-bold focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100"
+                    />
+                  </div>
+                  {srDues.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeSrDueRow(idx)}
+                      disabled={isSaving}
+                      className="p-1 text-rose-600 hover:text-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition-colors"
+                      title="Remove this SR row"
+                    >
+                      <Trash className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {totalSrDue > 0 && (
+              <div className="flex justify-between items-center text-[11px] pt-1 border-t border-emerald-200 dark:border-emerald-800/80 font-medium text-emerald-950 dark:text-emerald-200">
+                <span>Total Due across SRs:</span>
+                <span className="font-mono font-bold text-rose-700 dark:text-rose-400 text-xs">
+                  ৳{totalSrDue.toLocaleString()}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Opening Due (৳) - Only editable on new registration or computed from SRs */}
           <div className="grid grid-cols-12 items-center gap-2">
             <label className="col-span-4 text-right font-medium text-neutral-800 dark:text-neutral-200">
               {isEdit ? 'Opening Due (৳)' : 'Previous Due (৳)'}
@@ -711,20 +870,24 @@ export function CustomerModal({
                 min="0"
                 step="any"
                 placeholder="0.00"
-                value={openingDue === 0 ? '' : openingDue}
+                value={totalSrDue > 0 ? totalSrDue : openingDue === 0 ? '' : openingDue}
                 onChange={(e) => setOpeningDue(parseFloat(e.target.value) || 0)}
-                disabled={isSaving || isEdit}
+                disabled={isSaving || (totalSrDue > 0 ? true : isEdit)}
                 className={`w-full px-2 py-1 border rounded-xs text-xs focus:outline-none font-mono ${
-                  isEdit
-                    ? 'bg-neutral-100 dark:bg-slate-800 text-neutral-500 border-neutral-300 dark:border-slate-700 cursor-not-allowed'
+                  isEdit || totalSrDue > 0
+                    ? 'bg-neutral-100 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 font-bold border-neutral-300 dark:border-slate-700'
                     : 'bg-white dark:bg-slate-900 text-neutral-900 dark:text-neutral-100 border-neutral-400 dark:border-slate-600 focus:ring-1 focus:ring-[#006400]'
                 }`}
               />
-              {isEdit && (
+              {totalSrDue > 0 ? (
+                <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium mt-0.5 block">
+                  (Auto-calculated from SR dues sum above)
+                </span>
+              ) : isEdit ? (
                 <span className="text-[10px] text-neutral-500 italic mt-0.5 block">
                   Opening due is locked after creation. Use Cash Collection action to adjust.
                 </span>
-              )}
+              ) : null}
             </div>
           </div>
 

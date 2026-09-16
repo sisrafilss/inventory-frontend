@@ -56,4 +56,3 @@ test("getDefaultProductForm returns reset product form with blank fields", () =>
   assert.equal(form.packSize, 1);
   assert.equal(form.isActive, true);
 });
-

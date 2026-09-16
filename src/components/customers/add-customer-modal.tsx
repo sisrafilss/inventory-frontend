@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog } from '@/components/ui/dialog';
-import { UserPlus, X, Loader2, AlertCircle, Phone, MapPin, User } from 'lucide-react';
+import { UserPlus, X, Loader2, AlertCircle, Phone, MapPin, User, Layers, DollarSign } from 'lucide-react';
 import { Customer } from '@/lib/types';
 import { api } from '@/lib/api/client';
 
@@ -22,6 +22,8 @@ export function AddCustomerModal({
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [srGroup, setSrGroup] = useState('');
+  const [openingDue, setOpeningDue] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -40,12 +42,16 @@ export function AddCustomerModal({
         setPhone('');
       }
       setAddress('');
+      setSrGroup('');
+      setOpeningDue('');
       setError(null);
       setTimeout(() => nameInputRef.current?.focus(), 100);
     } else {
       setName('');
       setPhone('');
       setAddress('');
+      setSrGroup('');
+      setOpeningDue('');
       setError(null);
       setIsSaving(false);
     }
@@ -70,11 +76,14 @@ export function AddCustomerModal({
 
     setIsSaving(true);
     try {
+      const numDue = parseFloat(openingDue) || 0;
       const res = await api.post<Customer>('/parties/customers', {
         name: trimmedName,
         phone: trimmedPhone,
         address: address.trim() || undefined,
-        openingDue: 0,
+        srGroup: srGroup.trim() || undefined,
+        srDues: srGroup.trim() && numDue > 0 ? [{ srName: srGroup.trim(), openingDue: numDue, currentDue: numDue }] : undefined,
+        openingDue: numDue,
         isActive: true,
       });
 
@@ -186,6 +195,44 @@ export function AddCustomerModal({
               disabled={isSaving}
               className="w-full pl-8 pr-2 py-1.5 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 text-xs border border-neutral-300 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 font-medium resize-none disabled:opacity-60"
             />
+          </div>
+        </div>
+
+        {/* SR Group & Opening Due */}
+        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-neutral-200 dark:border-slate-700/80">
+          <div>
+            <label className="block text-xs font-bold text-neutral-800 dark:text-neutral-200 mb-1">
+              SR / Group <span className="text-neutral-500 font-normal text-[10px]">(Optional)</span>
+            </label>
+            <div className="relative flex items-center">
+              <Layers className="w-3.5 h-3.5 text-neutral-400 absolute left-2.5 pointer-events-none" />
+              <input
+                type="text"
+                value={srGroup}
+                onChange={(e) => setSrGroup(e.target.value)}
+                placeholder="e.g. ACI SR, Lily SR"
+                disabled={isSaving}
+                className="w-full h-8 pl-8 pr-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 text-xs border border-neutral-300 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 font-medium disabled:opacity-60"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-neutral-800 dark:text-neutral-200 mb-1">
+              Opening Due ৳ <span className="text-neutral-500 font-normal text-[10px]">(Optional)</span>
+            </label>
+            <div className="relative flex items-center">
+              <DollarSign className="w-3.5 h-3.5 text-neutral-400 absolute left-2.5 pointer-events-none" />
+              <input
+                type="number"
+                min="0"
+                step="any"
+                value={openingDue}
+                onChange={(e) => setOpeningDue(e.target.value)}
+                placeholder="0.00"
+                disabled={isSaving}
+                className="w-full h-8 pl-8 pr-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 text-xs border border-neutral-300 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 font-mono font-bold disabled:opacity-60"
+              />
+            </div>
           </div>
         </div>
 

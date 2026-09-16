@@ -34,7 +34,10 @@ export function formatDate(dateStr: string | Date): string {
   });
 }
 
-export function calculateEffectivePackSize(unit: string, packSize?: number | string): number {
+export function calculateEffectivePackSize(
+  unit: string,
+  packSize?: number | string,
+): number {
   if (unit === "Dozens") return 12;
   if (unit === "Pairs") return 2;
   const parsed = Number(packSize);
@@ -76,4 +79,3 @@ export function getDefaultProductForm(defaultCompanyId = ""): ProductFormData {
     isActive: true,
   };
 }
-

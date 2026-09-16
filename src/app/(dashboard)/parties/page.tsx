@@ -160,8 +160,11 @@ export default function PartiesPage() {
       const matchPhone = c.phone ? c.phone.toLowerCase().includes(q) : false;
       const matchAddress = c.address ? c.address.toLowerCase().includes(q) : false;
       const matchId = c.id.toLowerCase().includes(q);
+      const matchSr =
+        (c.srGroup ? c.srGroup.toLowerCase().includes(q) : false) ||
+        (c.srDues ? c.srDues.some((d) => d.srName.toLowerCase().includes(q)) : false);
 
-      return matchCode || matchName || matchCompany || matchPhone || matchAddress || matchId;
+      return matchCode || matchName || matchCompany || matchPhone || matchAddress || matchId || matchSr;
     });
   }, [customers, statusFilter, search]);
 
@@ -981,13 +984,25 @@ export default function PartiesPage() {
 
                             {/* Customer Name */}
                             <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-semibold">
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-1.5 flex-wrap">
                                 <Users
                                   className={`w-3.5 h-3.5 shrink-0 ${
                                     isSelected ? 'text-white' : 'text-emerald-700 dark:text-emerald-400'
                                   }`}
                                 />
                                 <span>{c.name}</span>
+                                {(c.srGroup || (c.srDues && c.srDues.length > 0)) && (
+                                  <span
+                                    className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-medium ${
+                                      isSelected
+                                        ? 'bg-blue-800 text-emerald-200'
+                                        : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                                    }`}
+                                    title={`SR Group: ${c.srDues && c.srDues.length > 0 ? c.srDues.map((d) => d.srName).join(', ') : c.srGroup}`}
+                                  >
+                                    SR: {c.srDues && c.srDues.length > 0 ? c.srDues.map((d) => d.srName).join(', ') : c.srGroup}
+                                  </span>
+                                )}
                               </div>
                             </td>
 

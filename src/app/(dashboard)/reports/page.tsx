@@ -28,6 +28,7 @@ export default function ReportsPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [invoiceLookup, setInvoiceLookup] = useState('');
+  const [dueListSrGroup, setDueListSrGroup] = useState<string>('ALL');
 
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
 
@@ -45,6 +46,9 @@ export default function ReportsPage() {
         if (startDate) params.date = startDate;
       } else if (activeReport === 'due-list') {
         endpoint = '/reports/due-list';
+        if (dueListSrGroup && dueListSrGroup !== 'ALL') {
+          params.srGroup = dueListSrGroup;
+        }
       } else if (activeReport === 'warehouse-stock') {
         endpoint = '/reports/warehouse-stock';
       } else if (activeReport === 'daily-purchases') {
@@ -75,7 +79,7 @@ export default function ReportsPage() {
 
   useEffect(() => {
     fetchReport();
-  }, [activeReport]);
+  }, [activeReport, dueListSrGroup]);
 
   const reportTabs = [
     { id: 'daily-sales', label: 'Daily Sales Statement' },
@@ -166,6 +170,40 @@ export default function ReportsPage() {
                 </div>
                 <button type="submit" className="h-7 px-3 bg-[#0056b3] hover:bg-blue-800 text-white border border-blue-900 font-bold text-xs rounded-xs shadow-sm uppercase tracking-wider">
                   Lookup
+                </button>
+              </div>
+            ) : activeReport === 'due-list' ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>Filter by Group SR:</span>
+                </label>
+                <select
+                  value={dueListSrGroup}
+                  onChange={(e) => setDueListSrGroup(e.target.value)}
+                  className="h-7 px-2 text-xs border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#0056b3] font-medium"
+                >
+                  <option value="ALL">All Groups / SRs (সকল এসআর গ্রুপ)</option>
+                  {(data?.srGroups || []).map((grp: string) => (
+                    <option key={grp} value={grp}>
+                      {grp}
+                    </option>
+                  ))}
+                </select>
+                {dueListSrGroup !== 'ALL' && (
+                  <button
+                    type="button"
+                    onClick={() => setDueListSrGroup('ALL')}
+                    className="h-7 px-2.5 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 text-neutral-700 dark:text-neutral-300 font-bold text-xs rounded-xs hover:bg-neutral-50 transition-colors shadow-sm cursor-pointer"
+                  >
+                    Reset Filter
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={fetchReport}
+                  className="h-7 px-3 bg-[#0056b3] hover:bg-blue-800 text-white border border-blue-900 font-bold text-xs rounded-xs shadow-sm uppercase tracking-wider ml-1 cursor-pointer"
+                >
+                  Reload
                 </button>
               </div>
             ) : (
@@ -278,61 +316,104 @@ export default function ReportsPage() {
 
               {/* === DUE LIST === */}
               {activeReport === 'due-list' && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {/* Customers */}
-                  <div className="bg-white dark:bg-slate-950 border border-neutral-400 dark:border-slate-600 shadow-sm rounded-xs">
-                    <div className="bg-rose-900 text-white p-2 font-bold uppercase tracking-wider text-xs border-b border-neutral-400 dark:border-slate-600">
-                      Accounts Receivable (Customer Dues)
+                <div className="space-y-3">
+                  {/* Filter Status Notification Badge if SR is filtered */}
+                  {dueListSrGroup !== 'ALL' && (
+                    <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 p-2 text-xs rounded-xs flex items-center justify-between text-emerald-900 dark:text-emerald-200 font-medium">
+                      <span>
+                        Filtered by SR Group:{' '}
+                        <strong className="underline font-bold text-emerald-950 dark:text-emerald-100 font-mono">
+                          {dueListSrGroup}
+                        </strong>
+                      </span>
+                      <span className="font-mono font-bold">
+                        Filtered Customer Due: {formatMoney(data?.totalCustomerDue || 0)}
+                      </span>
                     </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs text-left min-w-[300px] border-collapse">
-                        <thead className="bg-[#eaf1f8] dark:bg-slate-900 border-b border-neutral-300 dark:border-slate-700">
-                          <tr>
-                            <th className="p-2 border-r border-neutral-300 dark:border-slate-700">Customer Name</th>
-                            <th className="p-2 border-r border-neutral-300 dark:border-slate-700">Phone</th>
-                            <th className="p-2 text-right">Total Due</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
-                          {data.customerDues?.length === 0 ? (
-                            <tr><td colSpan={3} className="p-4 text-center italic text-neutral-500">No dues.</td></tr>
-                          ) : data.customerDues?.map((d: any, i: number) => (
-                            <tr key={i} className="hover:bg-neutral-50 dark:hover:bg-slate-800/50">
-                              <td className="p-2 border-r border-neutral-300 dark:border-slate-700 font-semibold">{d.name}</td>
-                              <td className="p-2 border-r border-neutral-300 dark:border-slate-700 font-mono text-[10px]">{d.phone || '—'}</td>
-                              <td className="p-2 font-mono text-right font-bold text-rose-700 dark:text-rose-400">{formatMoney(d.dueAmount)}</td>
+                  )}
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {/* Customers */}
+                    <div className="bg-white dark:bg-slate-950 border border-neutral-400 dark:border-slate-600 shadow-sm rounded-xs">
+                      <div className="bg-rose-900 text-white p-2 font-bold uppercase tracking-wider text-xs border-b border-neutral-400 dark:border-slate-600 flex justify-between items-center">
+                        <span>
+                          Accounts Receivable (Customer Dues)
+                          {dueListSrGroup !== 'ALL' ? ` — [${dueListSrGroup}]` : ''}
+                        </span>
+                        <span className="font-mono font-bold">
+                          {formatMoney(data?.totalCustomerDue || 0)}
+                        </span>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs text-left min-w-[340px] border-collapse">
+                          <thead className="bg-[#eaf1f8] dark:bg-slate-900 border-b border-neutral-300 dark:border-slate-700">
+                            <tr>
+                              <th className="p-2 border-r border-neutral-300 dark:border-slate-700">Customer Name</th>
+                              <th className="p-2 border-r border-neutral-300 dark:border-slate-700">Phone</th>
+                              <th className="p-2 border-r border-neutral-300 dark:border-slate-700">SR / Group</th>
+                              <th className="p-2 text-right">
+                                {dueListSrGroup !== 'ALL' ? `${dueListSrGroup} Due` : 'Total Due'}
+                              </th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
+                            {(!data?.customerDues || data.customerDues.length === 0) ? (
+                              <tr><td colSpan={4} className="p-4 text-center italic text-neutral-500">No dues found for this selection.</td></tr>
+                            ) : data.customerDues.map((d: any, i: number) => (
+                              <tr key={i} className="hover:bg-neutral-50 dark:hover:bg-slate-800/50">
+                                <td className="p-2 border-r border-neutral-300 dark:border-slate-700 font-semibold">
+                                  {d.name}
+                                  {d.companyName && (
+                                    <span className="block text-[10px] text-neutral-500 font-normal">
+                                      {d.companyName}
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="p-2 border-r border-neutral-300 dark:border-slate-700 font-mono text-[10px]">{d.phone || '—'}</td>
+                                <td className="p-2 border-r border-neutral-300 dark:border-slate-700">
+                                  <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 font-mono text-[10px] font-semibold">
+                                    {d.srGroup || 'General'}
+                                  </span>
+                                </td>
+                                <td className="p-2 font-mono text-right font-bold text-rose-700 dark:text-rose-400">
+                                  {formatMoney(d.dueAmount ?? d.currentDue ?? 0)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  </div>
-                  {/* Suppliers */}
-                  <div className="bg-white dark:bg-slate-950 border border-neutral-400 dark:border-slate-600 shadow-sm rounded-xs">
-                    <div className="bg-blue-900 text-white p-2 font-bold uppercase tracking-wider text-xs border-b border-neutral-400 dark:border-slate-600">
-                      Accounts Payable (Supplier Dues)
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs text-left min-w-[300px] border-collapse">
-                        <thead className="bg-[#eaf1f8] dark:bg-slate-900 border-b border-neutral-300 dark:border-slate-700">
-                          <tr>
-                            <th className="p-2 border-r border-neutral-300 dark:border-slate-700">Supplier Name</th>
-                            <th className="p-2 border-r border-neutral-300 dark:border-slate-700">Phone</th>
-                            <th className="p-2 text-right">Total Due</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
-                          {data.supplierDues?.length === 0 ? (
-                            <tr><td colSpan={3} className="p-4 text-center italic text-neutral-500">No dues.</td></tr>
-                          ) : data.supplierDues?.map((d: any, i: number) => (
-                            <tr key={i} className="hover:bg-neutral-50 dark:hover:bg-slate-800/50">
-                              <td className="p-2 border-r border-neutral-300 dark:border-slate-700 font-semibold">{d.name}</td>
-                              <td className="p-2 border-r border-neutral-300 dark:border-slate-700 font-mono text-[10px]">{d.phone || '—'}</td>
-                              <td className="p-2 font-mono text-right font-bold text-rose-700 dark:text-rose-400">{formatMoney(d.dueAmount)}</td>
+                    {/* Suppliers */}
+                    <div className="bg-white dark:bg-slate-950 border border-neutral-400 dark:border-slate-600 shadow-sm rounded-xs">
+                      <div className="bg-blue-900 text-white p-2 font-bold uppercase tracking-wider text-xs border-b border-neutral-400 dark:border-slate-600 flex justify-between items-center">
+                        <span>Accounts Payable (Supplier Dues)</span>
+                        <span className="font-mono font-bold">
+                          {formatMoney(data?.totalSupplierDue || 0)}
+                        </span>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs text-left min-w-[300px] border-collapse">
+                          <thead className="bg-[#eaf1f8] dark:bg-slate-900 border-b border-neutral-300 dark:border-slate-700">
+                            <tr>
+                              <th className="p-2 border-r border-neutral-300 dark:border-slate-700">Supplier Name</th>
+                              <th className="p-2 border-r border-neutral-300 dark:border-slate-700">Phone</th>
+                              <th className="p-2 text-right">Total Due</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
+                            {(!data?.supplierDues || data.supplierDues.length === 0) ? (
+                              <tr><td colSpan={3} className="p-4 text-center italic text-neutral-500">No dues.</td></tr>
+                            ) : data.supplierDues.map((d: any, i: number) => (
+                              <tr key={i} className="hover:bg-neutral-50 dark:hover:bg-slate-800/50">
+                                <td className="p-2 border-r border-neutral-300 dark:border-slate-700 font-semibold">{d.name}</td>
+                                <td className="p-2 border-r border-neutral-300 dark:border-slate-700 font-mono text-[10px]">{d.phone || '—'}</td>
+                                <td className="p-2 font-mono text-right font-bold text-rose-700 dark:text-rose-400">{formatMoney(d.dueAmount)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
                 </div>

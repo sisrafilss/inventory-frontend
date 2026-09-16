@@ -194,6 +194,30 @@ export function CustomerDetailsModal({
                   {customer._count?.payments ?? 0}
                 </span>
               </div>
+
+              {/* SR Group & Dues Breakdown */}
+              {customer.srDues && customer.srDues.length > 0 ? (
+                <div className="pt-2 border-t border-neutral-200 dark:border-slate-700/80 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-emerald-800 dark:text-emerald-400 block">
+                    SR Groups Due Breakdown:
+                  </span>
+                  {customer.srDues.map((d, i) => (
+                    <div key={i} className="flex justify-between items-center text-[11px] bg-neutral-50 dark:bg-slate-900/60 px-1.5 py-0.5 rounded border border-neutral-200 dark:border-slate-700/50">
+                      <span className="text-neutral-700 dark:text-neutral-300 font-medium">{d.srName}:</span>
+                      <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
+                        ৳{Number(d.currentDue ?? d.openingDue).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : customer.srGroup ? (
+                <div className="flex justify-between items-center py-1 border-t border-neutral-100 dark:border-slate-700/50">
+                  <span className="text-neutral-500 font-semibold">SR / Group:</span>
+                  <span className="font-bold text-emerald-800 dark:text-emerald-300">
+                    {customer.srGroup}
+                  </span>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

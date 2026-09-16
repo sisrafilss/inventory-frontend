@@ -120,6 +120,16 @@ export interface Supplier {
   };
 }
 
+export interface CustomerSrDue {
+  id?: string;
+  customerId?: string;
+  srName: string;
+  openingDue: number;
+  currentDue: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Customer {
   id: string;
   code: string;
@@ -128,11 +138,13 @@ export interface Customer {
   phone?: string | null;
   email?: string | null;
   address?: string | null;
+  srGroup?: string | null;
   openingDue: number;
   currentDue: number;
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
+  srDues?: CustomerSrDue[];
   _count?: {
     sales: number;
     payments: number;
