@@ -47,6 +47,7 @@ export function calculateEffectivePackSize(
 export interface ProductFormData {
   name: string;
   sku: string;
+  barcode: string;
   categoryId: string;
   companyId: string;
   warehouseId: string;
@@ -65,6 +66,7 @@ export function getDefaultProductForm(defaultCompanyId = ""): ProductFormData {
   return {
     name: "",
     sku: "",
+    barcode: "",
     categoryId: "",
     companyId: defaultCompanyId,
     warehouseId: "",

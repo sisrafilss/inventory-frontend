@@ -7,8 +7,10 @@ import { api } from '@/lib/api/client';
 import { Product, Category, Company, Warehouse } from '@/lib/types';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Package, Plus, Search, Edit2, AlertCircle, ChevronLeft, ChevronRight, Building2, HelpCircle, X, Loader2, Check, ShoppingCart } from 'lucide-react';
+import { Package, Plus, Search, Edit2, AlertCircle, ChevronLeft, ChevronRight, Building2, HelpCircle, X, Loader2, Check, ShoppingCart, Barcode, Camera, Printer } from 'lucide-react';
 import { PurchaseModal } from '@/components/purchases/purchase-modal';
+import { CameraScannerModal } from '@/components/ui/camera-scanner-modal';
+import { BarcodePrintModal } from '@/components/products/barcode-print-modal';
 import { formatStock, formatUnitLabel, isPackagedUnit, getDefaultPackSize } from '@/lib/stock-utils';
 import { calculateEffectivePackSize, getDefaultProductForm } from '@/lib/utils';
 
@@ -54,6 +56,8 @@ export default function ProductsPage() {
   const [codeIsAvailable, setCodeIsAvailable] = useState(false);
   const [form, setForm] = useState(getDefaultProductForm());
   const [isSaving, setIsSaving] = useState(false);
+  const [barcodePrintProduct, setBarcodePrintProduct] = useState<Product | null>(null);
+  const [scannerOpen, setScannerOpen] = useState<boolean>(false);
 
   const fetchMetadata = async () => {
     try {
@@ -300,6 +304,7 @@ export default function ProductsPage() {
     setForm({
       name: p.name,
       sku: p.sku,
+      barcode: p.barcode || '',
       categoryId: p.categoryId || '',
       companyId: p.companyId || '',
       warehouseId: '',
@@ -325,6 +330,7 @@ export default function ProductsPage() {
     setForm({
       name: p.name,
       sku: p.sku,
+      barcode: p.barcode || '',
       categoryId: p.categoryId || '',
       companyId: p.companyId || '',
       warehouseId: '',
@@ -376,6 +382,7 @@ export default function ProductsPage() {
         const res = await api.patch<Product>(`/products/${editingProduct.id}`, {
           name: form.name,
           sku: form.sku,
+          barcode: form.barcode?.trim() || undefined,
           categoryId: form.categoryId || undefined,
           companyId: form.companyId || undefined,
           unit: form.unit,
@@ -391,6 +398,7 @@ export default function ProductsPage() {
       } else {
         const res = await api.post<Product>('/products', {
           ...form,
+          barcode: form.barcode?.trim() || undefined,
           packSize: effectivePackSize,
           categoryId: form.categoryId || undefined,
           companyId: form.companyId || undefined,
@@ -708,14 +716,25 @@ export default function ProductsPage() {
                           </td>
                           {canManage && (
                             <td className="px-3 py-1.5 text-center">
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); handleOpenEdit(p); }}
-                                className="h-6 px-2 bg-white dark:bg-slate-800 text-emerald-800 dark:text-emerald-300 border border-emerald-600 hover:bg-emerald-50 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer mx-auto"
-                              >
-                                <Edit2 className="w-3 h-3" />
-                                <span>Edit</span>
-                              </button>
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); handleOpenEdit(p); }}
+                                  className="h-6 px-2 bg-white dark:bg-slate-800 text-emerald-800 dark:text-emerald-300 border border-emerald-600 hover:bg-emerald-50 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                                >
+                                  <Edit2 className="w-3 h-3" />
+                                  <span>Edit</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); setBarcodePrintProduct(p); }}
+                                  className="h-6 px-2 bg-white dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-400 hover:bg-neutral-100 rounded-xs font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                                  title="Print Barcode Labels"
+                                >
+                                  <Printer className="w-3 h-3 text-emerald-700" />
+                                  <span>Barcode</span>
+                                </button>
+                              </div>
                             </td>
                           )}
                         </tr>
@@ -854,6 +873,45 @@ export default function ProductsPage() {
                     <span>{codeExistsWarning}</span>
                   </div>
                 )}
+              </div>
+
+              {/* Barcode Field with Auto-Generate and Camera Scanner */}
+              <div className="flex items-center gap-3">
+                <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-24 text-right shrink-0">
+                  Barcode
+                </label>
+                <div className="flex items-center gap-1.5 flex-1 max-w-sm">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      value={form.barcode}
+                      onChange={(e) => setForm({ ...form, barcode: e.target.value })}
+                      placeholder="Type or scan barcode (e.g. 894100123456)"
+                      className="w-full h-6 px-2 pr-6 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                    />
+                    <Barcode className="w-3.5 h-3.5 text-neutral-400 absolute right-1.5 top-1 pointer-events-none" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const generated = '894100' + Math.floor(100000 + Math.random() * 900000);
+                      setForm({ ...form, barcode: generated });
+                      toast.success(`Generated Barcode: ${generated}`);
+                    }}
+                    className="h-6 px-2 bg-neutral-100 dark:bg-slate-800 border border-neutral-400 hover:bg-neutral-200 text-neutral-900 dark:text-neutral-100 font-bold text-[10.5px] rounded-xs shrink-0 cursor-pointer"
+                    title="Auto generate unique barcode"
+                  >
+                    Generate
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScannerOpen(true)}
+                    className="h-6 px-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[10.5px] rounded-xs shrink-0 flex items-center gap-1 cursor-pointer shadow-xs"
+                    title="Scan barcode via camera"
+                  >
+                    <Camera className="w-3 h-3" /> Scan
+                  </button>
+                </div>
               </div>
 
               {/* Item Name */}
@@ -1232,6 +1290,23 @@ export default function ProductsPage() {
         onOpenChange={setPurchaseModalOpen}
         initialProductCode={purchaseModalCode}
         onSaveSuccess={fetchProducts}
+      />
+
+      {/* Camera Barcode Scanner Modal */}
+      <CameraScannerModal
+        isOpen={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={(scannedBarcode) => {
+          setForm((prev) => ({ ...prev, barcode: scannedBarcode }));
+          toast.success(`Scanned Barcode: ${scannedBarcode}`);
+        }}
+      />
+
+      {/* Printable Barcode Sticker Modal */}
+      <BarcodePrintModal
+        isOpen={!!barcodePrintProduct}
+        onClose={() => setBarcodePrintProduct(null)}
+        product={barcodePrintProduct}
       />
     </div>
   );

@@ -23,6 +23,8 @@ import { InvoiceMemoModal, MemoSale } from './invoice-memo-modal';
 import { ProductLookupModal } from '../products/product-lookup-modal';
 import { CustomerLookupModal } from '../customers/customer-lookup-modal';
 import { CustomerModal } from '@/components/parties/customer-modal';
+import { CameraScannerModal } from '@/components/ui/camera-scanner-modal';
+import { Camera, Barcode } from 'lucide-react';
 import { formatStock, formatUnitLabel, isPackagedUnit, getDefaultPackSize } from '@/lib/stock-utils';
 
 export interface ManualSaleLineItem {
@@ -173,8 +175,9 @@ export function SaleManualModal({
   const [savedSaleForMemo, setSavedSaleForMemo] = useState<MemoSale | null>(null);
   const [showMemoModal, setShowMemoModal] = useState(false);
 
-  // Product Catalog Lookup Modal
+  // Product Catalog Lookup Modal & Camera Scanner
   const [productLookupOpen, setProductLookupOpen] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   // Refs
   const codeInputRef = useRef<HTMLInputElement>(null);
@@ -1014,9 +1017,19 @@ export function SaleManualModal({
                       onClick={() => setProductLookupOpen(true)}
                       disabled={isSaving}
                       title="Open Product Catalog to browse and select products"
-                      className="h-6 px-4 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 dark:disabled:text-slate-500 disabled:border-neutral-300 dark:disabled:border-slate-700 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer"
+                      className="h-6 px-3 bg-white dark:bg-slate-800 hover:bg-neutral-100 dark:hover:bg-slate-700 text-neutral-900 dark:text-neutral-100 border border-[#b81b4c] dark:border-rose-500 font-medium text-xs shadow-sm transition-colors disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 dark:disabled:text-slate-500 disabled:border-neutral-300 dark:disabled:border-slate-700 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer"
                     >
                       View
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setScannerOpen(true)}
+                      disabled={isSaving}
+                      title="Scan barcode with camera"
+                      className="h-6 px-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-sm transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <Camera className="w-3 h-3" />
+                      <span>Scan</span>
                     </button>
                   </div>
                 </div>
@@ -2052,6 +2065,17 @@ export function SaleManualModal({
         onSuccess={handleCustomerCreated}
         initialSearch={customerSearchText}
         zIndex="z-[75]"
+      />
+
+      {/* Camera Barcode Scanner */}
+      <CameraScannerModal
+        isOpen={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={(scannedBarcode) => {
+          setItemCode(scannedBarcode);
+          setDebouncedCode(scannedBarcode);
+          toast.success(`Scanned Barcode: ${scannedBarcode}`);
+        }}
       />
     </>
   );

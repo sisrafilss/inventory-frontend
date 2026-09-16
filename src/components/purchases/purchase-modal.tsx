@@ -1125,7 +1125,7 @@ export function PurchaseModal({
                         onChange={(val) => setLooseQuantity(val)}
                         placeholder="0 Pcs"
                         className="w-16"
-                        onFocus={() => setBannerPrompt('Type Loose Pieces (খুচরা)')}
+                        onFocus={() => setBannerPrompt('Type Loose Pieces')}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();

@@ -17,11 +17,13 @@ import {
   Volume2,
   VolumeX,
   Sparkles,
+  Camera,
 } from 'lucide-react';
 import { Product, Customer, Warehouse, Sale } from '@/lib/types';
 import { api } from '@/lib/api/client';
 import { InvoiceMemoModal, MemoSale } from './invoice-memo-modal';
 import { ProductLookupModal } from '../products/product-lookup-modal';
+import { CameraScannerModal } from '../ui/camera-scanner-modal';
 
 export interface BarcodeSaleLineItem {
   id: string;
@@ -95,6 +97,7 @@ export function SaleBarcodeModal({
 
   // Product Catalog Lookup Modal
   const [productLookupOpen, setProductLookupOpen] = useState(false);
+  const [cameraScanOpen, setCameraScanOpen] = useState(false);
 
   // Refs
   const inputRef = useRef<HTMLInputElement>(null);
@@ -516,6 +519,17 @@ export function SaleBarcodeModal({
 
               <button
                 type="button"
+                onClick={() => setCameraScanOpen(true)}
+                disabled={isSaving}
+                title="Scan Barcode / QR via Camera"
+                className="h-8 px-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center gap-1 shadow-sm transition-colors disabled:opacity-50"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>Camera Scan</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setProductLookupOpen(true)}
                 disabled={isSaving}
                 title="Open Product Catalog to browse and select products"
@@ -813,6 +827,16 @@ export function SaleBarcodeModal({
         onOpenChange={setProductLookupOpen}
         onSelectProduct={handleSelectProductFromLookup}
         initialSearch={barcodeInput}
+      />
+
+      {/* Camera Live Barcode Scanner Modal */}
+      <CameraScannerModal
+        isOpen={cameraScanOpen}
+        onClose={() => setCameraScanOpen(false)}
+        onScan={(scannedCode) => {
+          setBarcodeInput(scannedCode);
+          processScanCode(scannedCode);
+        }}
       />
     </>
   );

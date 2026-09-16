@@ -81,9 +81,9 @@ export default function ReturnsPage() {
         <div className="relative bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 select-none border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <RotateCcw className="w-4 h-4 text-white" />
-            <h2 className="text-sm font-bold text-white tracking-wide uppercase">
-              Returns & Refunds
-            </h2>
+            <h1 className="text-sm font-bold text-white tracking-wide uppercase">
+            Returns & Refunds Management
+          </h1>
           </div>
           <div className="flex items-center gap-2">
             <button
