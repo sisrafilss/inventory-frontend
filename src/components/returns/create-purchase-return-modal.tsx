@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api/client';
 import { toast } from 'sonner';
-import { X, Plus, Trash2, Undo2 } from 'lucide-react';
+import { X, Plus, Trash2, Undo2, Camera } from 'lucide-react';
+import { CameraScannerModal } from '@/components/ui/camera-scanner-modal';
 
 interface CreatePurchaseReturnModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ export function CreatePurchaseReturnModal({
   const [refundType, setRefundType] = useState<'CASH' | 'CREDIT_ADJUSTMENT'>('CASH');
   const [refundAmount, setRefundAmount] = useState<number>(0);
   const [reason, setReason] = useState('');
+  const [cameraScanOpen, setCameraScanOpen] = useState(false);
   const [items, setItems] = useState<
     { productId: string; quantity: number; unitPrice: number }[]
   >([{ productId: '', quantity: 1, unitPrice: 0 }]);
@@ -199,13 +201,22 @@ export function CreatePurchaseReturnModal({
               <span className="font-extrabold text-neutral-900 dark:text-neutral-100 uppercase tracking-wide">
                 Products Returned to Supplier
               </span>
-              <button
-                type="button"
-                onClick={addItemRow}
-                className="flex items-center gap-1 text-xs px-2 py-1 bg-[#800000] hover:bg-red-900 text-white font-bold rounded-xs cursor-pointer shadow-xs"
-              >
-                <Plus className="w-3.5 h-3.5" /> Add Row
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setCameraScanOpen(true)}
+                  className="flex items-center gap-1 text-xs px-2 py-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xs cursor-pointer shadow-xs"
+                >
+                  <Camera className="w-3.5 h-3.5" /> Scan Barcode
+                </button>
+                <button
+                  type="button"
+                  onClick={addItemRow}
+                  className="flex items-center gap-1 text-xs px-2 py-1 bg-[#800000] hover:bg-rose-900 text-white font-bold rounded-xs cursor-pointer shadow-xs"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Row
+                </button>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -224,7 +235,7 @@ export function CreatePurchaseReturnModal({
                       <option value="">Select Product...</option>
                       {products.map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.name} ({p.sku}) - Current Stock: {p.quantity} {p.unit}
+                          {p.name} ({p.sku}{p.barcode ? ` | ${p.barcode}` : ''}) - Stock: {p.quantity} {p.unit}
                         </option>
                       ))}
                     </select>
@@ -327,6 +338,47 @@ export function CreatePurchaseReturnModal({
           </div>
         </form>
       </div>
+
+      {/* Camera Live Barcode Scanner Modal */}
+      <CameraScannerModal
+        isOpen={cameraScanOpen}
+        onClose={() => setCameraScanOpen(false)}
+        onScan={(scannedBarcode) => {
+          const prod = products.find(
+            (p) =>
+              p.barcode?.toLowerCase() === scannedBarcode.toLowerCase() ||
+              p.sku.toLowerCase() === scannedBarcode.toLowerCase()
+          );
+          if (prod) {
+            const existingIdx = items.findIndex((it) => it.productId === prod.id);
+            if (existingIdx >= 0) {
+              const updated = [...items];
+              updated[existingIdx].quantity += 1;
+              setItems(updated);
+            } else if (items.length === 1 && !items[0].productId) {
+              setItems([
+                {
+                  productId: prod.id,
+                  quantity: 1,
+                  unitPrice: Number(prod.costPrice || prod.dpRate || 0),
+                },
+              ]);
+            } else {
+              setItems([
+                ...items,
+                {
+                  productId: prod.id,
+                  quantity: 1,
+                  unitPrice: Number(prod.costPrice || prod.dpRate || 0),
+                },
+              ]);
+            }
+            toast.success(`Scanned and added: ${prod.name}`);
+          } else {
+            toast.error(`No product found with Barcode/SKU: ${scannedBarcode}`);
+          }
+        }}
+      />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { Package, Plus, Search, Edit2, AlertCircle, ChevronLeft, ChevronRight, B
 import { PurchaseModal } from '@/components/purchases/purchase-modal';
 import { CameraScannerModal } from '@/components/ui/camera-scanner-modal';
 import { BarcodePrintModal } from '@/components/products/barcode-print-modal';
+import { BarcodeSVG } from '@/components/ui/barcode-svg';
 import { formatStock, formatUnitLabel, isPackagedUnit, getDefaultPackSize } from '@/lib/stock-utils';
 import { calculateEffectivePackSize, getDefaultProductForm } from '@/lib/utils';
 
@@ -607,76 +608,78 @@ export default function ProductsPage() {
             <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto flex flex-col" onScroll={handleTableScroll}>
               <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
                 <thead className="sticky top-0 bg-[#eaf1f8] dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border-b border-neutral-400 dark:border-slate-700 font-bold select-none text-xs z-10">
-                  <tr>
-                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-10 text-center">SN</th>
-                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28">Product Code</th>
-                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[200px]">Item Name</th>
-                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32">Company</th>
-                    {canManage && <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28 text-right">Purchase Rate</th>}
-                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28 text-right">Selling Price</th>
-                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28 text-center">Available Stock</th>
-                    <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center">Status</th>
-                    {canManage && <th className="px-3 py-1.5 w-20 text-center">Action</th>}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
-                  {loading && page === 1 ? (
                     <tr>
-                      <td colSpan={canManage ? 9 : 7} className="py-16 text-center text-neutral-500 font-medium">
-                        <div className="flex items-center justify-center gap-2">
-                          <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
-                          <span>Loading products...</span>
-                        </div>
-                      </td>
+                      <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-10 text-center">SN</th>
+                      <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28">Product Code</th>
+                      <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32">Barcode</th>
+                      <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[200px]">Item Name</th>
+                      <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32">Company</th>
+                      {canManage && <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28 text-right">Purchase Rate</th>}
+                      <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28 text-right">Selling Price</th>
+                      <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28 text-center">Available Stock</th>
+                      <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center">Status</th>
+                      {canManage && <th className="px-3 py-1.5 w-20 text-center">Action</th>}
                     </tr>
-                  ) : error ? (
-                    <tr>
-                      <td colSpan={canManage ? 9 : 7} className="py-12 text-center text-rose-600 font-medium">
-                        <div className="flex items-center justify-center gap-2">
-                          <AlertCircle className="w-4 h-4" />
-                          <span>{error}</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : products.length === 0 ? (
-                    <tr>
-                      <td colSpan={canManage ? 9 : 7} className="py-16 text-center text-neutral-500 font-medium">
-                        <div className="flex flex-col items-center justify-center gap-2">
-                          <Package className="w-8 h-8 text-neutral-400" />
-                          <span>No products found matching criteria.</span>
-                          {canManage && (
-                            <button
-                              type="button"
-                              onClick={handleOpenCreate}
-                              className="mt-2 px-3 py-1 bg-[#006400] text-white rounded-xs font-bold text-xs flex items-center gap-1.5 shadow-xs hover:bg-emerald-800 transition-colors"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                              <span>Add First Product</span>
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    <>
-                      {products.map((p, idx) => {
-                        const isSelected = selectedProduct?.id === p.id;
-                        return (
-                        <tr
-                          key={p.id}
-                          className={`transition-colors cursor-pointer ${
-                            isSelected
-                              ? 'bg-[#0056b3] text-white font-semibold'
-                              : idx % 2 === 0
-                              ? 'bg-white dark:bg-slate-900 hover:bg-[#c6d8ea]/50 dark:hover:bg-slate-800/80'
-                              : 'bg-[#f4f8fc] dark:bg-slate-900/50 hover:bg-[#c6d8ea]/50 dark:hover:bg-slate-800/80'
-                          }`}
-                          onClick={() => setSelectedProduct(p)}
-                          onDoubleClick={() => setViewProduct(p)}
-                          title="Double-click to view details"
-                        >
-                          <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono ${isSelected ? 'text-blue-200' : 'text-neutral-500'}`}>{idx + 1}</td>
-                          <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-mono font-bold ${isSelected ? 'text-white' : 'text-neutral-800 dark:text-neutral-100'}`}>{p.sku}</td>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
+                    {loading && page === 1 ? (
+                      <tr>
+                        <td colSpan={canManage ? 10 : 8} className="py-16 text-center text-neutral-500 font-medium">
+                          <div className="flex items-center justify-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
+                            <span>Loading products...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : error ? (
+                      <tr>
+                        <td colSpan={canManage ? 10 : 8} className="py-12 text-center text-rose-600 font-medium">
+                          <div className="flex items-center justify-center gap-2">
+                            <AlertCircle className="w-4 h-4" />
+                            <span>{error}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : products.length === 0 ? (
+                      <tr>
+                        <td colSpan={canManage ? 10 : 8} className="py-16 text-center text-neutral-500 font-medium">
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <Package className="w-8 h-8 text-neutral-400" />
+                            <span>No products found matching criteria.</span>
+                            {canManage && (
+                              <button
+                                type="button"
+                                onClick={handleOpenCreate}
+                                className="mt-2 px-3 py-1 bg-[#006400] text-white rounded-xs font-bold text-xs flex items-center gap-1.5 shadow-xs hover:bg-emerald-800 transition-colors"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>Add First Product</span>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      <>
+                        {products.map((p, idx) => {
+                          const isSelected = selectedProduct?.id === p.id;
+                          return (
+                          <tr
+                            key={p.id}
+                            className={`transition-colors cursor-pointer ${
+                              isSelected
+                                ? 'bg-[#0056b3] text-white font-semibold'
+                                : idx % 2 === 0
+                                ? 'bg-white dark:bg-slate-900 hover:bg-[#c6d8ea]/50 dark:hover:bg-slate-800/80'
+                                : 'bg-[#f4f8fc] dark:bg-slate-900/50 hover:bg-[#c6d8ea]/50 dark:hover:bg-slate-800/80'
+                            }`}
+                            onClick={() => setSelectedProduct(p)}
+                            onDoubleClick={() => setViewProduct(p)}
+                            title="Double-click to view details"
+                          >
+                            <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono ${isSelected ? 'text-blue-200' : 'text-neutral-500'}`}>{idx + 1}</td>
+                            <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-mono font-bold ${isSelected ? 'text-white' : 'text-neutral-800 dark:text-neutral-100'}`}>{p.sku}</td>
+                            <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-mono text-[11px] ${isSelected ? 'text-emerald-200' : 'text-emerald-700 dark:text-emerald-400 font-bold'}`}>{p.barcode || '—'}</td>
                           <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 font-semibold ${isSelected ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'}`}>
                             {p.name}
                             {p.description && p.description !== 'None' && (
@@ -1187,6 +1190,7 @@ export default function ProductsPage() {
                 <h3 className="font-bold text-neutral-500 uppercase tracking-wide border-b pb-1 mb-2">General Info</h3>
                 <div className="space-y-1.5">
                   <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Product Code:</span><span className="font-mono font-bold text-neutral-900 dark:text-neutral-100">{viewProduct.sku}</span></div>
+                  <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Barcode:</span><span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">{viewProduct.barcode || '—'}</span></div>
                   <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Item Name:</span><span className="font-bold text-neutral-900 dark:text-neutral-100">{viewProduct.name}</span></div>
                   <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Company:</span><span className="text-neutral-900 dark:text-neutral-100">{viewProduct.company?.name || companies.find((c) => c.id === viewProduct.companyId)?.name || '—'}</span></div>
                   <div className="flex justify-between"><span className="text-neutral-500 font-semibold">Category:</span><span className="text-neutral-900 dark:text-neutral-100">{viewProduct.category?.name || '—'}</span></div>
@@ -1218,6 +1222,27 @@ export default function ProductsPage() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Barcode Sticker Preview Box */}
+            <div className="bg-white dark:bg-slate-800 p-3 border border-neutral-400 dark:border-slate-600 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <BarcodeSVG value={viewProduct.barcode || viewProduct.sku} width={170} height={45} showText={false} />
+                <div>
+                  <div className="font-bold text-xs text-neutral-800 dark:text-neutral-200">Barcode Label</div>
+                  <div className="font-mono text-xs text-emerald-700 dark:text-emerald-400 font-bold">{viewProduct.barcode || viewProduct.sku}</div>
+                  <div className="text-[11px] text-neutral-500">Scan code for quick inventory & sales lookup</div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setBarcodePrintProduct(viewProduct)}
+                className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xs shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+              >
+                <Barcode className="w-3.5 h-3.5" />
+                <span>Print Barcode Label</span>
+              </button>
             </div>
 
             <div className="bg-white dark:bg-slate-800 p-3 border border-neutral-400 dark:border-slate-600 shadow-sm">

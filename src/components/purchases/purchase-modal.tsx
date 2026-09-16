@@ -16,6 +16,7 @@ import {
   Lock,
   ChevronDown,
   UserPlus,
+  Camera,
 } from 'lucide-react';
 import { Product, Supplier, Warehouse } from '@/lib/types';
 import { api } from '@/lib/api/client';
@@ -23,6 +24,7 @@ import { useAuth } from '@/lib/context/auth-context';
 import { SupplierLookupModal } from '@/components/suppliers/supplier-lookup-modal';
 import { SupplierModal as AddSupplierModal } from '@/components/parties/supplier-modal';
 import { ProductLookupModal } from '@/components/products/product-lookup-modal';
+import { CameraScannerModal } from '@/components/ui/camera-scanner-modal';
 import { PremiumNumberInput } from '@/components/ui/number-input';
 import { formatStock, formatUnitLabel, isPackagedUnit, getDefaultPackSize } from '@/lib/stock-utils';
 
@@ -106,6 +108,7 @@ export function PurchaseModal({
   const [debouncedCode, setDebouncedCode] = useState(initialProductCode || '');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [productLookupOpen, setProductLookupOpen] = useState(false);
+  const [cameraScanOpen, setCameraScanOpen] = useState(false);
   const [itemName, setItemName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [quantity, setQuantity] = useState<number | string>('');
@@ -897,6 +900,16 @@ export function PurchaseModal({
                         <Check className="w-3.5 h-3.5 text-emerald-600 absolute right-1.5 pointer-events-none" />
                       )}
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setCameraScanOpen(true)}
+                      disabled={isSaving}
+                      title="Scan Barcode via Camera"
+                      className="h-6 px-2 bg-emerald-700 hover:bg-emerald-800 text-white font-medium text-xs shadow-sm flex items-center gap-1 transition-colors disabled:opacity-50 cursor-pointer"
+                    >
+                      <Camera className="w-3 h-3" />
+                      <span>Scan</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => setProductLookupOpen(true)}
@@ -1778,6 +1791,17 @@ export function PurchaseModal({
         initialSearch={itemCode}
         warehouseId={selectedWarehouseId || defaultWarehouseId}
         title="Select Product for Purchase"
+      />
+
+      {/* Camera Live Barcode Scanner Modal */}
+      <CameraScannerModal
+        isOpen={cameraScanOpen}
+        onClose={() => setCameraScanOpen(false)}
+        onScan={(scannedBarcode) => {
+          setItemCode(scannedBarcode);
+          setDebouncedCode(scannedBarcode);
+          toast.success(`Scanned Barcode: ${scannedBarcode}`);
+        }}
       />
 
       {/* Supplier Directory Lookup Modal */}
