@@ -2,14 +2,15 @@ import { ApiResponse } from "../types";
 
 const getApiBaseUrl = () => {
   if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
+    const raw = process.env.NEXT_PUBLIC_API_URL.trim().replace(/\/$/, "");
+    return raw.endsWith("/api") ? raw : `${raw}/api`;
   }
   if (
     typeof window !== "undefined" &&
     (window.location.hostname.includes("vercel.app") ||
       window.location.hostname !== "localhost")
   ) {
-    return "https://inventory-backend-mauve-pi.vercel.app/api";
+    return "https://backend-omega-plum-99.vercel.app/api";
   }
   return "http://localhost:5000/api";
 };
