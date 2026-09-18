@@ -19,12 +19,30 @@ import { DailyReportModal } from '@/components/reports/daily-report-modal';
 import { BIAnalyticsBuilder } from '@/components/reports/bi-analytics-builder';
 import { CustomerLedgerModal } from '@/components/reports/customer-ledger-modal';
 import { StockAgingReorderModal, StockAgingReportView } from '@/components/reports/stock-aging-reorder-modal';
-import { User, Clock, AlertTriangle, Zap, Warehouse, Eye, Edit2, Barcode as BarcodeIcon, Building2, Package, Layers, Boxes, TrendingUp, DollarSign, Printer, RefreshCw } from 'lucide-react';
+import { User, Users, Clock, AlertTriangle, Zap, Warehouse, Eye, Edit2, Barcode as BarcodeIcon, Building2, Package, Layers, Boxes, TrendingUp, DollarSign, Printer, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import { ProductDetailsModal } from '@/components/products/product-details-modal';
 import { ProductEditModal } from '@/components/products/product-edit-modal';
 import { BarcodePrintModal } from '@/components/products/barcode-print-modal';
 import { Product } from '@/lib/types';
 import { formatStock, formatUnitLabel } from '@/lib/stock-utils';
+
+const REPORT_ICONS: Record<string, any> = {
+  'warehouse-stock': Warehouse,
+  'inventory': Boxes,
+  'reorder-aging': AlertTriangle,
+  'adjustments': RefreshCw,
+  'daily-sales': Receipt,
+  'sales': ShoppingCart,
+  'user-performance': Users,
+  'profit-by-invoice': TrendingUp,
+  'due-list': Clock,
+  'customer-ledger': User,
+  'daily-purchases': ShoppingCart,
+  'balance-sheet': FileSpreadsheet,
+  'daily-costs': DollarSign,
+  'cash': DollarSign,
+  'bi-analytics': BarChart3,
+};
 
 const REPORT_CATEGORIES = [
   {
@@ -299,22 +317,27 @@ function ReportsPageContent() {
         </div>
 
         {/* Active Module Sub-Reports Tab Bar */}
-        <div className="bg-[#eaf1f8] dark:bg-slate-800/80 px-3 pt-2 border-b border-neutral-300 dark:border-slate-700 shrink-0 flex items-end gap-1.5 overflow-x-auto custom-scrollbar">
+        <div className="bg-[#e4eff9] dark:bg-slate-900/90 px-3 pt-2 border-b border-neutral-300 dark:border-slate-700 shrink-0 flex items-end gap-1.5 overflow-x-auto custom-scrollbar">
           {activeCategoryObj.reports.map((tab) => {
             const isTabActive = activeReport === tab.id;
+            const TabIcon = REPORT_ICONS[tab.id] || Layers;
             return (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => handleSelectReport(tab.id)}
-                className={`px-3.5 py-1.5 text-xs font-bold transition-all uppercase tracking-wider rounded-t-xs border border-b-0 cursor-pointer shrink-0 ${
+                className={`px-3.5 py-2 text-xs font-bold transition-all uppercase tracking-wider rounded-t-xs border border-b-0 cursor-pointer shrink-0 flex items-center gap-2 ${
                   isTabActive
-                    ? 'bg-white dark:bg-slate-950 text-[#0056b3] dark:text-blue-400 border-neutral-400 dark:border-slate-600 relative top-[1px] shadow-xs'
-                    : 'bg-neutral-100 dark:bg-slate-900 text-neutral-600 dark:text-neutral-400 border-transparent hover:bg-white/80 dark:hover:bg-slate-800'
+                    ? 'bg-white dark:bg-slate-950 text-[#006400] dark:text-emerald-400 border-t-2 border-t-[#006400] dark:border-t-emerald-500 border-x-neutral-300 dark:border-x-slate-700 relative top-[1px] shadow-xs'
+                    : 'bg-white/60 dark:bg-slate-800/60 text-neutral-600 dark:text-neutral-400 border-transparent hover:bg-white dark:hover:bg-slate-800 hover:text-neutral-900 dark:hover:text-neutral-100'
                 }`}
                 title={tab.desc}
               >
-                {tab.label}
+                <TabIcon className={`w-3.5 h-3.5 ${isTabActive ? 'text-[#006400] dark:text-emerald-400' : 'text-neutral-500'}`} />
+                <span>{tab.label}</span>
+                {isTabActive && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#006400] dark:bg-emerald-400 animate-pulse" />
+                )}
               </button>
             );
           })}
@@ -322,7 +345,7 @@ function ReportsPageContent() {
 
         {/* Filter Bar */}
         {activeReport !== 'reorder-aging' && activeReport !== 'user-performance' && activeReport !== 'bi-analytics' && (
-          <div className="bg-white dark:bg-slate-950 p-2 border-b border-neutral-300 dark:border-slate-700 shrink-0">
+          <div className="bg-gradient-to-r from-slate-50 via-white to-emerald-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-2 border-b border-neutral-300 dark:border-slate-700 shrink-0 shadow-2xs">
             <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -382,33 +405,37 @@ function ReportsPageContent() {
                 </button>
               </div>
             ) : activeReport === 'warehouse-stock' ? (
-              <div className="flex flex-wrap items-center justify-between gap-2 w-full">
-                <div className="flex flex-wrap items-center gap-2">
-                  <label className="font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <Warehouse className="w-3.5 h-3.5 text-[#006400] dark:text-emerald-400" />
-                    <span>Godown / Warehouse:</span>
-                  </label>
-                  <select
-                    value={selectedWarehouseId}
-                    onChange={(e) => setSelectedWarehouseId(e.target.value)}
-                    className="h-7 px-2 text-xs border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400] font-bold text-neutral-900 dark:text-neutral-100"
-                  >
-                    <option value="ALL">All Warehouses / Godowns (সকল গুদাম)</option>
-                    {availableWarehouses.map((wh) => (
-                      <option key={wh.id} value={wh.id}>
-                        {wh.name} {wh.address ? `(${wh.address})` : ''}
-                      </option>
-                    ))}
-                  </select>
+              <div className="flex flex-wrap items-center justify-between gap-2.5 w-full">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  {/* Warehouse Scope Selector */}
+                  <div className="flex items-center gap-1.5 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 px-2 py-0.5 rounded-xs shadow-2xs">
+                    <Warehouse className="w-3.5 h-3.5 text-[#006400] dark:text-emerald-400 shrink-0" />
+                    <label className="font-bold text-[#006400] dark:text-emerald-300 uppercase tracking-wider text-[11px] shrink-0">
+                      Godown:
+                    </label>
+                    <select
+                      value={selectedWarehouseId}
+                      onChange={(e) => setSelectedWarehouseId(e.target.value)}
+                      className="h-7 px-2 text-xs border border-emerald-300 dark:border-emerald-700 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006400] font-bold text-neutral-900 dark:text-neutral-100"
+                    >
+                      <option value="ALL">All Warehouses / Godowns (সকল গুদাম)</option>
+                      {availableWarehouses.map((wh) => (
+                        <option key={wh.id} value={wh.id}>
+                          {wh.name} {wh.address ? `(${wh.address})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                  <div className="relative ml-2">
-                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
+                  {/* Product Search Box */}
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                     <input
                       type="text"
                       placeholder="Search product, SKU, barcode, company..."
                       value={warehouseStockSearch}
                       onChange={(e) => setWarehouseStockSearch(e.target.value)}
-                      className="w-60 h-7 pl-7 pr-6 text-xs border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
+                      className="w-64 h-7 pl-8 pr-6 text-xs border border-blue-300 dark:border-blue-700 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 font-medium placeholder:text-neutral-400 shadow-2xs"
                     />
                     {warehouseStockSearch && (
                       <button
@@ -421,19 +448,23 @@ function ReportsPageContent() {
                     )}
                   </div>
 
-                  <label className="font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider ml-1">
-                    Status:
-                  </label>
-                  <select
-                    value={warehouseStockStatus}
-                    onChange={(e) => setWarehouseStockStatus(e.target.value)}
-                    className="h-7 px-2 text-xs border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400] font-medium"
-                  >
-                    <option value="ALL">All Stock Statuses</option>
-                    <option value="IN_STOCK">In Stock (পর্যাপ্ত)</option>
-                    <option value="LOW_STOCK">Low Stock (সতর্কতা)</option>
-                    <option value="OUT_OF_STOCK">Out of Stock (শূন্য)</option>
-                  </select>
+                  {/* Stock Health Status Filter */}
+                  <div className="flex items-center gap-1.5 bg-amber-50/80 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 px-2 py-0.5 rounded-xs shadow-2xs">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <label className="font-bold text-amber-900 dark:text-amber-300 uppercase tracking-wider text-[11px] shrink-0">
+                      Status:
+                    </label>
+                    <select
+                      value={warehouseStockStatus}
+                      onChange={(e) => setWarehouseStockStatus(e.target.value)}
+                      className="h-7 px-2 text-xs border border-amber-300 dark:border-amber-700 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold text-neutral-900 dark:text-neutral-100"
+                    >
+                      <option value="ALL">All Stock Statuses</option>
+                      <option value="IN_STOCK">In Stock (পর্যাপ্ত)</option>
+                      <option value="LOW_STOCK">Low Stock (সতর্কতা)</option>
+                      <option value="OUT_OF_STOCK">Out of Stock (শূন্য)</option>
+                    </select>
+                  </div>
 
                   {(warehouseStockSearch || warehouseStockStatus !== 'ALL') && (
                     <button
@@ -442,7 +473,7 @@ function ReportsPageContent() {
                         setWarehouseStockSearch('');
                         setWarehouseStockStatus('ALL');
                       }}
-                      className="h-7 px-2 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 text-neutral-700 dark:text-neutral-300 font-bold text-xs rounded-xs hover:bg-neutral-50 transition-colors shadow-xs cursor-pointer"
+                      className="h-7 px-2.5 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 text-neutral-700 dark:text-neutral-300 font-bold text-xs rounded-xs hover:bg-neutral-50 transition-colors shadow-2xs cursor-pointer"
                     >
                       Reset Filters
                     </button>
@@ -454,9 +485,9 @@ function ReportsPageContent() {
                     type="button"
                     onClick={fetchReport}
                     disabled={loading}
-                    className="h-7 px-3 bg-[#006400] hover:bg-emerald-800 text-white border border-[#004d00] font-bold text-xs rounded-xs shadow-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    className="h-7 px-3.5 bg-gradient-to-r from-[#006400] to-emerald-700 hover:from-emerald-800 hover:to-emerald-900 text-white border border-[#004d00] font-bold text-xs rounded-xs shadow-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-all active:scale-95"
                   >
-                    <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+                    <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
                     <span>Reload Stock</span>
                   </button>
                 </div>
@@ -729,85 +760,113 @@ function ReportsPageContent() {
                   <div className="space-y-3">
                     {/* Financial KPI Summary Cards */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-                      {/* Card 1: Warehouse Scope & Stock Status */}
-                      <div className="bg-white dark:bg-slate-950 border border-neutral-400 dark:border-slate-700 p-3 shadow-xs rounded-xs border-l-4 border-l-[#006400] flex flex-col justify-between">
+                      {/* Card 1: Warehouse Scope & Stock Health (Emerald Forest) */}
+                      <div className="bg-gradient-to-br from-emerald-500/10 via-white to-emerald-500/5 dark:from-emerald-950/40 dark:via-slate-900 dark:to-slate-950 border border-emerald-300 dark:border-emerald-800/80 border-l-4 border-l-[#006400] dark:border-l-emerald-500 p-3 shadow-xs rounded-xs flex flex-col justify-between">
                         <div>
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] uppercase font-bold text-neutral-600 dark:text-neutral-400 tracking-wider flex items-center gap-1">
-                              <Warehouse className="w-3.5 h-3.5 text-[#006400] dark:text-emerald-400" />
+                            <span className="text-[10px] uppercase font-bold text-emerald-900 dark:text-emerald-300 tracking-wider flex items-center gap-1.5">
+                              <span className="p-1 rounded-xs bg-emerald-100 dark:bg-emerald-900/60 text-[#006400] dark:text-emerald-300">
+                                <Warehouse className="w-3.5 h-3.5" />
+                              </span>
                               Warehouse Scope
                             </span>
-                            <span className="text-[10px] font-mono font-bold text-neutral-500">
+                            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-100/70 dark:bg-emerald-900/60 text-[#006400] dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                               {displayStocks.length} Lines Listed
                             </span>
                           </div>
-                          <h3 className="text-sm font-bold text-neutral-900 dark:text-white mt-1 truncate" title={currentWhObj ? currentWhObj.name : 'All Warehouses Combined'}>
+                          <h3 className="text-sm font-extrabold text-neutral-900 dark:text-white mt-1.5 truncate" title={currentWhObj ? currentWhObj.name : 'All Warehouses Combined'}>
                             {currentWhObj ? currentWhObj.name : 'All Warehouses (Combined)'}
                           </h3>
                           {currentWhObj?.address && (
                             <p className="text-[10px] text-neutral-500 truncate">{currentWhObj.address}</p>
                           )}
                         </div>
-                        <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-neutral-200 dark:border-slate-800 text-[10px] font-bold">
-                          <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
+                        <div className="flex items-center gap-1.5 mt-2.5 pt-2 border-t border-emerald-200/70 dark:border-emerald-900/40 text-[10px] font-bold">
+                          <span className="px-2 py-0.5 rounded-xs bg-emerald-600 text-white shadow-2xs font-bold">
                             In Stock: {inStockCount}
                           </span>
-                          <span className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
+                          <span className="px-2 py-0.5 rounded-xs bg-amber-500 text-white shadow-2xs font-bold">
                             Low: {lowStockCount}
                           </span>
-                          <span className="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300">
+                          <span className="px-2 py-0.5 rounded-xs bg-rose-600 text-white shadow-2xs font-bold">
                             Out: {outOfStockCount}
                           </span>
                         </div>
                       </div>
 
-                      {/* Card 2: Total Units */}
-                      <div className="bg-white dark:bg-slate-950 border border-neutral-400 dark:border-slate-700 p-3 shadow-xs rounded-xs border-l-4 border-l-amber-500 flex flex-col justify-between">
+                      {/* Card 2: Total Units (Warm Amber / Gold) */}
+                      <div className="bg-gradient-to-br from-amber-500/10 via-white to-amber-500/5 dark:from-amber-950/40 dark:via-slate-900 dark:to-slate-950 border border-amber-300 dark:border-amber-800/80 border-l-4 border-l-amber-500 dark:border-l-amber-400 p-3 shadow-xs rounded-xs flex flex-col justify-between">
                         <div>
-                          <span className="text-[10px] uppercase font-bold text-neutral-600 dark:text-neutral-400 tracking-wider flex items-center gap-1">
-                            <Boxes className="w-3.5 h-3.5 text-amber-600" />
-                            Total Stock Units
-                          </span>
-                          <h4 className="text-xl font-bold font-mono text-neutral-900 dark:text-white mt-1 leading-none">
-                            {totalQuantity.toLocaleString()} <span className="text-xs font-normal text-neutral-500 font-sans">Units</span>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] uppercase font-bold text-amber-900 dark:text-amber-300 tracking-wider flex items-center gap-1.5">
+                              <span className="p-1 rounded-xs bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300">
+                                <Boxes className="w-3.5 h-3.5" />
+                              </span>
+                              Total Stock Units
+                            </span>
+                            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100/70 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                              Volume
+                            </span>
+                          </div>
+                          <h4 className="text-2xl font-black font-mono text-amber-950 dark:text-amber-200 mt-1.5 leading-none tracking-tight">
+                            {totalQuantity.toLocaleString()} <span className="text-xs font-bold text-amber-700 dark:text-amber-400 font-sans">Units</span>
                           </h4>
                         </div>
-                        <div className="text-[10px] text-neutral-500 font-mono mt-2 pt-2 border-t border-neutral-200 dark:border-slate-800 flex justify-between">
+                        <div className="text-[10px] text-neutral-600 dark:text-neutral-400 font-mono mt-2.5 pt-2 border-t border-amber-200/70 dark:border-amber-900/40 flex justify-between items-center">
                           <span>Tracked Products:</span>
-                          <span className="font-bold text-neutral-800 dark:text-neutral-200">{allStockEntries.length} Items</span>
+                          <span className="font-bold px-1.5 py-0.5 rounded bg-amber-100/80 dark:bg-amber-900/50 text-amber-900 dark:text-amber-200">{allStockEntries.length} Items</span>
                         </div>
                       </div>
 
-                      {/* Card 3: Purchase Value (Cost) */}
-                      <div className="bg-white dark:bg-slate-950 border border-neutral-400 dark:border-slate-700 p-3 shadow-xs rounded-xs border-l-4 border-l-blue-600 flex flex-col justify-between">
+                      {/* Card 3: Purchase Value - Cost (Royal Blue) */}
+                      <div className="bg-gradient-to-br from-blue-500/10 via-white to-blue-500/5 dark:from-blue-950/40 dark:via-slate-900 dark:to-slate-950 border border-blue-300 dark:border-blue-800/80 border-l-4 border-l-blue-600 dark:border-l-blue-400 p-3 shadow-xs rounded-xs flex flex-col justify-between">
                         <div>
-                          <span className="text-[10px] uppercase font-bold text-neutral-600 dark:text-neutral-400 tracking-wider flex items-center gap-1">
-                            <DollarSign className="w-3.5 h-3.5 text-blue-600" />
-                            Total Purchase Valuation (Cost)
-                          </span>
-                          <h4 className="text-xl font-bold font-mono text-blue-700 dark:text-blue-400 mt-1 leading-none">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] uppercase font-bold text-blue-900 dark:text-blue-300 tracking-wider flex items-center gap-1.5">
+                              <span className="p-1 rounded-xs bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
+                                <DollarSign className="w-3.5 h-3.5" />
+                              </span>
+                              Purchase Valuation (Cost)
+                            </span>
+                            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100/70 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                              Investment
+                            </span>
+                          </div>
+                          <h4 className="text-2xl font-black font-mono text-blue-900 dark:text-blue-300 mt-1.5 leading-none tracking-tight">
                             {formatMoney(totalCostValue)}
                           </h4>
                         </div>
-                        <div className="text-[10px] text-neutral-500 font-mono mt-2 pt-2 border-t border-neutral-200 dark:border-slate-800">
-                          Total stock purchase / investment cost
+                        <div className="text-[10px] text-neutral-600 dark:text-neutral-400 font-mono mt-2.5 pt-2 border-t border-blue-200/70 dark:border-blue-900/40 flex justify-between items-center">
+                          <span>Total Investment:</span>
+                          <span className="font-bold px-1.5 py-0.5 rounded bg-blue-100/80 dark:bg-blue-900/50 text-blue-900 dark:text-blue-200 font-mono">Godown Stock</span>
                         </div>
                       </div>
 
-                      {/* Card 4: Retail Value & Potential Margin */}
-                      <div className="bg-white dark:bg-slate-950 border border-neutral-400 dark:border-slate-700 p-3 shadow-xs rounded-xs border-l-4 border-l-emerald-600 flex flex-col justify-between">
+                      {/* Card 4: Retail Value & Potential Margin (Royal Purple) */}
+                      <div className="bg-gradient-to-br from-purple-500/10 via-white to-purple-500/5 dark:from-purple-950/40 dark:via-slate-900 dark:to-slate-950 border border-purple-300 dark:border-purple-800/80 border-l-4 border-l-purple-600 dark:border-l-purple-400 p-3 shadow-xs rounded-xs flex flex-col justify-between">
                         <div>
-                          <span className="text-[10px] uppercase font-bold text-neutral-600 dark:text-neutral-400 tracking-wider flex items-center gap-1">
-                            <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
-                            Total Retail Valuation (Sale)
-                          </span>
-                          <h4 className="text-xl font-bold font-mono text-emerald-700 dark:text-emerald-400 mt-1 leading-none">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] uppercase font-bold text-purple-900 dark:text-purple-300 tracking-wider flex items-center gap-1.5">
+                              <span className="p-1 rounded-xs bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300">
+                                <TrendingUp className="w-3.5 h-3.5" />
+                              </span>
+                              Retail Valuation (Sale)
+                            </span>
+                            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-100/70 dark:bg-purple-900/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                              Expected Sale
+                            </span>
+                          </div>
+                          <h4 className="text-2xl font-black font-mono text-purple-950 dark:text-purple-200 mt-1.5 leading-none tracking-tight">
                             {formatMoney(totalRetailValue)}
                           </h4>
                         </div>
-                        <div className="text-[10px] font-mono mt-2 pt-2 border-t border-neutral-200 dark:border-slate-800 flex justify-between items-center">
-                          <span className="text-neutral-500">Exp. Gross Margin:</span>
-                          <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                        <div className="text-[10px] font-mono mt-2.5 pt-2 border-t border-purple-200/70 dark:border-purple-900/40 flex justify-between items-center">
+                          <span className="text-neutral-600 dark:text-neutral-400">Exp. Gross Margin:</span>
+                          <span className={`px-2 py-0.5 rounded-xs font-bold font-mono text-[11px] shadow-2xs ${
+                            potentialMargin >= 0
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-rose-600 text-white'
+                          }`}>
                             {formatMoney(potentialMargin)} ({marginPercent}%)
                           </span>
                         </div>
