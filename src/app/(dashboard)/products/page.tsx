@@ -59,6 +59,7 @@ export default function ProductsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [barcodePrintProduct, setBarcodePrintProduct] = useState<Product | null>(null);
   const [scannerOpen, setScannerOpen] = useState<boolean>(false);
+  const skuInputRef = React.useRef<HTMLInputElement>(null);
 
   const fetchMetadata = async () => {
     try {
@@ -294,6 +295,9 @@ export default function ProductsPage() {
   const handleOpenCreate = () => {
     resetModalState();
     setModalOpen(true);
+    setTimeout(() => {
+      skuInputRef.current?.focus();
+    }, 80);
   };
 
   const handleOpenEdit = (p: Product) => {
@@ -414,10 +418,18 @@ export default function ProductsPage() {
       }
 
       setShowConfirmSave(false);
-      setModalOpen(false);
-      resetModalState();
+      if (isEditing) {
+        setModalOpen(false);
+        resetModalState();
+      } else {
+        resetModalState();
+        setModalOpen(true);
+        setTimeout(() => {
+          skuInputRef.current?.focus();
+        }, 80);
+      }
       await fetchProducts();
-      toast.success(isEditing ? 'Product updated successfully!' : 'Product saved successfully to catalog!');
+      toast.success(isEditing ? 'Product updated successfully!' : 'Product saved successfully! Ready to add next product.');
     } catch (err: any) {
       toast.error(err.message || 'Failed to save product.');
     } finally {
@@ -836,6 +848,7 @@ export default function ProductsPage() {
                   </label>
                   <div className="relative flex items-center">
                     <input
+                      ref={skuInputRef}
                       type="text"
                       value={form.sku}
                       onChange={(e) => {
