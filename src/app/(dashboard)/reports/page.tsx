@@ -19,12 +19,13 @@ import { DailyReportModal } from '@/components/reports/daily-report-modal';
 import { BIAnalyticsBuilder } from '@/components/reports/bi-analytics-builder';
 import { CustomerLedgerModal } from '@/components/reports/customer-ledger-modal';
 import { StockAgingReorderModal, StockAgingReportView } from '@/components/reports/stock-aging-reorder-modal';
-import { User, Users, Clock, AlertTriangle, Zap, Warehouse, Eye, Edit2, Barcode as BarcodeIcon, Building2, Package, Layers, Boxes, TrendingUp, DollarSign, Printer, RefreshCw, SlidersHorizontal } from 'lucide-react';
+import { User, Users, Clock, AlertTriangle, Zap, Warehouse, Eye, Edit2, Barcode as BarcodeIcon, Building2, Package, Layers, Boxes, TrendingUp, DollarSign, Printer, RefreshCw, SlidersHorizontal, Download } from 'lucide-react';
 import { ProductDetailsModal } from '@/components/products/product-details-modal';
 import { ProductEditModal } from '@/components/products/product-edit-modal';
 import { BarcodePrintModal } from '@/components/products/barcode-print-modal';
 import { Product } from '@/lib/types';
 import { formatStock, formatUnitLabel } from '@/lib/stock-utils';
+import { toast } from 'sonner';
 
 const REPORT_ICONS: Record<string, any> = {
   'warehouse-stock': Warehouse,
@@ -138,6 +139,128 @@ function ReportsPageContent() {
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [barcodeProduct, setBarcodeProduct] = useState<Product | null>(null);
   const [availableWarehouses, setAvailableWarehouses] = useState<{ id: string; name: string; address?: string | null }[]>([]);
+
+  // Catalog Stock (Inventory) Report States
+  const [catalogStockStatus, setCatalogStockStatus] = useState<string>('ALL');
+  const [catalogCategory, setCatalogCategory] = useState<string>('ALL');
+  const [catalogCompany, setCatalogCompany] = useState<string>('ALL');
+  const [catalogSearch, setCatalogSearch] = useState<string>('');
+
+  const handleResetCatalogFilters = () => {
+    setCatalogStockStatus('ALL');
+    setCatalogCategory('ALL');
+    setCatalogCompany('ALL');
+    setCatalogSearch('');
+  };
+
+  const catalogCategories = React.useMemo(() => {
+    if (!Array.isArray(data) || activeReport !== 'inventory') return [];
+    const set = new Set<string>();
+    data.forEach((item: any) => {
+      if (item.category) set.add(item.category);
+    });
+    return Array.from(set).sort();
+  }, [data, activeReport]);
+
+  const catalogCompanies = React.useMemo(() => {
+    if (!Array.isArray(data) || activeReport !== 'inventory') return [];
+    const set = new Set<string>();
+    data.forEach((item: any) => {
+      if (item.company) set.add(item.company);
+    });
+    return Array.from(set).sort();
+  }, [data, activeReport]);
+
+  const filteredCatalogItems = React.useMemo(() => {
+    if (!Array.isArray(data) || activeReport !== 'inventory') return [];
+    return data.filter((item: any) => {
+      if (catalogStockStatus !== 'ALL' && item.stockStatus !== catalogStockStatus) {
+        return false;
+      }
+      if (catalogCategory !== 'ALL' && item.category !== catalogCategory) {
+        return false;
+      }
+      if (catalogCompany !== 'ALL' && item.company !== catalogCompany) {
+        return false;
+      }
+      if (catalogSearch.trim()) {
+        const q = catalogSearch.toLowerCase().trim();
+        const matchName = item.name?.toLowerCase().includes(q);
+        const matchSku = item.sku?.toLowerCase().includes(q);
+        const matchBarcode = item.barcode?.toLowerCase().includes(q);
+        const matchCat = item.category?.toLowerCase().includes(q);
+        const matchComp = item.company?.toLowerCase().includes(q);
+        if (!matchName && !matchSku && !matchBarcode && !matchCat && !matchComp) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [data, activeReport, catalogStockStatus, catalogCategory, catalogCompany, catalogSearch]);
+
+  const catalogSummary = React.useMemo(() => {
+    if (!Array.isArray(data) || activeReport !== 'inventory') {
+      return { total: 0, inStock: 0, lowStock: 0, outOfStock: 0, costValuation: 0, retailValuation: 0 };
+    }
+    let inStock = 0;
+    let lowStock = 0;
+    let outOfStock = 0;
+    let costValuation = 0;
+    let retailValuation = 0;
+
+    data.forEach((item: any) => {
+      if (item.stockStatus === 'IN_STOCK') inStock++;
+      else if (item.stockStatus === 'LOW_STOCK') lowStock++;
+      else if (item.stockStatus === 'OUT_OF_STOCK') outOfStock++;
+
+      costValuation += Number(item.totalCostValue || 0);
+      retailValuation += Number(item.totalRetailValue || 0);
+    });
+
+    return {
+      total: data.length,
+      inStock,
+      lowStock,
+      outOfStock,
+      costValuation,
+      retailValuation,
+    };
+  }, [data, activeReport]);
+
+  const handleExportCatalogCSV = () => {
+    const itemsToExport = filteredCatalogItems.length > 0 ? filteredCatalogItems : (Array.isArray(data) ? data : []);
+    if (itemsToExport.length === 0) {
+      toast.warning('No catalog stock data to export');
+      return;
+    }
+
+    const headers = ['Product Name', 'SKU', 'Barcode', 'Company', 'Category', 'Unit', 'Current Stock', 'Reorder Level', 'Cost Price', 'Selling Price', 'Total Cost Valuation', 'Total Retail Valuation', 'Stock Status'];
+    const rows = itemsToExport.map((p: any) => [
+      `"${(p.name || '').replace(/"/g, '""')}"`,
+      `"${p.sku || ''}"`,
+      `"${p.barcode || ''}"`,
+      `"${(p.company || '').replace(/"/g, '""')}"`,
+      `"${(p.category || '').replace(/"/g, '""')}"`,
+      `"${p.unit || ''}"`,
+      `"${p.currentQuantity}"`,
+      `"${p.reorderLevel}"`,
+      `"${p.costPrice}"`,
+      `"${p.sellingPrice}"`,
+      `"${p.totalCostValue}"`,
+      `"${p.totalRetailValue}"`,
+      `"${p.stockStatus}"`,
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `Catalog_Stock_Status_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Catalog stock exported to CSV!');
+  };
 
   // Load available warehouses for selector
   useEffect(() => {
@@ -489,6 +612,122 @@ function ReportsPageContent() {
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
                     <span>Reload Stock</span>
+                  </button>
+                </div>
+              </div>
+            ) : activeReport === 'inventory' ? (
+              <div className="flex flex-wrap items-center justify-between gap-2.5 w-full">
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Stock Status Selector */}
+                  <div className="flex items-center gap-1.5 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 px-2 py-0.5 rounded-xs shadow-2xs">
+                    <Boxes className="w-3.5 h-3.5 text-[#006400] dark:text-emerald-400 shrink-0" />
+                    <label className="font-bold text-[#006400] dark:text-emerald-300 uppercase tracking-wider text-[11px] shrink-0">
+                      Status:
+                    </label>
+                    <select
+                      value={catalogStockStatus}
+                      onChange={(e) => setCatalogStockStatus(e.target.value)}
+                      className="h-7 px-2 text-xs border border-emerald-300 dark:border-emerald-700 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-[#006400] font-bold text-neutral-900 dark:text-neutral-100 cursor-pointer"
+                    >
+                      <option value="ALL">All Statuses (সকল স্থিতি)</option>
+                      <option value="IN_STOCK">In Stock (পর্যাপ্ত মজুদ)</option>
+                      <option value="LOW_STOCK">Low Stock (সতর্কতা)</option>
+                      <option value="OUT_OF_STOCK">Out of Stock (মজুদ শূন্য)</option>
+                    </select>
+                  </div>
+
+                  {/* Category Filter */}
+                  <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-neutral-300 dark:border-slate-700 px-2 py-0.5 rounded-xs shadow-2xs">
+                    <label className="font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider text-[11px] shrink-0">
+                      Category:
+                    </label>
+                    <select
+                      value={catalogCategory}
+                      onChange={(e) => setCatalogCategory(e.target.value)}
+                      className="h-7 px-2 text-xs bg-transparent border-0 outline-none font-medium text-neutral-800 dark:text-neutral-200 cursor-pointer"
+                    >
+                      <option value="ALL">All Categories ({catalogCategories.length})</option>
+                      {catalogCategories.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Company Filter */}
+                  {catalogCompanies.length > 1 && (
+                    <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-neutral-300 dark:border-slate-700 px-2 py-0.5 rounded-xs shadow-2xs">
+                      <label className="font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider text-[11px] shrink-0">
+                        Company:
+                      </label>
+                      <select
+                        value={catalogCompany}
+                        onChange={(e) => setCatalogCompany(e.target.value)}
+                        className="h-7 px-2 text-xs bg-transparent border-0 outline-none font-medium text-neutral-800 dark:text-neutral-200 cursor-pointer"
+                      >
+                        <option value="ALL">All Companies ({catalogCompanies.length})</option>
+                        {catalogCompanies.map((comp) => (
+                          <option key={comp} value={comp}>
+                            {comp}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Search input */}
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-2 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={catalogSearch}
+                      onChange={(e) => setCatalogSearch(e.target.value)}
+                      placeholder="Search Name / SKU / Barcode..."
+                      className="h-7 pl-7 pr-6 w-52 text-xs bg-white dark:bg-slate-900 border border-neutral-300 dark:border-slate-700 rounded-xs outline-none focus:border-[#006400]"
+                    />
+                    {catalogSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setCatalogSearch('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 text-xs cursor-pointer"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Reset */}
+                  {(catalogStockStatus !== 'ALL' || catalogCategory !== 'ALL' || catalogCompany !== 'ALL' || catalogSearch) && (
+                    <button
+                      type="button"
+                      onClick={handleResetCatalogFilters}
+                      className="h-7 px-2.5 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 text-neutral-700 dark:text-neutral-300 font-bold text-xs rounded-xs hover:bg-neutral-50 transition-colors shadow-2xs cursor-pointer"
+                    >
+                      Reset Filters
+                    </button>
+                  )}
+                </div>
+
+                {/* Right Actions */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleExportCatalogCSV}
+                    className="h-7 px-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xs shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
+                    title="Export Catalog Stock to CSV"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export CSV</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={fetchReport}
+                    disabled={loading}
+                    className="h-7 px-3 bg-gradient-to-r from-[#006400] to-emerald-700 hover:from-emerald-800 hover:to-emerald-900 text-white border border-[#004d00] font-bold text-xs rounded-xs shadow-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-all active:scale-95"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                    <span>Refresh</span>
                   </button>
                 </div>
               </div>
@@ -1184,8 +1423,245 @@ function ReportsPageContent() {
                 </div>
               )}
 
+              {/* === CATALOG STOCK STATUS DEDICATED VIEW === */}
+              {activeReport === 'inventory' && Array.isArray(data) && (
+                <div className="space-y-3">
+                  {/* KPI Summary Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-2.5">
+                    {/* Card 1: Total Catalog Products */}
+                    <button
+                      type="button"
+                      onClick={() => setCatalogStockStatus('ALL')}
+                      className={`p-2.5 rounded border text-left transition-all cursor-pointer ${
+                        catalogStockStatus === 'ALL'
+                          ? 'bg-emerald-50/80 dark:bg-emerald-950/60 border-emerald-500 ring-2 ring-emerald-500/40 shadow-xs'
+                          : 'bg-white dark:bg-slate-950 border-neutral-300 dark:border-slate-700 hover:border-emerald-400'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-neutral-600 dark:text-neutral-400">Total Products</span>
+                        <Boxes className="w-3.5 h-3.5 text-emerald-600" />
+                      </div>
+                      <div className="font-bold text-lg text-emerald-800 dark:text-emerald-300 mt-0.5">
+                        {catalogSummary.total} Products
+                      </div>
+                      <div className="text-[10px] text-neutral-400">Master Catalog Catalogued</div>
+                    </button>
+
+                    {/* Card 2: In Stock */}
+                    <button
+                      type="button"
+                      onClick={() => setCatalogStockStatus(catalogStockStatus === 'IN_STOCK' ? 'ALL' : 'IN_STOCK')}
+                      className={`p-2.5 rounded border text-left transition-all cursor-pointer ${
+                        catalogStockStatus === 'IN_STOCK'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 ring-2 ring-emerald-500/50 shadow-xs'
+                          : 'bg-white dark:bg-slate-950 border-neutral-300 dark:border-slate-700 hover:border-emerald-400'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400">In Stock (পর্যাপ্ত)</span>
+                        {catalogStockStatus === 'IN_STOCK' && (
+                          <span className="text-[9px] font-bold bg-emerald-600 text-white px-1.5 py-0.2 rounded-full">ACTIVE</span>
+                        )}
+                      </div>
+                      <div className="font-bold text-lg text-emerald-700 dark:text-emerald-400 mt-0.5">
+                        {catalogSummary.inStock} Items
+                      </div>
+                      <div className="text-[10px] text-neutral-400">Sufficient stock level</div>
+                    </button>
+
+                    {/* Card 3: Low Stock */}
+                    <button
+                      type="button"
+                      onClick={() => setCatalogStockStatus(catalogStockStatus === 'LOW_STOCK' ? 'ALL' : 'LOW_STOCK')}
+                      className={`p-2.5 rounded border text-left transition-all cursor-pointer ${
+                        catalogStockStatus === 'LOW_STOCK'
+                          ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-500 ring-2 ring-amber-500/50 shadow-xs'
+                          : 'bg-white dark:bg-slate-950 border-neutral-300 dark:border-slate-700 hover:border-amber-400'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-400">Low Stock (সতর্কতা)</span>
+                        {catalogStockStatus === 'LOW_STOCK' && (
+                          <span className="text-[9px] font-bold bg-amber-600 text-white px-1.5 py-0.2 rounded-full">ACTIVE</span>
+                        )}
+                      </div>
+                      <div className="font-bold text-lg text-amber-700 dark:text-amber-400 mt-0.5">
+                        {catalogSummary.lowStock} Items
+                      </div>
+                      <div className="text-[10px] text-neutral-400">At or below reorder level</div>
+                    </button>
+
+                    {/* Card 4: Out of Stock */}
+                    <button
+                      type="button"
+                      onClick={() => setCatalogStockStatus(catalogStockStatus === 'OUT_OF_STOCK' ? 'ALL' : 'OUT_OF_STOCK')}
+                      className={`p-2.5 rounded border text-left transition-all cursor-pointer ${
+                        catalogStockStatus === 'OUT_OF_STOCK'
+                          ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-500 dark:border-rose-500 ring-2 ring-rose-500/50 shadow-xs'
+                          : 'bg-white dark:bg-slate-950 border-neutral-300 dark:border-slate-700 hover:border-rose-400'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-rose-700 dark:text-rose-400">Out of Stock (শূন্য)</span>
+                        {catalogStockStatus === 'OUT_OF_STOCK' && (
+                          <span className="text-[9px] font-bold bg-rose-600 text-white px-1.5 py-0.2 rounded-full">ACTIVE</span>
+                        )}
+                      </div>
+                      <div className="font-bold text-lg text-rose-700 dark:text-rose-400 mt-0.5">
+                        {catalogSummary.outOfStock} Items
+                      </div>
+                      <div className="text-[10px] text-neutral-400">Urgent replenishment required</div>
+                    </button>
+
+                    {/* Card 5: Total Valuation */}
+                    <div className="p-2.5 rounded border border-neutral-300 dark:border-slate-700 bg-white dark:bg-slate-950">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-neutral-600 dark:text-neutral-400">Total Valuation</span>
+                        <DollarSign className="w-3.5 h-3.5 text-blue-600" />
+                      </div>
+                      <div className="font-mono font-bold text-base text-blue-700 dark:text-blue-400 mt-0.5">
+                        {formatMoney(catalogSummary.costValuation)}
+                      </div>
+                      <div className="text-[10px] text-neutral-400 font-mono">Retail Est: {formatMoney(catalogSummary.retailValuation)}</div>
+                    </div>
+                  </div>
+
+                  {/* Catalog Table */}
+                  <div className="border border-neutral-400 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-xs shadow-inner overflow-hidden">
+                    <div className="bg-[#eaf1f8] dark:bg-slate-900 px-3 py-1.5 border-b border-neutral-300 dark:border-slate-700 flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <div className="font-bold text-neutral-800 dark:text-neutral-200 flex items-center gap-1.5">
+                        <Boxes className="w-4 h-4 text-[#006400] dark:text-emerald-400" />
+                        <span>Central Catalog Master Stock List</span>
+                        <span className="text-[11px] font-normal text-neutral-500 font-mono">
+                          (Showing {filteredCatalogItems.length} of {data.length} Products)
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-neutral-600 dark:text-neutral-400 font-mono flex items-center gap-3">
+                        <span>
+                          Filtered Stock Value:{' '}
+                          <strong className="text-emerald-700 dark:text-emerald-400 font-bold">
+                            {formatMoney(filteredCatalogItems.reduce((a: number, b: any) => a + Number(b.totalCostValue || 0), 0))}
+                          </strong>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs text-left border-collapse min-w-[900px]">
+                        <thead className="bg-[#eaf1f8] dark:bg-slate-900 border-b border-neutral-400 dark:border-slate-700 font-bold text-neutral-800 dark:text-neutral-200">
+                          <tr>
+                            <th className="py-2 px-3 border-r border-neutral-300 dark:border-slate-700 text-center w-12">SN</th>
+                            <th className="py-2 px-3 border-r border-neutral-300 dark:border-slate-700">Product Name</th>
+                            <th className="py-2 px-3 border-r border-neutral-300 dark:border-slate-700 w-28">SKU / Code</th>
+                            <th className="py-2 px-3 border-r border-neutral-300 dark:border-slate-700 w-28">Barcode</th>
+                            <th className="py-2 px-3 border-r border-neutral-300 dark:border-slate-700 text-center w-32">Current Stock</th>
+                            <th className="py-2 px-3 border-r border-neutral-300 dark:border-slate-700 text-center w-24">Reorder Level</th>
+                            <th className="py-2 px-3 border-r border-neutral-300 dark:border-slate-700 text-right w-24">Cost Price</th>
+                            <th className="py-2 px-3 border-r border-neutral-300 dark:border-slate-700 text-right w-24">Selling Price</th>
+                            <th className="py-2 px-3 border-r border-neutral-300 dark:border-slate-700 text-right w-28">Cost Value</th>
+                            <th className="py-2 px-3 text-center w-28">Stock Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-200 dark:divide-slate-800 font-medium">
+                          {filteredCatalogItems.length === 0 ? (
+                            <tr>
+                              <td colSpan={10} className="py-12 text-center text-neutral-500">
+                                <p className="font-bold text-sm text-neutral-600 dark:text-neutral-400">No products found matching the criteria.</p>
+                                <button
+                                  type="button"
+                                  onClick={handleResetCatalogFilters}
+                                  className="mt-2.5 px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xs font-bold text-xs shadow-xs cursor-pointer inline-flex items-center gap-1"
+                                >
+                                  <RefreshCw className="w-3 h-3" />
+                                  <span>Show All Products</span>
+                                </button>
+                              </td>
+                            </tr>
+                          ) : (
+                            filteredCatalogItems.map((item: any, idx: number) => {
+                              const qty = Number(item.currentQuantity);
+                              const reorder = Number(item.reorderLevel);
+                              const isOut = qty <= 0;
+                              const isLow = !isOut && qty <= reorder;
+
+                              return (
+                                <tr
+                                  key={item.id || idx}
+                                  onDoubleClick={() => setDetailProduct(item)}
+                                  className="hover:bg-neutral-50 dark:hover:bg-slate-900/60 transition-colors cursor-pointer"
+                                  title="Double click to view product details"
+                                >
+                                  <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono text-neutral-500">
+                                    {idx + 1}
+                                  </td>
+                                  <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 font-bold">
+                                    <div className="text-neutral-900 dark:text-neutral-100">{item.name}</div>
+                                    <div className="text-[10px] font-normal text-neutral-500 flex items-center gap-1.5 mt-0.5">
+                                      <span className="bg-neutral-100 dark:bg-slate-800 px-1 py-0.2 rounded border border-neutral-200 dark:border-slate-700">
+                                        {item.company}
+                                      </span>
+                                      <span>•</span>
+                                      <span>{item.category}</span>
+                                    </div>
+                                  </td>
+                                  <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 font-mono font-bold text-neutral-800 dark:text-neutral-200">
+                                    {item.sku}
+                                  </td>
+                                  <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 font-mono text-[11px] text-emerald-700 dark:text-emerald-400 font-bold">
+                                    {item.barcode}
+                                  </td>
+                                  <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center">
+                                    <span
+                                      className={`font-mono font-bold px-2 py-0.5 rounded text-xs ${
+                                        isOut
+                                          ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                                          : isLow
+                                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                          : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                      }`}
+                                    >
+                                      {formatStock(qty, item.unit)}
+                                    </span>
+                                  </td>
+                                  <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono text-neutral-600 dark:text-neutral-400">
+                                    {item.reorderLevel} {item.unit}
+                                  </td>
+                                  <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-right font-mono text-neutral-800 dark:text-neutral-200">
+                                    {formatMoney(item.costPrice)}
+                                  </td>
+                                  <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-right font-mono text-emerald-700 dark:text-emerald-400 font-semibold">
+                                    {formatMoney(item.sellingPrice)}
+                                  </td>
+                                  <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-right font-mono font-bold text-neutral-900 dark:text-neutral-100">
+                                    {formatMoney(item.totalCostValue)}
+                                  </td>
+                                  <td className="py-1.5 px-3 text-center">
+                                    <span
+                                      className={`px-2 py-0.5 rounded font-mono font-bold text-[10px] ${
+                                        isOut
+                                          ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                                          : isLow
+                                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                          : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                      }`}
+                                    >
+                                      {isOut ? 'OUT OF STOCK' : isLow ? 'LOW STOCK' : 'IN STOCK'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* === FALLBACK GENERIC TABLE FOR OTHERS === */}
-              {Array.isArray(data) && activeReport !== 'warehouse-stock' && (
+              {Array.isArray(data) && activeReport !== 'warehouse-stock' && activeReport !== 'inventory' && (
                 <div className="bg-white dark:bg-slate-950 border border-neutral-400 dark:border-slate-600 shadow-sm rounded-xs overflow-x-auto">
                   <table className="w-full text-xs text-left min-w-[600px] border-collapse">
                     <thead className="bg-[#eaf1f8] dark:bg-slate-900 border-b border-neutral-400 dark:border-slate-600 uppercase tracking-wider">
