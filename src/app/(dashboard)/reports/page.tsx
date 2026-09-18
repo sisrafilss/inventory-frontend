@@ -182,6 +182,20 @@ function ReportsPageContent() {
     }
   };
 
+  // Automatically fetch report whenever activeReport or relevant filters change
+  useEffect(() => {
+    if (
+      activeReport === 'customer-ledger' ||
+      activeReport === 'reorder-aging' ||
+      activeReport === 'user-performance' ||
+      activeReport === 'bi-analytics'
+    ) {
+      setLoading(false);
+      return;
+    }
+    fetchReport();
+  }, [activeReport, selectedWarehouseId, dueListSrGroup, startDate, endDate]);
+
   // Sync when urlTab changes (e.g. from sidebar clicks)
   useEffect(() => {
     if (urlTab) {
