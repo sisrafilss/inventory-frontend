@@ -565,7 +565,6 @@ export function StockAgingReportView({
           )}
         </div>
       </div>
-    </div>
   );
 }
 
