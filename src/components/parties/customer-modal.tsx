@@ -171,7 +171,8 @@ export function CustomerModal({
         !query ||
         u.name.toLowerCase().includes(query) ||
         (u.phone && u.phone.includes(query)) ||
-        u.email.toLowerCase().includes(query);
+        (u.email && u.email.toLowerCase().includes(query)) ||
+        (u.username && u.username.toLowerCase().includes(query));
       if (matches) {
         results.push({
           id: u.id,

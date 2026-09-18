@@ -10,11 +10,11 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ThemeSwitcher } from '@/components/ui/theme-switcher';
-import { Lock, Mail, AlertCircle, Phone } from 'lucide-react';
+import { Lock, User as UserIcon, AlertCircle, Phone } from 'lucide-react';
 import { AppLogo } from '@/components/ui/app-logo';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,7 +34,7 @@ export default function LoginPage() {
 
     try {
       const res = await api.post<{ token: string; user: User }>('/auth/login', {
-        email,
+        username: username.trim(),
         password,
       });
 
@@ -49,8 +49,8 @@ export default function LoginPage() {
   };
 
   const handleDemoLogin = () => {
-    setEmail('admin@inventory.local');
-    setPassword('SuperAdminInitialPassword123!');
+    setUsername('superAdmin');
+    setPassword('superAdmin');
     setError(null);
   };
 
@@ -69,7 +69,7 @@ export default function LoginPage() {
           <AppLogo size="lg" className="justify-center mb-1" />
           <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
           <CardDescription>
-            Enter your email and password to access the system
+            Enter your username and password to access the system
           </CardDescription>
         </CardHeader>
 
@@ -84,15 +84,15 @@ export default function LoginPage() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5 text-[#006400] dark:text-emerald-400" /> Email Address
+                <UserIcon className="w-3.5 h-3.5 text-[#006400] dark:text-emerald-400" /> Username
               </label>
               <Input
-                type="email"
-                placeholder="name@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                placeholder="Enter username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
-                autoComplete="email"
+                autoComplete="username"
                 className="focus-visible:ring-[#006400] dark:focus-visible:ring-emerald-500 focus-visible:border-[#006400]"
               />
             </div>
@@ -127,7 +127,7 @@ export default function LoginPage() {
               onClick={handleDemoLogin}
               className="w-full h-10 border-dashed border-[#006400]/40 dark:border-emerald-700/50 text-[#006400] dark:text-emerald-400 hover:bg-[#006400]/5 dark:hover:bg-emerald-950/30 font-medium transition-colors cursor-pointer"
             >
-              Demo Login
+              Demo Login (superAdmin)
             </Button>
           </CardFooter>
         </form>

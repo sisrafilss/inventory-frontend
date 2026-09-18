@@ -221,8 +221,8 @@ export default function UserGuidePage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="p-3 bg-white dark:bg-slate-900 border border-neutral-300 dark:border-slate-700 rounded-xs">
                 <span className="w-5 h-5 rounded-full bg-emerald-600 text-white inline-flex items-center justify-center text-xs font-bold mr-1">১</span>
-                <strong className="text-xs">ইমেইল লিখুন:</strong>
-                <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">লগইন স্ক্রিনের Email বক্সে আপনার এডমিন ইমেইল দিন (যেমন: admin@inventory.local)।</p>
+                <strong className="text-xs">ইউজারনেম লিখুন:</strong>
+                <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">লগইন স্ক্রিনের Username বক্সে ইউজারনেম দিন (প্রাথমিক সুপার এডমিন: superAdmin)।</p>
               </div>
               <div className="p-3 bg-white dark:bg-slate-900 border border-neutral-300 dark:border-slate-700 rounded-xs">
                 <span className="w-5 h-5 rounded-full bg-emerald-600 text-white inline-flex items-center justify-center text-xs font-bold mr-1">২</span>

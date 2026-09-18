@@ -35,8 +35,9 @@ export type StockMovementType =
 
 export interface User {
   id: string;
+  username: string;
   name: string;
-  email: string;
+  email?: string | null;
   phone?: string | null;
   address?: string | null;
   role: Role;
@@ -134,8 +135,9 @@ export interface CustomerSrDue {
 
 export interface SRUser {
   id: string;
+  username?: string;
   name: string;
-  email: string;
+  email?: string | null;
   phone?: string | null;
   address?: string | null;
   status: UserStatus;

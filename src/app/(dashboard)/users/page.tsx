@@ -44,13 +44,13 @@ export default function UsersPage() {
   // Modals
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState({
-    name: '', email: '', phone: '', role: Role.MANAGER as Role, password: '', warehouseId: '',
+    username: '', name: '', email: '', phone: '', role: Role.MANAGER as Role, password: '', warehouseId: '',
   });
   const [isCreating, setIsCreating] = useState(false);
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editForm, setEditForm] = useState({
-    name: '', phone: '', address: '', role: Role.MANAGER as Role, warehouseId: '',
+    username: '', name: '', email: '', phone: '', address: '', role: Role.MANAGER as Role, warehouseId: '',
   });
   const [isEditing, setIsEditing] = useState(false);
 
@@ -134,10 +134,13 @@ export default function UsersPage() {
     try {
       await api.post('/users', {
         ...createForm,
+        username: createForm.username.trim(),
+        email: createForm.email?.trim() || undefined,
+        phone: createForm.phone?.trim() || undefined,
         warehouseId: createForm.warehouseId || undefined,
       });
       setIsCreateOpen(false);
-      setCreateForm({ name: '', email: '', phone: '', role: Role.MANAGER, password: '', warehouseId: '' });
+      setCreateForm({ username: '', name: '', email: '', phone: '', role: Role.MANAGER, password: '', warehouseId: '' });
       if (page === 1) fetchUsers(); else setPage(1);
       toast.success('User created successfully!');
     } catch (err: any) {
@@ -150,7 +153,9 @@ export default function UsersPage() {
   const openEdit = (u: User) => {
     setEditingUser(u);
     setEditForm({
+      username: u.username || '',
       name: u.name,
+      email: u.email || '',
       phone: u.phone || '',
       address: u.address || '',
       role: u.role,
@@ -169,6 +174,10 @@ export default function UsersPage() {
     try {
       await api.patch(`/users/${editingUser.id}`, {
         ...editForm,
+        username: editForm.username.trim(),
+        email: editForm.email?.trim() || null,
+        phone: editForm.phone?.trim() || null,
+        address: editForm.address?.trim() || null,
         warehouseId: editForm.warehouseId || undefined,
       });
       setEditingUser(null);
@@ -349,7 +358,8 @@ export default function UsersPage() {
                         <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono ${isSelected ? 'text-blue-200' : 'text-neutral-500'}`}>{idx + 1}</td>
                         <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5">
                           <span className={`font-semibold text-sm ${isSelected ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'}`}>{u.name}</span>
-                          <span className={`block text-[10px] ${isSelected ? 'text-blue-200' : 'text-neutral-500'}`}>{u.email}</span>
+                          <span className={`block font-mono text-[11px] font-bold ${isSelected ? 'text-blue-100' : 'text-emerald-700 dark:text-emerald-400'}`}>@{u.username}</span>
+                          {u.email && <span className={`block text-[10px] ${isSelected ? 'text-blue-200' : 'text-neutral-500'}`}>{u.email}</span>}
                           {u.phone && <span className={`block text-[10px] ${isSelected ? 'text-blue-200' : 'text-neutral-500'}`}>{u.phone}</span>}
                         </td>
                         <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5">
@@ -456,7 +466,7 @@ export default function UsersPage() {
           <div className="flex items-center gap-3 text-neutral-700 dark:text-neutral-300">
             {selectedUserRow ? (
               <span className="bg-[#006400] text-white px-2 py-0.5 rounded-xs font-bold">
-                Selected: {selectedUserRow.name} ({selectedUserRow.email})
+                Selected: {selectedUserRow.name} (@{selectedUserRow.username})
               </span>
             ) : (
               <span className="italic text-neutral-600 dark:text-neutral-400 font-sans">
@@ -483,18 +493,50 @@ export default function UsersPage() {
             </button>
           </div>
           <div className="p-4 space-y-3">
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Full Name <span className="text-rose-600">*</span></label>
-              <input required type="text" value={createForm.name} onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })} className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Username <span className="text-rose-600">*</span></label>
+                <input
+                  required
+                  type="text"
+                  placeholder="e.g. manager1"
+                  value={createForm.username}
+                  onChange={(e) => setCreateForm({ ...createForm, username: e.target.value.replace(/\s+/g, '') })}
+                  className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400] font-mono"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Full Name <span className="text-rose-600">*</span></label>
+                <input
+                  required
+                  type="text"
+                  placeholder="e.g. John Doe"
+                  value={createForm.name}
+                  onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                  className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
+                />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Email Address <span className="text-rose-600">*</span></label>
-                <input required type="email" value={createForm.email} onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]" />
+                <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Email Address <span className="text-neutral-500 font-normal lowercase">(optional)</span></label>
+                <input
+                  type="email"
+                  placeholder="user@example.com (optional)"
+                  value={createForm.email}
+                  onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                  className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
+                />
               </div>
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Phone Number</label>
-                <input type="text" value={createForm.phone} onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })} className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]" />
+                <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Phone Number <span className="text-neutral-500 font-normal lowercase">(optional)</span></label>
+                <input
+                  type="text"
+                  placeholder="017XXXXXXXX (optional)"
+                  value={createForm.phone}
+                  onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
+                  className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
+                />
               </div>
             </div>
             <div className="space-y-1">
@@ -543,15 +585,51 @@ export default function UsersPage() {
           </div>
           <div className="p-4 space-y-3">
             <div className="bg-[#fffdf0] dark:bg-amber-950/20 border border-amber-300 dark:border-amber-700 p-2 text-xs font-semibold text-amber-900 dark:text-amber-200">
-              Editing Profile: {editingUser?.email}
+              Editing User: @{editingUser?.username} ({editingUser?.name})
             </div>
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Full Name <span className="text-rose-600">*</span></label>
-              <input required type="text" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Username <span className="text-rose-600">*</span></label>
+                <input
+                  required
+                  type="text"
+                  value={editForm.username}
+                  onChange={(e) => setEditForm({ ...editForm, username: e.target.value.replace(/\s+/g, '') })}
+                  className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400] font-mono"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Full Name <span className="text-rose-600">*</span></label>
+                <input
+                  required
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
+                />
+              </div>
             </div>
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Phone Number</label>
-              <input type="text" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Email Address <span className="text-neutral-500 font-normal lowercase">(optional)</span></label>
+                <input
+                  type="email"
+                  placeholder="Optional email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Phone Number <span className="text-neutral-500 font-normal lowercase">(optional)</span></label>
+                <input
+                  type="text"
+                  placeholder="Optional phone"
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                  className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
+                />
+              </div>
             </div>
             <div className="space-y-1">
               <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Address</label>
@@ -631,7 +709,8 @@ export default function UsersPage() {
         isLoading={isStatusUpdating}
         details={statusConfirm ? [
           { label: 'User:', value: statusConfirm.user.name },
-          { label: 'Email:', value: statusConfirm.user.email },
+          { label: 'Username:', value: `@${statusConfirm.user.username}` },
+          { label: 'Email:', value: statusConfirm.user.email || 'None' },
           { label: 'Current Status:', value: statusConfirm.user.status },
         ] : []}
       />
