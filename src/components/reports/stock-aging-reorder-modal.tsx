@@ -21,22 +21,23 @@ import {
   ShoppingCart,
   TrendingUp,
   Check,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface StockAgingReorderModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+export interface StockAgingReportViewProps {
   initialTab?: 'reorder' | 'aging' | 'velocity' | 'user';
   onOpenPurchaseWithProduct?: (sku: string) => void;
+  embedded?: boolean;
+  onClose?: () => void;
 }
 
-export function StockAgingReorderModal({
-  open,
-  onOpenChange,
+export function StockAgingReportView({
   initialTab = 'reorder',
   onOpenPurchaseWithProduct,
-}: StockAgingReorderModalProps) {
+  embedded = false,
+  onClose,
+}: StockAgingReportViewProps) {
   const [activeTab, setActiveTab] = useState<'reorder' | 'aging' | 'velocity' | 'user'>(initialTab);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
@@ -46,10 +47,8 @@ export function StockAgingReorderModal({
   }, [initialTab]);
 
   useEffect(() => {
-    if (open) {
-      fetchTabData();
-    }
-  }, [open, activeTab]);
+    fetchTabData();
+  }, [activeTab]);
 
   const fetchTabData = async () => {
     setLoading(true);
@@ -117,23 +116,40 @@ export function StockAgingReorderModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <div className="p-0 max-w-5xl w-full border-2 border-[#006400] dark:border-emerald-900 rounded-none bg-white dark:bg-slate-900 overflow-hidden shadow-2xl text-xs text-neutral-900 dark:text-neutral-100 select-none">
-        
-        {/* Banner Header */}
-        <div className="bg-[#006400] dark:bg-emerald-950 py-2 px-4 border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-between text-white">
-          <div className="flex items-center gap-2">
-            <Package className="w-5 h-5 text-emerald-200" />
-            <h2 className="text-base font-bold tracking-wide">Advanced Commercial & Stock Analytics (এডভান্সড স্টক ও পারফরম্যান্স রিপোর্ট)</h2>
-          </div>
+    <div className={embedded ? "w-full bg-white dark:bg-slate-900 border border-neutral-300 dark:border-slate-700 shadow-sm rounded-xs overflow-hidden text-xs text-neutral-900 dark:text-neutral-100 select-none" : "w-full text-xs text-neutral-900 dark:text-neutral-100 select-none"}>
+      
+      {/* Banner Header */}
+      <div className="bg-[#006400] dark:bg-emerald-950 py-2 px-4 border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-between text-white">
+        <div className="flex items-center gap-2">
+          <Package className="w-5 h-5 text-emerald-200" />
+          <h2 className="text-sm sm:text-base font-bold tracking-wide">
+            {activeTab === 'user'
+              ? 'Salesperson Commercial Performance (বিক্রয় প্রতিনিধি কার্যক্ষমতা)'
+              : 'Stock Alerts, Reorder & Aging Analytics (মজুদ সতর্কতা ও মেয়াদ বিশ্লেষণ)'}
+          </h2>
+        </div>
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => onOpenChange(false)}
-            className="w-6 h-6 bg-red-600 hover:bg-red-700 text-white font-bold flex items-center justify-center shadow transition-colors cursor-pointer"
+            onClick={fetchTabData}
+            disabled={loading}
+            className="h-6 px-2.5 bg-emerald-800 hover:bg-emerald-700 text-white font-bold rounded-xs shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer text-xs disabled:opacity-50"
+            title="Refresh Data"
           >
-            <X className="w-4 h-4" />
+            <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
           </button>
+          {!embedded && onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-6 h-6 bg-red-600 hover:bg-red-700 text-white font-bold flex items-center justify-center shadow transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
+      </div>
 
         {/* Tab Selection Bar & Export Buttons */}
         <div className="p-2.5 bg-[#eaf1f8] dark:bg-slate-800/80 border-b border-neutral-300 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
@@ -183,8 +199,8 @@ export function StockAgingReorderModal({
           </div>
         </div>
 
-        {/* Modal Main Content Container */}
-        <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+        {/* Main Content Container */}
+        <div className={`p-4 space-y-4 ${embedded ? '' : 'max-h-[70vh] overflow-y-auto'}`}>
           
           {/* TAB 1: LOW STOCK & REORDER ALERTS */}
           {activeTab === 'reorder' && (
@@ -284,7 +300,7 @@ export function StockAgingReorderModal({
                               <button
                                 type="button"
                                 onClick={() => {
-                                  onOpenChange(false);
+                                  onClose?.();
                                   onOpenPurchaseWithProduct(item.sku);
                                 }}
                                 className="px-2 py-1 bg-[#800000] hover:bg-rose-900 text-white font-bold text-[11px] rounded flex items-center gap-1 mx-auto cursor-pointer"
@@ -547,8 +563,36 @@ export function StockAgingReorderModal({
               </div>
             </div>
           )}
-
         </div>
+      </div>
+    </div>
+  );
+}
+
+export interface StockAgingReorderModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  initialTab?: 'reorder' | 'aging' | 'velocity' | 'user';
+  onOpenPurchaseWithProduct?: (sku: string) => void;
+}
+
+export function StockAgingReorderModal({
+  open,
+  onOpenChange,
+  initialTab = 'reorder',
+  onOpenPurchaseWithProduct,
+}: StockAgingReorderModalProps) {
+  if (!open) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <div className="p-0 max-w-5xl w-full border-2 border-[#006400] dark:border-emerald-900 rounded-none bg-white dark:bg-slate-900 overflow-hidden shadow-2xl text-xs text-neutral-900 dark:text-neutral-100 select-none">
+        <StockAgingReportView
+          initialTab={initialTab}
+          onOpenPurchaseWithProduct={onOpenPurchaseWithProduct}
+          embedded={false}
+          onClose={() => onOpenChange(false)}
+        />
       </div>
     </Dialog>
   );

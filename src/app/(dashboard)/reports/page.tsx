@@ -18,7 +18,7 @@ import { BalanceSheetModal } from '@/components/reports/balance-sheet-modal';
 import { DailyReportModal } from '@/components/reports/daily-report-modal';
 import { BIAnalyticsBuilder } from '@/components/reports/bi-analytics-builder';
 import { CustomerLedgerModal } from '@/components/reports/customer-ledger-modal';
-import { StockAgingReorderModal } from '@/components/reports/stock-aging-reorder-modal';
+import { StockAgingReorderModal, StockAgingReportView } from '@/components/reports/stock-aging-reorder-modal';
 import { User, Clock, AlertTriangle, Zap, Warehouse, Eye, Edit2, Barcode as BarcodeIcon, Building2, Package, Layers, Boxes, TrendingUp, DollarSign, Printer, RefreshCw } from 'lucide-react';
 import { ProductDetailsModal } from '@/components/products/product-details-modal';
 import { ProductEditModal } from '@/components/products/product-edit-modal';
@@ -203,16 +203,6 @@ function ReportsPageContent() {
         setIsCustomerLedgerOpen(true);
         return;
       }
-      if (urlTab === 'reorder-aging') {
-        setStockAgingTab('reorder');
-        setIsStockAgingModalOpen(true);
-        return;
-      }
-      if (urlTab === 'user-performance') {
-        setStockAgingTab('user');
-        setIsStockAgingModalOpen(true);
-        return;
-      }
       setActiveReport(urlTab);
       const parent = categories.find((cat) => cat.reports.some((r) => r.id === urlTab));
       if (parent) {
@@ -224,16 +214,6 @@ function ReportsPageContent() {
   const handleSelectReport = (tabId: string) => {
     if (tabId === 'customer-ledger') {
       setIsCustomerLedgerOpen(true);
-      return;
-    }
-    if (tabId === 'reorder-aging') {
-      setStockAgingTab('reorder');
-      setIsStockAgingModalOpen(true);
-      return;
-    }
-    if (tabId === 'user-performance') {
-      setStockAgingTab('user');
-      setIsStockAgingModalOpen(true);
       return;
     }
     setActiveReport(tabId);
@@ -285,10 +265,7 @@ function ReportsPageContent() {
             </button>
             <button
               type="button"
-              onClick={() => {
-                setStockAgingTab('reorder');
-                setIsStockAgingModalOpen(true);
-              }}
+              onClick={() => handleSelectReport('reorder-aging')}
               className="px-2 py-1 text-xs font-bold bg-[#800000] text-white border border-rose-800 shadow-xs flex items-center gap-1.5 rounded-xs hover:bg-rose-900 transition-colors cursor-pointer uppercase tracking-wider"
               title="Open Stock Alerts & Aging"
             >
@@ -403,8 +380,9 @@ function ReportsPageContent() {
         </div>
 
         {/* Filter Bar */}
-        <div className="bg-white dark:bg-slate-950 p-2 border-b border-neutral-300 dark:border-slate-700 shrink-0">
-          <form
+        {activeReport !== 'reorder-aging' && activeReport !== 'user-performance' && activeReport !== 'bi-analytics' && (
+          <div className="bg-white dark:bg-slate-950 p-2 border-b border-neutral-300 dark:border-slate-700 shrink-0">
+            <form
             onSubmit={(e) => {
               e.preventDefault();
               fetchReport();
@@ -574,11 +552,17 @@ function ReportsPageContent() {
             )}
           </form>
         </div>
+        )}
 
         {/* Report Content */}
         <div className="flex-1 min-h-0 overflow-auto bg-[#f4f8fc] dark:bg-slate-900 custom-scrollbar p-3">
           {activeReport === 'bi-analytics' ? (
             <BIAnalyticsBuilder />
+          ) : activeReport === 'reorder-aging' || activeReport === 'user-performance' ? (
+            <StockAgingReportView
+              initialTab={activeReport === 'user-performance' ? 'user' : 'reorder'}
+              embedded={true}
+            />
           ) : loading ? (
             <div className="flex items-center justify-center h-48 gap-2 text-neutral-500 font-bold">
               <Loader2 className="w-5 h-5 animate-spin text-[#006400]" />
