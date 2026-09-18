@@ -58,7 +58,7 @@ export function formatStock(
 
   // Kilograms / KG
   if (u === "Kilograms" || u === "Kilogram" || u === "KG") {
-    return `${parseFloat(num.toFixed(3))} KG`;
+    return `${parseFloat(num.toFixed(2))} KG`;
   }
 
   const effectivePackSize = getDefaultPackSize(u, packSize);
@@ -85,7 +85,25 @@ export function formatStock(
   }
 
   if (num % 1 !== 0) {
-    return `${parseFloat(num.toFixed(3))} ${formatUnitLabel(u)}`;
+    return `${parseFloat(num.toFixed(2))} ${formatUnitLabel(u)}`;
   }
   return `${num} ${formatUnitLabel(u)}`;
+}
+
+/**
+ * Format any numerical quantity to at most 2 decimal places.
+ * Examples:
+ * 16.060000000000002 -> 16.06
+ * 1.208 -> 1.21
+ * 58.667 -> 58.67
+ * 25 -> 25
+ */
+export function formatQty(
+  quantity: number | string | undefined | null,
+): string {
+  if (quantity === null || quantity === undefined || quantity === "")
+    return "0";
+  const num = Number(quantity);
+  if (isNaN(num)) return "0";
+  return parseFloat(num.toFixed(2)).toString();
 }

@@ -22,6 +22,16 @@ export function formatMoney(amount: number | string): string {
   return `৳${val}`;
 }
 
+export function formatQty(
+  quantity: number | string | undefined | null,
+): string {
+  if (quantity === null || quantity === undefined || quantity === "")
+    return "0";
+  const num = Number(quantity);
+  if (isNaN(num)) return "0";
+  return parseFloat(num.toFixed(2)).toString();
+}
+
 export function formatDate(dateStr: string | Date): string {
   if (!dateStr) return "N/A";
   const d = new Date(dateStr);

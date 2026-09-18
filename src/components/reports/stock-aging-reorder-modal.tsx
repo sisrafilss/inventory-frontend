@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api/client';
-import { formatMoney } from '@/lib/utils';
+import { formatMoney, formatQty } from '@/lib/utils';
 import {
   Dialog,
   DialogHeader,
@@ -243,21 +243,21 @@ export function StockAgingReportView({
       const itemsToExport = filteredReorderItems.length > 0 ? filteredReorderItems : (data.items || []);
       const headers = ['SKU', 'Barcode', 'Product Name', 'Category', 'Current Stock', 'Reorder Level', 'Suggested Reorder Qty', 'Estimated Cost'];
       const rows = itemsToExport.map((i: any) => [
-        `"${i.sku}"`, `"${i.barcode}"`, `"${i.name.replace(/"/g, '""')}"`, `"${i.category}"`, `"${i.currentStock}"`, `"${i.reorderLevel}"`, `"${i.suggestedReorderQty}"`, `"${i.totalEstimatedCost}"`
+        `"${i.sku}"`, `"${i.barcode}"`, `"${i.name.replace(/"/g, '""')}"`, `"${i.category}"`, `"${formatQty(i.currentStock)}"`, `"${formatQty(i.reorderLevel)}"`, `"${formatQty(i.suggestedReorderQty)}"`, `"${i.totalEstimatedCost}"`
       ]);
       csvContent += [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\n');
     } else if (activeTab === 'aging') {
       const itemsToExport = filteredAgingItems.length > 0 ? filteredAgingItems : (data.items || []);
       const headers = ['SKU', 'Barcode', 'Product Name', 'Category', 'Current Stock', 'Last Sale Date', 'Age (Days)', 'Age Bracket', 'Stock Valuation'];
       const rows = itemsToExport.map((i: any) => [
-        `"${i.sku}"`, `"${i.barcode}"`, `"${i.name.replace(/"/g, '""')}"`, `"${i.category}"`, `"${i.currentStock}"`, `"${i.lastSaleDate}"`, `"${i.ageDays}"`, `"${i.ageBracket}"`, `"${i.totalValuation}"`
+        `"${i.sku}"`, `"${i.barcode}"`, `"${i.name.replace(/"/g, '""')}"`, `"${i.category}"`, `"${formatQty(i.currentStock)}"`, `"${i.lastSaleDate}"`, `"${i.ageDays}"`, `"${i.ageBracket}"`, `"${i.totalValuation}"`
       ]);
       csvContent += [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\n');
     } else if (activeTab === 'velocity') {
       const itemsToExport = filteredVelocityItems.length > 0 ? filteredVelocityItems : (data.items || []);
       const headers = ['SKU', 'Barcode', 'Product Name', 'Category', 'Current Stock', '60-Days Sold Qty', '60-Days Revenue', 'Movement Speed'];
       const rows = itemsToExport.map((i: any) => [
-        `"${i.sku}"`, `"${i.barcode}"`, `"${i.name.replace(/"/g, '""')}"`, `"${i.category}"`, `"${i.currentStock}"`, `"${i.unitsSold60Days}"`, `"${i.revenue60Days}"`, `"${i.velocityCategory}"`
+        `"${i.sku}"`, `"${i.barcode}"`, `"${i.name.replace(/"/g, '""')}"`, `"${i.category}"`, `"${formatQty(i.currentStock)}"`, `"${formatQty(i.unitsSold60Days)}"`, `"${i.revenue60Days}"`, `"${i.velocityCategory}"`
       ]);
       csvContent += [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\n');
     } else if (activeTab === 'user') {
@@ -617,14 +617,14 @@ export function StockAgingReportView({
                             <span className={`font-mono font-bold px-1.5 py-0.5 rounded ${
                               item.currentStock <= 0 ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
                             }`}>
-                              {item.currentStock} {item.unit}
+                              {formatQty(item.currentStock)} {item.unit}
                             </span>
                           </td>
                           <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono text-neutral-600">
-                            {item.reorderLevel} {item.unit}
+                            {formatQty(item.reorderLevel)} {item.unit}
                           </td>
                           <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono font-bold text-emerald-700">
-                            +{item.suggestedReorderQty} {item.unit}
+                            +{formatQty(item.suggestedReorderQty)} {item.unit}
                           </td>
                           <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-right font-mono font-bold">
                             {formatMoney(item.totalEstimatedCost)}
@@ -1011,7 +1011,7 @@ export function StockAgingReportView({
                               <span className="text-[10px] font-normal text-neutral-500 block">{item.company} • {item.category}</span>
                             </td>
                             <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono font-bold">
-                              {item.currentStock} {item.unit}
+                              {formatQty(item.currentStock)} {item.unit}
                             </td>
                             <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono text-[11px]">
                               {item.lastSaleDate || '—'}
@@ -1336,10 +1336,10 @@ export function StockAgingReportView({
                               <span className="text-[10px] font-normal text-neutral-500 block">{item.company} • {item.category}</span>
                             </td>
                             <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono font-bold">
-                              {item.currentStock} {item.unit}
+                              {formatQty(item.currentStock)} {item.unit}
                             </td>
                             <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono font-bold text-emerald-700 dark:text-emerald-400">
-                              {item.unitsSold60Days ?? 0} Pcs
+                              {formatQty(item.unitsSold60Days)} Pcs
                             </td>
                             <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-right font-mono font-bold">
                               {formatMoney(item.revenue60Days)}
