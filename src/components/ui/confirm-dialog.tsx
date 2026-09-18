@@ -52,6 +52,7 @@ export function ConfirmDialog({
       open={open}
       onOpenChange={onOpenChange}
       closeOnBackdropClick={!isLoading}
+      zIndex="z-[110]"
       className="p-0 max-w-sm w-full border-2 border-[#800000] dark:border-rose-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 shadow-2xl overflow-hidden"
     >
       {/* Header */}

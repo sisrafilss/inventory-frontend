@@ -4,17 +4,20 @@ import React, { useState } from 'react';
 import { X, Printer, Barcode, Check } from 'lucide-react';
 import { BarcodeSVG } from '@/components/ui/barcode-svg';
 import { Product } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 interface BarcodePrintModalProps {
   isOpen: boolean;
   onClose: () => void;
   product: Product | null;
+  zIndex?: string;
 }
 
 export function BarcodePrintModal({
   isOpen,
   onClose,
   product,
+  zIndex = 'z-[100]',
 }: BarcodePrintModalProps) {
   const [copies, setCopies] = useState<number>(4);
   const [columns, setColumns] = useState<number>(2);
@@ -30,7 +33,7 @@ export function BarcodePrintModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className={cn("fixed inset-0 flex items-center justify-center p-3 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150", zIndex)}>
       <div className="bg-[#f0f4f8] dark:bg-slate-900 border border-[#004d00] dark:border-emerald-900 rounded-xs shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden select-none">
         {/* Banner Header */}
         <div className="flex items-center justify-between px-4 py-2 bg-[#006400] dark:bg-emerald-950 text-white border-b border-[#004d00]">
