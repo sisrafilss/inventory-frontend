@@ -57,7 +57,7 @@ export default function UsersPage() {
     name: '',
     email: '',
     phone: '',
-    role: Role.MANAGER as Role,
+    role: Role.SR as Role,
     password: '',
     warehouseIds: [],
   });
@@ -191,7 +191,7 @@ export default function UsersPage() {
         name: '',
         email: '',
         phone: '',
-        role: Role.MANAGER,
+        role: Role.SR,
         password: '',
         warehouseIds: [],
       });
@@ -590,8 +590,27 @@ export default function UsersPage() {
             </button>
           </div>
           <div className="p-4 space-y-3">
+            {/* 1. ROLE SELECTION (AT TOP) */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider flex items-center justify-between">
+                <span>Select User Role <span className="text-rose-600">*</span></span>
+                <span className="text-[10px] text-neutral-500 font-normal lowercase">
+                  {createForm.role === 'SR' ? '(Field Representative — No Password Required)' : '(Requires Login Password)'}
+                </span>
+              </label>
+              <select
+                value={createForm.role}
+                onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as Role })}
+                className="w-full h-8 px-2 text-xs font-semibold border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
+              >
+                <option value="SR">SALES REPRESENTATIVE (SR)</option>
+                <option value="MANAGER">MANAGER</option>
+                {isSuperAdmin && <option value="ADMIN">ADMIN</option>}
+              </select>
+            </div>
+
             {createForm.role === 'SR' ? (
-              // SR Role: ONLY Full Name, Email (optional), Phone (optional), Role, Assigned Warehouse
+              // SR Role: ONLY Full Name, Email (optional), Phone (optional), Assigned Warehouse(s)
               <>
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
@@ -632,21 +651,6 @@ export default function UsersPage() {
                       className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
                     />
                   </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
-                    Role <span className="text-rose-600">*</span>
-                  </label>
-                  <select
-                    value={createForm.role}
-                    onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as Role })}
-                    className="w-full h-8 px-1.5 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
-                  >
-                    {isSuperAdmin && <option value="ADMIN">ADMIN</option>}
-                    <option value="MANAGER">MANAGER</option>
-                    <option value="SR">SALES REPRESENTATIVE (SR)</option>
-                  </select>
                 </div>
 
                 <div className="space-y-1">
@@ -719,21 +723,6 @@ export default function UsersPage() {
                       className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
                     />
                   </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
-                    Role <span className="text-rose-600">*</span>
-                  </label>
-                  <select
-                    value={createForm.role}
-                    onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as Role })}
-                    className="w-full h-8 px-1.5 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
-                  >
-                    {isSuperAdmin && <option value="ADMIN">ADMIN</option>}
-                    <option value="MANAGER">MANAGER</option>
-                    <option value="SR">SALES REPRESENTATIVE (SR)</option>
-                  </select>
                 </div>
 
                 <div className="space-y-1">
