@@ -46,6 +46,79 @@ export function StockAgingReportView({
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
 
+  // Low Stock Alerts interactive filters
+  const [reorderFilter, setReorderFilter] = useState<'ALL' | 'OUT_OF_STOCK' | 'LOW_STOCK'>('ALL');
+  const [reorderSearch, setReorderSearch] = useState<string>('');
+
+  const handleResetReorderFilters = () => {
+    setReorderFilter('ALL');
+    setReorderSearch('');
+  };
+
+  const filteredReorderItems = React.useMemo(() => {
+    if (!data?.items || activeTab !== 'reorder') return [];
+    return data.items.filter((item: any) => {
+      const stock = Number(item.currentStock ?? 0);
+      const reorder = Number(item.reorderLevel ?? 0);
+
+      if (reorderFilter === 'OUT_OF_STOCK') {
+        if (stock > 0) return false;
+      } else if (reorderFilter === 'LOW_STOCK') {
+        if (stock <= 0 || stock > reorder) return false;
+      }
+
+      if (reorderSearch.trim()) {
+        const q = reorderSearch.toLowerCase().trim();
+        const matchName = item.name?.toLowerCase().includes(q);
+        const matchSku = item.sku?.toLowerCase().includes(q);
+        const matchBarcode = item.barcode?.toLowerCase().includes(q);
+        const matchCompany = item.company?.toLowerCase().includes(q);
+        const matchCategory = item.category?.toLowerCase().includes(q);
+        if (!matchName && !matchSku && !matchBarcode && !matchCompany && !matchCategory) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [data?.items, activeTab, reorderFilter, reorderSearch]);
+
+  const isReorderFilterActive = reorderFilter !== 'ALL' || reorderSearch.trim() !== '';
+
+  // Velocity (Fast & Slow Moving) interactive filters
+  const [velocityFilter, setVelocityFilter] = useState<'ALL' | 'FAST_MOVING' | 'MODERATE' | 'SLOW_MOVING' | 'DEAD_STOCK'>('ALL');
+  const [velocitySearch, setVelocitySearch] = useState<string>('');
+
+  const handleResetVelocityFilters = () => {
+    setVelocityFilter('ALL');
+    setVelocitySearch('');
+  };
+
+  const filteredVelocityItems = React.useMemo(() => {
+    if (!data?.items || activeTab !== 'velocity') return [];
+    return data.items.filter((item: any) => {
+      if (velocityFilter !== 'ALL') {
+        if (item.velocityCategory !== velocityFilter) return false;
+      }
+
+      if (velocitySearch.trim()) {
+        const q = velocitySearch.toLowerCase().trim();
+        const matchName = item.name?.toLowerCase().includes(q);
+        const matchSku = item.sku?.toLowerCase().includes(q);
+        const matchBarcode = item.barcode?.toLowerCase().includes(q);
+        const matchCompany = item.company?.toLowerCase().includes(q);
+        const matchCategory = item.category?.toLowerCase().includes(q);
+        if (!matchName && !matchSku && !matchBarcode && !matchCompany && !matchCategory) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [data?.items, activeTab, velocityFilter, velocitySearch]);
+
+  const isVelocityFilterActive = velocityFilter !== 'ALL' || velocitySearch.trim() !== '';
+
   // Stock Aging interactive filters
   const [agingBracket, setAgingBracket] = useState<'ALL' | '0-30' | '31-60' | '61-90' | '90+'>('ALL');
   const [agingFromDate, setAgingFromDate] = useState<string>('');
@@ -167,8 +240,9 @@ export function StockAgingReportView({
     let csvContent = 'data:text/csv;charset=utf-8,';
 
     if (activeTab === 'reorder') {
+      const itemsToExport = filteredReorderItems.length > 0 ? filteredReorderItems : (data.items || []);
       const headers = ['SKU', 'Barcode', 'Product Name', 'Category', 'Current Stock', 'Reorder Level', 'Suggested Reorder Qty', 'Estimated Cost'];
-      const rows = (data.items || []).map((i: any) => [
+      const rows = itemsToExport.map((i: any) => [
         `"${i.sku}"`, `"${i.barcode}"`, `"${i.name.replace(/"/g, '""')}"`, `"${i.category}"`, `"${i.currentStock}"`, `"${i.reorderLevel}"`, `"${i.suggestedReorderQty}"`, `"${i.totalEstimatedCost}"`
       ]);
       csvContent += [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\n');
@@ -180,8 +254,9 @@ export function StockAgingReportView({
       ]);
       csvContent += [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\n');
     } else if (activeTab === 'velocity') {
+      const itemsToExport = filteredVelocityItems.length > 0 ? filteredVelocityItems : (data.items || []);
       const headers = ['SKU', 'Barcode', 'Product Name', 'Category', 'Current Stock', '60-Days Sold Qty', '60-Days Revenue', 'Movement Speed'];
-      const rows = (data.items || []).map((i: any) => [
+      const rows = itemsToExport.map((i: any) => [
         `"${i.sku}"`, `"${i.barcode}"`, `"${i.name.replace(/"/g, '""')}"`, `"${i.category}"`, `"${i.currentStock}"`, `"${i.unitsSold60Days}"`, `"${i.revenue60Days}"`, `"${i.velocityCategory}"`
       ]);
       csvContent += [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\n');
@@ -294,33 +369,189 @@ export function StockAgingReportView({
           {activeTab === 'reorder' && (
             <div className="space-y-3">
               {data?.summary && (
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-[#f4f8fc] dark:bg-slate-800/60 p-3 rounded border border-neutral-300 dark:border-slate-700 text-xs">
-                  <div>
-                    <div className="text-[10px] uppercase font-bold text-neutral-500">Total Low Stock Alerts</div>
-                    <div className="font-bold text-lg text-amber-600 dark:text-amber-400 mt-0.5">
-                      {data.summary.totalAlerts} Items
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  {/* Card 1: Total Low Stock Alerts */}
+                  <button
+                    type="button"
+                    onClick={() => setReorderFilter('ALL')}
+                    className={`p-3 rounded border text-left transition-all relative overflow-hidden cursor-pointer ${
+                      reorderFilter === 'ALL'
+                        ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-500 dark:border-amber-500 ring-2 ring-amber-500/50 shadow-sm'
+                        : 'bg-[#f4f8fc] dark:bg-slate-800/60 border-neutral-300 dark:border-slate-700 hover:border-amber-400 hover:bg-amber-50/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="text-[10px] uppercase font-bold text-neutral-600 dark:text-neutral-400">
+                        Total Low Stock Alerts
+                      </div>
+                      {reorderFilter === 'ALL' && (
+                        <span className="text-[9px] font-bold bg-amber-600 text-white px-1.5 py-0.5 rounded-full">
+                          ACTIVE
+                        </span>
+                      )}
                     </div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] uppercase font-bold text-neutral-500">Out of Stock Items</div>
-                    <div className="font-bold text-lg text-rose-600 dark:text-rose-400 mt-0.5">
-                      {data.summary.outOfStockCount} Items
+                    <div className="font-bold text-lg text-amber-600 dark:text-amber-400 mt-1 flex items-baseline justify-between">
+                      <span>{data.summary.totalAlerts} Items</span>
+                      <span className="text-[10px] font-normal text-amber-600">All Alerts</span>
                     </div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] uppercase font-bold text-neutral-500">Reorder Level Warning</div>
-                    <div className="font-bold text-lg text-amber-600 mt-0.5">
-                      {data.summary.lowStockCount} Items
+                    <div className="text-[10px] text-neutral-400 mt-0.5">Click to show all alerts</div>
+                  </button>
+
+                  {/* Card 2: Out of Stock Items */}
+                  <button
+                    type="button"
+                    onClick={() => setReorderFilter(reorderFilter === 'OUT_OF_STOCK' ? 'ALL' : 'OUT_OF_STOCK')}
+                    className={`p-3 rounded border text-left transition-all relative overflow-hidden cursor-pointer ${
+                      reorderFilter === 'OUT_OF_STOCK'
+                        ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-500 dark:border-rose-500 ring-2 ring-rose-500/50 shadow-sm'
+                        : 'bg-[#f4f8fc] dark:bg-slate-800/60 border-neutral-300 dark:border-slate-700 hover:border-rose-400 hover:bg-rose-50/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="text-[10px] uppercase font-bold text-rose-700 dark:text-rose-400">
+                        Out of Stock Items
+                      </div>
+                      {reorderFilter === 'OUT_OF_STOCK' && (
+                        <span className="text-[9px] font-bold bg-rose-600 text-white px-1.5 py-0.5 rounded-full">
+                          ACTIVE
+                        </span>
+                      )}
                     </div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] uppercase font-bold text-neutral-500">Estimated Replenishment Capital</div>
-                    <div className="font-mono font-bold text-lg text-emerald-700 dark:text-emerald-400 mt-0.5">
+                    <div className="font-bold text-lg text-rose-600 dark:text-rose-400 mt-1 flex items-baseline justify-between">
+                      <span>{data.summary.outOfStockCount} Items</span>
+                      <span className="text-[10px] font-normal text-rose-600">0 Stock</span>
+                    </div>
+                    <div className="text-[10px] text-neutral-400 mt-0.5">
+                      Click to {reorderFilter === 'OUT_OF_STOCK' ? 'remove filter' : 'filter table'}
+                    </div>
+                  </button>
+
+                  {/* Card 3: Reorder Level Warning */}
+                  <button
+                    type="button"
+                    onClick={() => setReorderFilter(reorderFilter === 'LOW_STOCK' ? 'ALL' : 'LOW_STOCK')}
+                    className={`p-3 rounded border text-left transition-all relative overflow-hidden cursor-pointer ${
+                      reorderFilter === 'LOW_STOCK'
+                        ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-500 dark:border-amber-500 ring-2 ring-amber-500/50 shadow-sm'
+                        : 'bg-[#f4f8fc] dark:bg-slate-800/60 border-neutral-300 dark:border-slate-700 hover:border-amber-400 hover:bg-amber-50/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-400">
+                        Reorder Level Warning
+                      </div>
+                      {reorderFilter === 'LOW_STOCK' && (
+                        <span className="text-[9px] font-bold bg-amber-600 text-white px-1.5 py-0.5 rounded-full">
+                          ACTIVE
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-bold text-lg text-amber-600 mt-1 flex items-baseline justify-between">
+                      <span>{data.summary.lowStockCount} Items</span>
+                      <span className="text-[10px] font-normal text-amber-600">Threshold Alert</span>
+                    </div>
+                    <div className="text-[10px] text-neutral-400 mt-0.5">
+                      Click to {reorderFilter === 'LOW_STOCK' ? 'remove filter' : 'filter table'}
+                    </div>
+                  </button>
+
+                  {/* Card 4: Estimated Replenishment Capital */}
+                  <div className="p-3 rounded border border-neutral-300 dark:border-slate-700 bg-[#f4f8fc] dark:bg-slate-800/60">
+                    <div className="text-[10px] uppercase font-bold text-neutral-600 dark:text-neutral-400">
+                      Estimated Replenishment Capital
+                    </div>
+                    <div className="font-mono font-bold text-lg text-emerald-700 dark:text-emerald-400 mt-1">
                       {formatMoney(data.summary.totalEstimatedCapitalNeeded)}
                     </div>
+                    <div className="text-[10px] text-neutral-500 mt-0.5">Capital needed to restock</div>
                   </div>
                 </div>
               )}
+
+              {/* Dedicated Filter & Quick Pills Toolbar */}
+              <div className="bg-[#eef5fa] dark:bg-slate-900 p-2.5 rounded border border-neutral-300 dark:border-slate-700 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+                {/* Left: Quick Pills */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="font-bold text-neutral-700 dark:text-neutral-300 flex items-center gap-1 text-[11px] mr-1">
+                    <Filter className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
+                    <span>Filter:</span>
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setReorderFilter('ALL')}
+                    className={`px-2 py-1 rounded text-[11px] font-bold border transition-colors cursor-pointer ${
+                      reorderFilter === 'ALL'
+                        ? 'bg-neutral-800 text-white border-neutral-800 dark:bg-neutral-200 dark:text-neutral-900'
+                        : 'bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-slate-600 hover:bg-neutral-100'
+                    }`}
+                  >
+                    All Alerts ({data?.summary?.totalAlerts ?? 0})
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setReorderFilter('OUT_OF_STOCK')}
+                    className={`px-2 py-1 rounded text-[11px] font-bold border transition-colors cursor-pointer ${
+                      reorderFilter === 'OUT_OF_STOCK'
+                        ? 'bg-rose-600 text-white border-rose-700'
+                        : 'bg-white dark:bg-slate-800 text-rose-700 dark:text-rose-400 border-neutral-300 dark:border-slate-600 hover:bg-rose-50 dark:hover:bg-rose-950/40'
+                    }`}
+                  >
+                    Out of Stock ({data?.summary?.outOfStockCount ?? 0})
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setReorderFilter('LOW_STOCK')}
+                    className={`px-2 py-1 rounded text-[11px] font-bold border transition-colors cursor-pointer ${
+                      reorderFilter === 'LOW_STOCK'
+                        ? 'bg-amber-600 text-white border-amber-700'
+                        : 'bg-white dark:bg-slate-800 text-amber-700 dark:text-amber-400 border-neutral-300 dark:border-slate-600 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                    }`}
+                  >
+                    Reorder Warning ({data?.summary?.lowStockCount ?? 0})
+                  </button>
+
+                  {isReorderFilterActive && (
+                    <button
+                      type="button"
+                      onClick={handleResetReorderFilters}
+                      className="h-7 px-2.5 bg-neutral-200 dark:bg-slate-700 hover:bg-neutral-300 dark:hover:bg-slate-600 text-neutral-800 dark:text-neutral-200 font-bold rounded text-[11px] flex items-center gap-1 transition-colors cursor-pointer ml-1"
+                      title="Reset all filters"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Reset</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Right: Search & Count */}
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-2 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={reorderSearch}
+                      onChange={(e) => setReorderSearch(e.target.value)}
+                      placeholder="Search product / SKU..."
+                      className="h-7 pl-7 pr-6 w-44 text-xs bg-white dark:bg-slate-800 border border-neutral-300 dark:border-slate-600 rounded outline-none focus:border-emerald-600"
+                    />
+                    {reorderSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setReorderSearch('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 text-xs cursor-pointer"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                  <span className="text-[11px] font-bold text-neutral-500 whitespace-nowrap">
+                    Showing {filteredReorderItems.length} of {data?.items?.length || 0}
+                  </span>
+                </div>
+              </div>
 
               <div className="border border-neutral-400 dark:border-slate-700 bg-white dark:bg-slate-950 overflow-hidden shadow-inner">
                 <table className="w-full text-xs text-left border-collapse">
@@ -351,8 +582,23 @@ export function StockAgingReportView({
                           ✓ All inventory items are sufficiently stocked above reorder levels.
                         </td>
                       </tr>
+                    ) : filteredReorderItems.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="py-12 text-center text-neutral-500">
+                          <p className="font-bold text-sm text-neutral-600 dark:text-neutral-400">No items match the selected filter.</p>
+                          <p className="text-xs text-neutral-400 mt-1">Try resetting the filter or search query.</p>
+                          <button
+                            type="button"
+                            onClick={handleResetReorderFilters}
+                            className="mt-3 px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded font-bold text-xs shadow cursor-pointer inline-flex items-center gap-1"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            <span>Show All Alerts</span>
+                          </button>
+                        </td>
+                      </tr>
                     ) : (
-                      data.items.map((item: any, idx: number) => (
+                      filteredReorderItems.map((item: any, idx: number) => (
                         <tr key={item.id || idx} className="hover:bg-neutral-50 dark:hover:bg-slate-900/60 transition-colors">
                           <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono text-neutral-500">
                             {idx + 1}
@@ -800,25 +1046,233 @@ export function StockAgingReportView({
           {activeTab === 'velocity' && (
             <div className="space-y-3">
               {data?.summary && (
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-[#f4f8fc] dark:bg-slate-800/60 p-3 rounded border border-neutral-300 dark:border-slate-700 text-xs">
-                  <div>
-                    <div className="text-[10px] uppercase font-bold text-emerald-600">Fast-Moving Items (⚡)</div>
-                    <div className="font-bold text-lg text-emerald-700 dark:text-emerald-400 mt-0.5">{data.summary.fastMovingCount} Products</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] uppercase font-bold text-blue-600">Moderate Sales Items</div>
-                    <div className="font-bold text-lg text-blue-700 dark:text-blue-400 mt-0.5">{data.summary.moderateCount} Products</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] uppercase font-bold text-amber-600">Slow-Moving Items</div>
-                    <div className="font-bold text-lg text-amber-700 dark:text-amber-400 mt-0.5">{data.summary.slowMovingCount} Products</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] uppercase font-bold text-rose-600">Dead Stock (0 Sales 60d)</div>
-                    <div className="font-bold text-lg text-rose-700 dark:text-rose-400 mt-0.5">{data.summary.deadStockCount} Products</div>
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  {/* Card 1: Fast Moving */}
+                  <button
+                    type="button"
+                    onClick={() => setVelocityFilter(velocityFilter === 'FAST_MOVING' ? 'ALL' : 'FAST_MOVING')}
+                    className={`p-3 rounded border text-left transition-all relative overflow-hidden cursor-pointer ${
+                      velocityFilter === 'FAST_MOVING'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 dark:border-emerald-500 ring-2 ring-emerald-500/50 shadow-sm'
+                        : 'bg-[#f4f8fc] dark:bg-slate-800/60 border-neutral-300 dark:border-slate-700 hover:border-emerald-400 hover:bg-emerald-50/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400">
+                        Fast-Moving Items (⚡)
+                      </div>
+                      {velocityFilter === 'FAST_MOVING' && (
+                        <span className="text-[9px] font-bold bg-emerald-600 text-white px-1.5 py-0.5 rounded-full">
+                          ACTIVE
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-bold text-lg text-emerald-700 dark:text-emerald-400 mt-1 flex items-baseline justify-between">
+                      <span>{data.summary.fastMovingCount} Products</span>
+                      <span className="text-[10px] font-normal text-emerald-600">High Turnover</span>
+                    </div>
+                    <div className="text-[10px] text-neutral-400 mt-0.5">
+                      Click to {velocityFilter === 'FAST_MOVING' ? 'remove filter' : 'filter table'}
+                    </div>
+                  </button>
+
+                  {/* Card 2: Moderate */}
+                  <button
+                    type="button"
+                    onClick={() => setVelocityFilter(velocityFilter === 'MODERATE' ? 'ALL' : 'MODERATE')}
+                    className={`p-3 rounded border text-left transition-all relative overflow-hidden cursor-pointer ${
+                      velocityFilter === 'MODERATE'
+                        ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-500 dark:border-blue-500 ring-2 ring-blue-500/50 shadow-sm'
+                        : 'bg-[#f4f8fc] dark:bg-slate-800/60 border-neutral-300 dark:border-slate-700 hover:border-blue-400 hover:bg-blue-50/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="text-[10px] uppercase font-bold text-blue-700 dark:text-blue-400">
+                        Moderate Sales Items
+                      </div>
+                      {velocityFilter === 'MODERATE' && (
+                        <span className="text-[9px] font-bold bg-blue-600 text-white px-1.5 py-0.5 rounded-full">
+                          ACTIVE
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-bold text-lg text-blue-700 dark:text-blue-400 mt-1 flex items-baseline justify-between">
+                      <span>{data.summary.moderateCount} Products</span>
+                      <span className="text-[10px] font-normal text-blue-600">Steady Sales</span>
+                    </div>
+                    <div className="text-[10px] text-neutral-400 mt-0.5">
+                      Click to {velocityFilter === 'MODERATE' ? 'remove filter' : 'filter table'}
+                    </div>
+                  </button>
+
+                  {/* Card 3: Slow Moving */}
+                  <button
+                    type="button"
+                    onClick={() => setVelocityFilter(velocityFilter === 'SLOW_MOVING' ? 'ALL' : 'SLOW_MOVING')}
+                    className={`p-3 rounded border text-left transition-all relative overflow-hidden cursor-pointer ${
+                      velocityFilter === 'SLOW_MOVING'
+                        ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-500 dark:border-amber-500 ring-2 ring-amber-500/50 shadow-sm'
+                        : 'bg-[#f4f8fc] dark:bg-slate-800/60 border-neutral-300 dark:border-slate-700 hover:border-amber-400 hover:bg-amber-50/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-400">
+                        Slow-Moving Items
+                      </div>
+                      {velocityFilter === 'SLOW_MOVING' && (
+                        <span className="text-[9px] font-bold bg-amber-600 text-white px-1.5 py-0.5 rounded-full">
+                          ACTIVE
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-bold text-lg text-amber-700 dark:text-amber-400 mt-1 flex items-baseline justify-between">
+                      <span>{data.summary.slowMovingCount} Products</span>
+                      <span className="text-[10px] font-normal text-amber-600">Low Volume</span>
+                    </div>
+                    <div className="text-[10px] text-neutral-400 mt-0.5">
+                      Click to {velocityFilter === 'SLOW_MOVING' ? 'remove filter' : 'filter table'}
+                    </div>
+                  </button>
+
+                  {/* Card 4: Dead Stock */}
+                  <button
+                    type="button"
+                    onClick={() => setVelocityFilter(velocityFilter === 'DEAD_STOCK' ? 'ALL' : 'DEAD_STOCK')}
+                    className={`p-3 rounded border text-left transition-all relative overflow-hidden cursor-pointer ${
+                      velocityFilter === 'DEAD_STOCK'
+                        ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-500 dark:border-rose-500 ring-2 ring-rose-500/50 shadow-sm'
+                        : 'bg-[#f4f8fc] dark:bg-slate-800/60 border-neutral-300 dark:border-slate-700 hover:border-rose-400 hover:bg-rose-50/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="text-[10px] uppercase font-bold text-rose-700 dark:text-rose-400">
+                        Dead Stock (0 Sales 60d)
+                      </div>
+                      {velocityFilter === 'DEAD_STOCK' && (
+                        <span className="text-[9px] font-bold bg-rose-600 text-white px-1.5 py-0.5 rounded-full">
+                          ACTIVE
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-bold text-lg text-rose-700 dark:text-rose-400 mt-1 flex items-baseline justify-between">
+                      <span>{data.summary.deadStockCount} Products</span>
+                      <span className="text-[10px] font-normal text-rose-600">No Sales 60d</span>
+                    </div>
+                    <div className="text-[10px] text-neutral-400 mt-0.5">
+                      Click to {velocityFilter === 'DEAD_STOCK' ? 'remove filter' : 'filter table'}
+                    </div>
+                  </button>
                 </div>
               )}
+
+              {/* Dedicated Filter & Quick Pills Toolbar */}
+              <div className="bg-[#eef5fa] dark:bg-slate-900 p-2.5 rounded border border-neutral-300 dark:border-slate-700 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+                {/* Left: Quick Velocity Pills */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="font-bold text-neutral-700 dark:text-neutral-300 flex items-center gap-1 text-[11px] mr-1">
+                    <Filter className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
+                    <span>Filter:</span>
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setVelocityFilter('ALL')}
+                    className={`px-2 py-1 rounded text-[11px] font-bold border transition-colors cursor-pointer ${
+                      velocityFilter === 'ALL'
+                        ? 'bg-neutral-800 text-white border-neutral-800 dark:bg-neutral-200 dark:text-neutral-900'
+                        : 'bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-slate-600 hover:bg-neutral-100'
+                    }`}
+                  >
+                    All Items ({data?.items?.length || 0})
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setVelocityFilter('FAST_MOVING')}
+                    className={`px-2 py-1 rounded text-[11px] font-bold border transition-colors cursor-pointer ${
+                      velocityFilter === 'FAST_MOVING'
+                        ? 'bg-emerald-600 text-white border-emerald-700'
+                        : 'bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 border-neutral-300 dark:border-slate-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+                    }`}
+                  >
+                    ⚡ Fast-Moving ({data?.summary?.fastMovingCount ?? 0})
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setVelocityFilter('MODERATE')}
+                    className={`px-2 py-1 rounded text-[11px] font-bold border transition-colors cursor-pointer ${
+                      velocityFilter === 'MODERATE'
+                        ? 'bg-blue-600 text-white border-blue-700'
+                        : 'bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 border-neutral-300 dark:border-slate-600 hover:bg-blue-50 dark:hover:bg-blue-950/40'
+                    }`}
+                  >
+                    Moderate ({data?.summary?.moderateCount ?? 0})
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setVelocityFilter('SLOW_MOVING')}
+                    className={`px-2 py-1 rounded text-[11px] font-bold border transition-colors cursor-pointer ${
+                      velocityFilter === 'SLOW_MOVING'
+                        ? 'bg-amber-600 text-white border-amber-700'
+                        : 'bg-white dark:bg-slate-800 text-amber-700 dark:text-amber-400 border-neutral-300 dark:border-slate-600 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                    }`}
+                  >
+                    Slow-Moving ({data?.summary?.slowMovingCount ?? 0})
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setVelocityFilter('DEAD_STOCK')}
+                    className={`px-2 py-1 rounded text-[11px] font-bold border transition-colors cursor-pointer ${
+                      velocityFilter === 'DEAD_STOCK'
+                        ? 'bg-rose-600 text-white border-rose-700'
+                        : 'bg-white dark:bg-slate-800 text-rose-700 dark:text-rose-400 border-neutral-300 dark:border-slate-600 hover:bg-rose-50 dark:hover:bg-rose-950/40'
+                    }`}
+                  >
+                    Dead Stock ({data?.summary?.deadStockCount ?? 0})
+                  </button>
+
+                  {isVelocityFilterActive && (
+                    <button
+                      type="button"
+                      onClick={handleResetVelocityFilters}
+                      className="h-7 px-2.5 bg-neutral-200 dark:bg-slate-700 hover:bg-neutral-300 dark:hover:bg-slate-600 text-neutral-800 dark:text-neutral-200 font-bold rounded text-[11px] flex items-center gap-1 transition-colors cursor-pointer ml-1"
+                      title="Reset all filters"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Reset</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Right: Search & Count */}
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-2 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={velocitySearch}
+                      onChange={(e) => setVelocitySearch(e.target.value)}
+                      placeholder="Search product / SKU..."
+                      className="h-7 pl-7 pr-6 w-44 text-xs bg-white dark:bg-slate-800 border border-neutral-300 dark:border-slate-600 rounded outline-none focus:border-emerald-600"
+                    />
+                    {velocitySearch && (
+                      <button
+                        type="button"
+                        onClick={() => setVelocitySearch('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 text-xs cursor-pointer"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                  <span className="text-[11px] font-bold text-neutral-500 whitespace-nowrap">
+                    Showing {filteredVelocityItems.length} of {data?.items?.length || 0}
+                  </span>
+                </div>
+              </div>
 
               <div className="border border-neutral-400 dark:border-slate-700 bg-white dark:bg-slate-950 overflow-hidden shadow-inner">
                 <table className="w-full text-xs text-left border-collapse">
@@ -848,8 +1302,23 @@ export function StockAgingReportView({
                           No product velocity data available.
                         </td>
                       </tr>
+                    ) : filteredVelocityItems.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-12 text-center text-neutral-500">
+                          <p className="font-bold text-sm text-neutral-600 dark:text-neutral-400">No products match the selected velocity filter.</p>
+                          <p className="text-xs text-neutral-400 mt-1">Try selecting another speed category or clearing search.</p>
+                          <button
+                            type="button"
+                            onClick={handleResetVelocityFilters}
+                            className="mt-3 px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded font-bold text-xs shadow cursor-pointer inline-flex items-center gap-1"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            <span>Show All Products</span>
+                          </button>
+                        </td>
+                      </tr>
                     ) : (
-                      data.items.map((item: any, idx: number) => {
+                      filteredVelocityItems.map((item: any, idx: number) => {
                         const velocityCat = item.velocityCategory || 'MODERATE';
                         return (
                           <tr key={item.id || idx} className="hover:bg-neutral-50 dark:hover:bg-slate-900/60 transition-colors">
