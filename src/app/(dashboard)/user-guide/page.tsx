@@ -666,19 +666,100 @@ export default function UserGuidePage() {
         title: 'কর্মচারী ও ইউজার একাউন্ট নিয়ন্ত্রণ (User Management)',
         icon: Users,
         category: 'এডমিন ও নিরাপত্তা',
-        keywords: ['ইউজার', 'কর্মচারী', 'ম্যানেজার', 'পাসওয়ার্ড রিসেট', 'অনুমোদন', 'ডিএক্টিভ'],
-        summary: 'কর্মচারীদের জন্য আইডি তৈরি, পাসওয়ার্ড ভুলে গেলে রিসেট করা এবং পদবী নিয়ন্ত্রণ।',
+        keywords: [
+          'ইউজার',
+          'কর্মচারী',
+          'ম্যানেজার',
+          'এসআর',
+          'SR',
+          'পাসওয়ার্ডলেস',
+          'ওয়্যারহাউস',
+          'পাসওয়ার্ড রিসেট',
+          'ব্লক',
+          'আনব্লক',
+          'এক্টিভ',
+          'নিষ্ক্রিয়',
+        ],
+        summary:
+          'এডমিন, ম্যানেজার ও এসআর তৈরি, পাসওয়ার্ড রিসেট, একাধিক ওয়্যারহাউস প্রদান ও সিস্টেম ব্লক/আনব্লক নিয়ন্ত্রণ।',
         routeHref: '/users',
         routeLabel: 'সরাসরি Users পেজে যান ↗',
         content: (
           <div className="space-y-4 text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed">
-            <p>দোকানে কাজ করা কর্মচারীদের জন্য আলাদা ইউজার আইডি তৈরি করতে <strong>Users</strong> মেন্যুতে যান।</p>
-            <ul className="list-disc list-inside space-y-1.5 pl-2">
-              <li><strong>+ Add User:</strong> কর্মচারীর নাম, মোবাইল নম্বর ও পাসওয়ার্ড দিয়ে আইডি তৈরি করুন।</li>
-              <li><strong>Role (পদবী):</strong> কর্মচারীদের `MANAGER` পদবী দিন যাতে তারা শুধু মেমো কাটতে পারে কিন্তু আপনার লাভ-ক্ষতি বা ব্যালেন্স শিট দেখতে না পারে।</li>
-              <li><strong>পাসওয়ার্ড রিসেট:</strong> কোনো কর্মচারী পাসওয়ার্ড ভুলে গেলে তার নামের পাশে থাকা চাবি আইকনে (Key Icon) ক্লিক করে নতুন পাসওয়ার্ড সেট করে দিতে পারেন।</li>
-              <li><strong>কর্মচারী চাকরি ছাড়লে:</strong> তাকে ডিলিট না করে Inactive করে দিন, যাতে সে আর সফটওয়্যারে ঢুকতে না পারে কিন্তু আগের সব চালানের প্রমাণ টিকে থাকে।</li>
-            </ul>
+            <p>
+              সুপার এডমিন ও এডমিন হিসেবে প্রতিষ্ঠানে কাজ করা কর্মচারী, ম্যানেজার ও বিক্রয় প্রতিনিধিদের (SR) আইডি তৈরি, দায়িত্ব বণ্টন ও প্রবেশাধিকার নিয়ন্ত্রণ করতে <strong>Users</strong> মেন্যুতে যান।
+            </p>
+
+            <div className="space-y-3">
+              <div className="p-3 bg-white dark:bg-slate-900 border border-neutral-300 dark:border-slate-700 rounded-xs space-y-2">
+                <h5 className="font-bold text-xs uppercase tracking-wider text-[#006400] dark:text-emerald-400 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  ১. ইউজার তৈরির নিয়ম (Register User)
+                </h5>
+                <ul className="list-disc list-inside space-y-1.5 pl-1 text-xs">
+                  <li>
+                    <strong>সবুজ Register User বাটন:</strong> পেজের উপরে ডান দিকে থাকা এই বাটনে ক্লিক করলে রেজিস্ট্রেশন মডাল চালু হবে।
+                  </li>
+                  <li>
+                    <strong>Select User Role (উপরে পদবী নির্বাচন):</strong>
+                    <div className="pl-4 mt-1 space-y-1">
+                      <div>
+                        • <strong>SR (SALES REPRESENTATIVE) — ডিফল্ট:</strong> ফিল্ডে কাজ করা বিক্রয় প্রতিনিধি। এদের সফটওয়্যারে লগইন করার প্রয়োজন নেই, তাই এদের জন্য <strong>কোনো পাসওয়ার্ড বা ইউজারনেম দিতে হয় না (Passwordless SR)</strong>। শুধু নাম, ঐচ্ছিক ফোন, ঐচ্ছিক ইমেইল ও এক বা একাধিক ওয়্যারহাউস নির্বাচন করে সেভ করলেই কয়েক সেকেন্ডে তৈরি হয়ে যায়।
+                      </div>
+                      <div>
+                        • <strong>MANAGER:</strong> দোকানের ম্যানেজার বা ক্যাশিয়ার। এটি নির্বাচন করলে ইউনিক <strong>Username</strong> ও ৬ অক্ষরের <strong>Password</strong> দেওয়ার ইনপুট বক্স আসবে, যা দিয়ে সে সিস্টেমে লগইন করবে। ম্যানেজার বিক্রয় ও ক্রয় মেমো কাটতে পারবে কিন্তু কোম্পানির সার্বিক লাভ-ক্ষতি বা ব্যালেন্স শিট দেখতে পাবে না।
+                      </div>
+                      <div>
+                        • <strong>ADMIN:</strong> সহকারী এডমিন (শুধুমাত্র সুপার এডমিন নতুন এডমিন তৈরি করতে পারেন)।
+                      </div>
+                    </div>
+                  </li>
+                  <li>
+                    <strong>Assigned Warehouse(s):</strong> ম্যানেজার বা এসআর-কে ড্রপডাউনে সার্চ করে ১টি, একাধিক কিংবা 'All Warehouses' এক ক্লিকে অ্যাসাইন করা যায়। ম্যানেজারের ক্ষেত্রে অন্তত ১টি ওয়্যারহাউস থাকা আবশ্যক।
+                  </li>
+                  <li>
+                    <strong>ইমেইল ঐচ্ছিক (Optional):</strong> লগইনে ইমেইল বাধ্যতামূলক নয়। ইউজারনেম দিয়েই লগইন নিশ্চিত করা হয়।
+                  </li>
+                </ul>
+              </div>
+
+              <div className="p-3 bg-white dark:bg-slate-900 border border-neutral-300 dark:border-slate-700 rounded-xs space-y-2">
+                <h5 className="font-bold text-xs uppercase tracking-wider text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-rose-600" />
+                  ২. ইউজার নিষ্ক্রিয় ও ব্লক/আনব্লক ব্যবস্থাপনা (Active / Inactive / Block)
+                </h5>
+                <p className="text-xs text-neutral-600 dark:text-neutral-400">
+                  কোনো কর্মচারী চাকরি ছাড়লে বা অনিয়ম করলে আইডি ডিলিট না করে <strong>BLOCKED / INACTIVE</strong> করে দিন যাতে আগের সব বিক্রয় রেকর্ড সুরক্ষিত থাকে:
+                </p>
+                <ul className="list-disc list-inside space-y-1.5 pl-1 text-xs">
+                  <li>
+                    <strong>এক-ক্লিক পাওয়ার বাটন:</strong> টেবিলে সক্রিয় ইউজারের নামের পাশে থাকা লাল পাওয়ার আইকন (<span className="text-rose-600 font-bold">PowerOff</span>) চাপলে কনফার্মেশন ডায়ালগ আসবে; 'Yes, Block User' চাপলে সে মুহূর্তেই লাল <span className="px-1 bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border border-rose-300 font-bold rounded">BLOCKED</span> হয়ে যাবে।
+                  </li>
+                  <li>
+                    <strong>আনব্লক করা:</strong> ব্লকড ইউজারের পাশে থাকা সবুজ পাওয়ার আইকন (<span className="text-emerald-600 font-bold">Power</span>) চাপলে সে পুনরায় সাথে সাথে <span className="px-1 bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 font-bold rounded">ACTIVE</span> হয়ে যাবে।
+                  </li>
+                  <li>
+                    <strong>এডিট মডাল থেকে স্ট্যাটাস পরিবর্তন:</strong> পেনসিল (Edit) বাটনে চাপ দিয়ে সরাসরি <strong>Account Status</strong> ড্রপডাউন থেকে 'ACTIVE' বা 'INACTIVE / BLOCKED' নির্বাচন করে Save Changes করতে পারবেন।
+                  </li>
+                  <li>
+                    <strong>সিস্টেমজুড়ে তাৎক্ষণিক প্রভাব:</strong> ব্লক করার সাথে সাথে ইউজার আর লগইন করতে পারবে না। আগে থেকে কোনো ডিভাইসে লগইন করা থাকলে পরবর্তী যেকোনো ক্লিকেই তার সেশন স্বয়ংক্রিয়ভাবে মুছে যাবে এবং সে লগআউট হয়ে লগইন পেজে ব্লক নোটিশ দেখতে পাবে। এছাড়া নতুন কোনো বিক্রয় বা কাস্টমারে ব্লকড এসআর আর ড্রপডাউনে আসবে না।
+                  </li>
+                </ul>
+              </div>
+
+              <div className="p-3 bg-white dark:bg-slate-900 border border-neutral-300 dark:border-slate-700 rounded-xs space-y-1 text-xs">
+                <h5 className="font-bold text-xs uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                  <KeyRound className="w-4 h-4 text-amber-600" />
+                  ৩. পাসওয়ার্ড রিসেট ও পদবী ক্ষমতা
+                </h5>
+                <p>
+                  • <strong>পাসওয়ার্ড রিসেট:</strong> ম্যানেজার বা এডমিনের নামের পাশে থাকা চাবি আইকনে (Key Icon) ক্লিক করে এডমিন/সুপার এডমিন যেকোনো সময় নতুন পাসওয়ার্ড সেট করে দিতে পারেন।
+                </p>
+                <p>
+                  • <strong>ক্ষমতার পরিধি:</strong> সুপার এডমিন চাইলে এডমিন, ম্যানেজার ও এসআর সবাইকে নিয়ন্ত্রণ করতে পারেন। এডমিন শুধুমাত্র ম্যানেজার ও এসআর-দের এডিট, পাসওয়ার্ড রিসেট ও ব্লক/আনব্লক করতে পারেন।
+                </p>
+              </div>
+            </div>
           </div>
         ),
       },
