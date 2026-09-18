@@ -21,8 +21,10 @@ import {
   Plus,
   Trash,
   Layers,
+  Search,
+  UserCheck,
 } from 'lucide-react';
-import { Customer, Company, CustomerSrDue } from '@/lib/types';
+import { Customer, Company, CustomerSrDue, SRUser } from '@/lib/types';
 import { api } from '@/lib/api/client';
 import { useAuth } from '@/lib/context/auth-context';
 
@@ -59,9 +61,12 @@ export function CustomerModal({
 
   // SR Group & Multi-SR dues state
   const [existingSrGroups, setExistingSrGroups] = useState<string[]>([]);
-  const [srDues, setSrDues] = useState<Array<{ id?: string; srName: string; due: number | string }>>([
-    { srName: '', due: '' },
-  ]);
+  const [srUsers, setSrUsers] = useState<SRUser[]>([]);
+  const [isSrDropdownOpen, setIsSrDropdownOpen] = useState(false);
+  const [srSearch, setSrSearch] = useState('');
+  const [srDues, setSrDues] = useState<Array<{ id?: string; srName: string; srUserId?: string | null; due: number | string }>>([]);
+  const srBoxRef = useRef<HTMLDivElement>(null);
+  const srInputRef = useRef<HTMLInputElement>(null);
 
   // Companies dropdown & search states
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -107,12 +112,23 @@ export function CustomerModal({
       })
       .catch(() => {});
 
+    api
+      .get<SRUser[]>('/users/srs')
+      .then((res) => {
+        if (active && res.data) {
+          setSrUsers(res.data);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load SRs:', err);
+      });
+
     return () => {
       active = false;
     };
   }, [open]);
 
-  // Close company dropdown when clicking outside
+  // Close company and SR dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (
@@ -120,6 +136,12 @@ export function CustomerModal({
         !companyBoxRef.current.contains(e.target as Node)
       ) {
         setIsCompanyDropdownOpen(false);
+      }
+      if (
+        srBoxRef.current &&
+        !srBoxRef.current.contains(e.target as Node)
+      ) {
+        setIsSrDropdownOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -136,6 +158,83 @@ export function CustomerModal({
       return matchName || matchCode;
     });
   }, [companies, companySearch]);
+
+  // Combine registered SR users and legacy SR groups for search suggestions
+  const filteredSrs = useMemo(() => {
+    const query = srSearch.toLowerCase().trim();
+    const results: Array<{ id?: string; name: string; phone?: string | null; isUser: boolean }> = [];
+    const seenNames = new Set<string>();
+
+    // 1. Registered SR users
+    srUsers.forEach((u) => {
+      const matches =
+        !query ||
+        u.name.toLowerCase().includes(query) ||
+        (u.phone && u.phone.includes(query)) ||
+        u.email.toLowerCase().includes(query);
+      if (matches) {
+        results.push({
+          id: u.id,
+          name: u.name,
+          phone: u.phone,
+          isUser: true,
+        });
+        seenNames.add(u.name.toLowerCase().trim());
+      }
+    });
+
+    // 2. Legacy SR groups from past customer records not yet registered as users
+    existingSrGroups.forEach((grp) => {
+      const trimmed = grp.trim();
+      if (trimmed && !seenNames.has(trimmed.toLowerCase())) {
+        if (!query || trimmed.toLowerCase().includes(query)) {
+          results.push({
+            name: trimmed,
+            phone: null,
+            isUser: false,
+          });
+          seenNames.add(trimmed.toLowerCase());
+        }
+      }
+    });
+
+    return results;
+  }, [srSearch, srUsers, existingSrGroups]);
+
+  const isSrAdded = (name: string) => {
+    return srDues.some(
+      (d) => d.srName.toLowerCase().trim() === name.toLowerCase().trim()
+    );
+  };
+
+  const handleSelectSr = (item: { id?: string; name: string }) => {
+    const trimmed = item.name.trim();
+    if (!trimmed) return;
+    if (isSrAdded(trimmed)) return;
+    setSrDues((prev) => [
+      ...prev.filter((d) => d.srName && d.srName.trim()),
+      {
+        srName: trimmed,
+        srUserId: item.id || null,
+        due: '',
+      },
+    ]);
+    setSrSearch('');
+  };
+
+  const handleToggleSr = (item: { id?: string; name: string }) => {
+    const trimmed = item.name.trim();
+    if (!trimmed) return;
+    if (isSrAdded(trimmed)) {
+      setSrDues((prev) =>
+        prev.filter(
+          (d) => d.srName.toLowerCase().trim() !== trimmed.toLowerCase()
+        )
+      );
+    } else {
+      handleSelectSr(item);
+    }
+  };
 
   useEffect(() => {
     if (open) {
@@ -155,6 +254,7 @@ export function CustomerModal({
             customer.srDues.map((d) => ({
               id: d.id,
               srName: d.srName,
+              srUserId: d.srUserId || null,
               due: Number(d.currentDue ?? d.openingDue) || 0,
             }))
           );
@@ -162,11 +262,12 @@ export function CustomerModal({
           setSrDues([
             {
               srName: customer.srGroup,
+              srUserId: null,
               due: Number(customer.currentDue ?? customer.openingDue) || 0,
             },
           ]);
         } else {
-          setSrDues([{ srName: '', due: '' }]);
+          setSrDues([]);
         }
       } else {
         resetForm();
@@ -264,7 +365,9 @@ export function CustomerModal({
     setEmail('');
     setAddress('');
     setOpeningDue(0);
-    setSrDues([{ srName: '', due: '' }]);
+    setSrDues([]);
+    setSrSearch('');
+    setIsSrDropdownOpen(false);
     setIsActive(true);
     setStatusMessage(null);
     setCodeWarning(null);
@@ -272,14 +375,12 @@ export function CustomerModal({
   };
 
   const addSrDueRow = () => {
-    setSrDues((prev) => [...prev, { srName: '', due: '' }]);
+    setIsSrDropdownOpen(true);
+    setTimeout(() => srInputRef.current?.focus(), 50);
   };
 
   const removeSrDueRow = (index: number) => {
-    setSrDues((prev) => {
-      const next = prev.filter((_, i) => i !== index);
-      return next.length > 0 ? next : [{ srName: '', due: '' }];
-    });
+    setSrDues((prev) => prev.filter((_, i) => i !== index));
   };
 
   const updateSrDueRow = (index: number, field: 'srName' | 'due', value: string) => {
@@ -332,6 +433,7 @@ export function CustomerModal({
       .filter((d) => d.srName && d.srName.trim())
       .map((d) => ({
         srName: d.srName.trim(),
+        srUserId: d.srUserId || null,
         openingDue: parseFloat(String(d.due)) || 0,
         currentDue: parseFloat(String(d.due)) || 0,
       }));
@@ -788,69 +890,198 @@ export function CustomerModal({
               <div className="flex items-center gap-1.5 font-bold text-emerald-950 dark:text-emerald-200 text-xs">
                 <Layers className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                 <span>SR Group & Due (গ্রুপ এসআর ও বাকি)</span>
+                {srUsers.length > 0 && (
+                  <span className="text-[10px] font-normal px-1.5 py-0.2 bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 rounded-xs border border-emerald-300 dark:border-emerald-700">
+                    {srUsers.length} SR Available
+                  </span>
+                )}
               </div>
-              <button
-                type="button"
-                onClick={addSrDueRow}
-                disabled={isSaving}
-                className="px-2 py-0.5 bg-[#006400] hover:bg-emerald-800 text-white rounded-xs text-[11px] font-bold flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
-                title="Add another SR group for this customer"
-              >
-                <Plus className="w-3 h-3" />
-                <span>Add SR</span>
-              </button>
+              <div className="text-[11px] text-neutral-500 dark:text-neutral-400 font-normal">
+                {srDues.filter(d => d.srName.trim()).length} Assigned
+              </div>
             </div>
 
-            {/* Datalist for existing SR groups */}
-            <datalist id="sr-group-list">
-              {existingSrGroups.map((grp) => (
-                <option key={grp} value={grp} />
-              ))}
-            </datalist>
+            {/* Searchable SR Selector & Suggestion Combobox */}
+            <div ref={srBoxRef} className="relative">
+              <div className="flex items-center gap-1">
+                <div className="relative flex-1">
+                  <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    ref={srInputRef}
+                    type="text"
+                    placeholder="Search & select SR by name or phone..."
+                    value={srSearch}
+                    onChange={(e) => {
+                      setSrSearch(e.target.value);
+                      setIsSrDropdownOpen(true);
+                    }}
+                    onFocus={() => setIsSrDropdownOpen(true)}
+                    disabled={isSaving}
+                    className="w-full pl-7 pr-7 py-1 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsSrDropdownOpen(!isSrDropdownOpen)}
+                    disabled={isSaving}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+                  >
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </button>
+                </div>
 
-            <div className="space-y-1.5">
-              {srDues.map((row, idx) => (
-                <div key={idx} className="flex items-center gap-1.5">
-                  <div className="flex-1">
-                    <input
-                      type="text"
-                      list="sr-group-list"
-                      placeholder="SR / Group Name (e.g. ACI Foods SR, Lily SR)"
-                      value={row.srName}
-                      onChange={(e) => updateSrDueRow(idx, 'srName', e.target.value)}
-                      disabled={isSaving}
-                      className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100"
-                    />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSrDropdownOpen(!isSrDropdownOpen);
+                    if (!isSrDropdownOpen) setTimeout(() => srInputRef.current?.focus(), 50);
+                  }}
+                  disabled={isSaving}
+                  className="px-2 py-1 bg-[#006400] hover:bg-emerald-800 text-white rounded-xs text-[11px] font-bold flex items-center gap-1 shadow-xs transition-colors cursor-pointer shrink-0"
+                  title="Open SR suggestion list to pick multiple SRs"
+                >
+                  <Users className="w-3 h-3" />
+                  <span>Select SR(s)</span>
+                </button>
+              </div>
+
+              {/* Suggestions Dropdown Popup */}
+              {isSrDropdownOpen && (
+                <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white dark:bg-slate-900 border border-emerald-500 dark:border-emerald-700 shadow-xl max-h-56 overflow-y-auto rounded-xs custom-scrollbar">
+                  <div className="sticky top-0 bg-[#eaf1f8] dark:bg-slate-800 px-2 py-1 border-b border-neutral-300 dark:border-slate-700 flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-300">
+                    <span>Available Sales Representatives (SR)</span>
+                    <span className="text-[9px] text-neutral-500 normal-case font-normal">Click to toggle / add</span>
                   </div>
-                  <div className="w-28">
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      placeholder="Due ৳"
-                      value={row.due}
-                      onChange={(e) => updateSrDueRow(idx, 'due', e.target.value)}
-                      disabled={isSaving}
-                      className="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs text-right font-mono font-bold focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100"
-                    />
-                  </div>
-                  {srDues.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeSrDueRow(idx)}
-                      disabled={isSaving}
-                      className="p-1 text-rose-600 hover:text-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition-colors"
-                      title="Remove this SR row"
+
+                  {filteredSrs.length === 0 && !srSearch.trim() ? (
+                    <div className="p-3 text-center text-xs text-neutral-500 italic">
+                      No SR users found. Create SRs in User Management (/users).
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-neutral-100 dark:divide-slate-800">
+                      {filteredSrs.map((item) => {
+                        const added = isSrAdded(item.name);
+                        return (
+                          <div
+                            key={item.id || item.name}
+                            onClick={() => handleToggleSr(item)}
+                            className={`px-3 py-1.5 text-xs flex items-center justify-between cursor-pointer transition-colors ${
+                              added
+                                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200'
+                                : 'hover:bg-neutral-100 dark:hover:bg-slate-800 text-neutral-800 dark:text-neutral-200'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className={`w-4 h-4 rounded-xs border flex items-center justify-center text-[10px] ${
+                                added
+                                  ? 'bg-[#006400] border-[#006400] text-white'
+                                  : 'border-neutral-400 bg-white dark:bg-slate-800'
+                              }`}>
+                                {added && <Check className="w-3 h-3 stroke-[3]" />}
+                              </div>
+                              <div>
+                                <div className="font-semibold flex items-center gap-1.5">
+                                  <span>{item.name}</span>
+                                  {item.isUser && (
+                                    <span className="text-[9px] px-1 py-0.2 bg-teal-100 text-teal-800 border border-teal-300 dark:bg-teal-950 dark:text-teal-300 dark:border-teal-700 rounded-xs uppercase font-mono font-bold">
+                                      SR
+                                    </span>
+                                  )}
+                                </div>
+                                {item.phone && (
+                                  <div className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono">
+                                    📞 {item.phone}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              {added ? (
+                                <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                                  <Check className="w-3 h-3" /> Added
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                                  + Add
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Add custom text option if search doesn't match */}
+                  {srSearch.trim() && !filteredSrs.some(s => s.name.toLowerCase() === srSearch.trim().toLowerCase()) && (
+                    <div
+                      onClick={() => {
+                        handleSelectSr({ name: srSearch.trim() });
+                        setIsSrDropdownOpen(false);
+                      }}
+                      className="px-3 py-2 text-xs border-t border-neutral-200 dark:border-slate-700 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/40 flex items-center justify-between"
                     >
-                      <Trash className="w-3.5 h-3.5" />
-                    </button>
+                      <span>Add as custom SR: <strong>"{srSearch.trim()}"</strong></span>
+                      <Plus className="w-3.5 h-3.5" />
+                    </div>
                   )}
                 </div>
-              ))}
+              )}
+            </div>
+
+            {/* List of Added SR Rows with Due inputs */}
+            <div className="space-y-1.5 pt-1">
+              {srDues.length === 0 || (srDues.length === 1 && !srDues[0].srName.trim()) ? (
+                <div className="py-2.5 px-3 bg-white dark:bg-slate-900 border border-dashed border-neutral-300 dark:border-slate-700 rounded-xs text-center text-xs text-neutral-500 dark:text-neutral-400">
+                  <span>No SR assigned yet. Search or click <strong>Select SR(s)</strong> above to assign SRs to this customer.</span>
+                </div>
+              ) : (
+                srDues
+                  .filter((row) => row.srName.trim().length > 0)
+                  .map((row, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-neutral-300 dark:border-slate-700 p-1.5 rounded-xs shadow-2xs"
+                    >
+                      <div className="flex-1 flex items-center gap-1.5 min-w-0">
+                        <UserCheck className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />
+                        <span className="font-bold text-xs text-neutral-900 dark:text-neutral-100 truncate">
+                          {row.srName}
+                        </span>
+                        {row.srUserId && (
+                          <span className="text-[9px] px-1 py-0.2 bg-teal-50 text-teal-700 border border-teal-200 dark:bg-teal-950 dark:text-teal-300 dark:border-teal-800 rounded-xs font-mono font-bold shrink-0">
+                            Registered
+                          </span>
+                        )}
+                      </div>
+                      <div className="w-28 flex items-center gap-1">
+                        <span className="text-xs text-neutral-500">৳</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="any"
+                          placeholder="Due ৳"
+                          value={row.due}
+                          onChange={(e) => updateSrDueRow(idx, 'due', e.target.value)}
+                          disabled={isSaving}
+                          className="w-full px-2 py-0.5 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs text-right font-mono font-bold focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeSrDueRow(idx)}
+                        disabled={isSaving}
+                        className="p-1 text-rose-600 hover:text-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition-colors"
+                        title="Remove this SR from customer"
+                      >
+                        <Trash className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))
+              )}
             </div>
 
             {totalSrDue > 0 && (
-              <div className="flex justify-between items-center text-[11px] pt-1 border-t border-emerald-200 dark:border-emerald-800/80 font-medium text-emerald-950 dark:text-emerald-200">
+              <div className="flex justify-between items-center text-[11px] pt-1.5 border-t border-emerald-200 dark:border-emerald-800/80 font-medium text-emerald-950 dark:text-emerald-200">
                 <span>Total Due across SRs:</span>
                 <span className="font-mono font-bold text-rose-700 dark:text-rose-400 text-xs">
                   ৳{totalSrDue.toLocaleString()}

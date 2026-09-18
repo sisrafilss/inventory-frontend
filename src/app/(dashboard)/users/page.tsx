@@ -260,6 +260,7 @@ export default function UsersPage() {
               <option value="SUPER_ADMIN">SUPER ADMIN</option>
               <option value="ADMIN">ADMIN</option>
               <option value="MANAGER">MANAGER</option>
+              <option value="SR">SALES REPRESENTATIVE (SR)</option>
             </select>
             
             <label className="font-semibold text-neutral-700 dark:text-neutral-300 whitespace-nowrap text-xs uppercase tracking-wider ml-2">Status:</label>
@@ -355,9 +356,10 @@ export default function UsersPage() {
                           <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-bold uppercase border ${
                             u.role === 'SUPER_ADMIN' ? (isSelected ? 'bg-amber-600 text-white border-amber-500' : 'bg-amber-100 text-amber-800 border-amber-300') :
                             u.role === 'ADMIN' ? (isSelected ? 'bg-purple-600 text-white border-purple-500' : 'bg-purple-100 text-purple-800 border-purple-300') :
+                            u.role === 'SR' ? (isSelected ? 'bg-teal-600 text-white border-teal-500' : 'bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-950/80 dark:text-teal-300 dark:border-teal-700') :
                             (isSelected ? 'bg-blue-600 text-white border-blue-500' : 'bg-blue-100 text-blue-800 border-blue-300')
                           }`}>
-                            {u.role.replace('_', ' ')}
+                            {u.role === 'SR' ? 'SALES REP (SR)' : u.role.replace('_', ' ')}
                           </span>
                         </td>
                         <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 ${isSelected ? 'text-blue-100' : 'text-neutral-700 dark:text-neutral-300'}`}>
@@ -500,6 +502,7 @@ export default function UsersPage() {
               <select value={createForm.role} onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as Role })} className="w-full h-8 px-1.5 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]">
                 {isSuperAdmin && <option value="ADMIN">ADMIN</option>}
                 <option value="MANAGER">MANAGER</option>
+                <option value="SR">SALES REPRESENTATIVE (SR)</option>
               </select>
             </div>
             <div className="space-y-1">
@@ -560,6 +563,7 @@ export default function UsersPage() {
                 <select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value as Role })} className="w-full h-8 px-1.5 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]">
                   {isSuperAdmin && <option value="ADMIN">ADMIN</option>}
                   <option value="MANAGER">MANAGER</option>
+                  <option value="SR">SALES REPRESENTATIVE (SR)</option>
                 </select>
               </div>
             )}

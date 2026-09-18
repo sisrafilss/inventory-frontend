@@ -24,6 +24,7 @@ export function AddCustomerModal({
   const [address, setAddress] = useState('');
   const [srGroup, setSrGroup] = useState('');
   const [openingDue, setOpeningDue] = useState('');
+  const [srUsers, setSrUsers] = useState<Array<{ id: string; name: string; phone?: string | null }>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -46,6 +47,13 @@ export function AddCustomerModal({
       setOpeningDue('');
       setError(null);
       setTimeout(() => nameInputRef.current?.focus(), 100);
+
+      api
+        .get<any[]>('/users/srs')
+        .then((res) => {
+          if (res.data) setSrUsers(res.data);
+        })
+        .catch(() => {});
     } else {
       setName('');
       setPhone('');
@@ -77,12 +85,25 @@ export function AddCustomerModal({
     setIsSaving(true);
     try {
       const numDue = parseFloat(openingDue) || 0;
+      const matchedSr = srUsers.find(
+        (u) => u.name.toLowerCase().trim() === srGroup.trim().toLowerCase()
+      );
       const res = await api.post<Customer>('/parties/customers', {
         name: trimmedName,
         phone: trimmedPhone,
         address: address.trim() || undefined,
         srGroup: srGroup.trim() || undefined,
-        srDues: srGroup.trim() && numDue > 0 ? [{ srName: srGroup.trim(), openingDue: numDue, currentDue: numDue }] : undefined,
+        srDues:
+          srGroup.trim() && numDue > 0
+            ? [
+                {
+                  srName: srGroup.trim(),
+                  srUserId: matchedSr?.id || undefined,
+                  openingDue: numDue,
+                  currentDue: numDue,
+                },
+              ]
+            : undefined,
         openingDue: numDue,
         isActive: true,
       });
@@ -208,12 +229,20 @@ export function AddCustomerModal({
               <Layers className="w-3.5 h-3.5 text-neutral-400 absolute left-2.5 pointer-events-none" />
               <input
                 type="text"
+                list="add-modal-sr-list"
                 value={srGroup}
                 onChange={(e) => setSrGroup(e.target.value)}
-                placeholder="e.g. ACI SR, Lily SR"
+                placeholder="Search or enter SR name"
                 disabled={isSaving}
                 className="w-full h-8 pl-8 pr-2 bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 text-xs border border-neutral-300 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 font-medium disabled:opacity-60"
               />
+              <datalist id="add-modal-sr-list">
+                {srUsers.map((u) => (
+                  <option key={u.id} value={u.name}>
+                    {u.phone ? `${u.name} (📞 ${u.phone})` : u.name}
+                  </option>
+                ))}
+              </datalist>
             </div>
           </div>
           <div>

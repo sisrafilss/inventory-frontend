@@ -2,6 +2,7 @@ export const Role = {
   SUPER_ADMIN: "SUPER_ADMIN",
   ADMIN: "ADMIN",
   MANAGER: "MANAGER",
+  SR: "SR",
 } as const;
 export type Role = (typeof Role)[keyof typeof Role];
 
@@ -124,10 +125,20 @@ export interface CustomerSrDue {
   id?: string;
   customerId?: string;
   srName: string;
+  srUserId?: string | null;
   openingDue: number;
   currentDue: number;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface SRUser {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  address?: string | null;
+  status: UserStatus;
 }
 
 export interface Customer {
