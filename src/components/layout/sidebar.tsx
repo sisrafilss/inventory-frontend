@@ -30,6 +30,7 @@ import {
   ChevronRight,
   ChevronDown,
   RotateCcw,
+  BookOpen,
 } from 'lucide-react';
 import { AppLogo } from '@/components/ui/app-logo';
 
@@ -323,6 +324,13 @@ export function Sidebar({ onClose, onCloseMobile }: SidebarProps) {
       href: '/audit-logs',
       icon: ShieldCheck,
       roles: ['SUPER_ADMIN', 'ADMIN'],
+    },
+    {
+      key: 'userGuide',
+      label: 'User Guide (সহায়িকা)',
+      href: '/user-guide',
+      icon: BookOpen,
+      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
     },
     {
       key: 'profile',
