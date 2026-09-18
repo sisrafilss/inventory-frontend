@@ -57,6 +57,9 @@ export function BarcodeSVG({
 }: BarcodeSVGProps) {
   if (!value) return null;
 
+  // Safe bar width: if a large number (e.g. > 10) was mistakenly passed as container px width, clamp to standard 1.5px
+  const safeBarWidth = width > 10 ? 1.5 : (width || 1.8);
+
   const patterns = encodeCode128(value);
   let currentX = 10;
   const bars: { x: number; width: number }[] = [];
@@ -64,7 +67,7 @@ export function BarcodeSVG({
   patterns.forEach((pattern) => {
     let isBar = true;
     for (let i = 0; i < pattern.length; i++) {
-      const barWidth = parseInt(pattern[i], 10) * width;
+      const barWidth = parseInt(pattern[i], 10) * safeBarWidth;
       if (isBar) {
         bars.push({ x: currentX, width: barWidth });
       }

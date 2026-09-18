@@ -231,12 +231,14 @@ export function ProductDetailsModal({
         {/* Barcode Sticker Preview Box */}
         <div className="bg-white dark:bg-slate-800 p-2.5 border border-neutral-400 dark:border-slate-600 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <BarcodeSVG
-              value={product.barcode || product.sku}
-              width={160}
-              height={40}
-              showText={false}
-            />
+            <div className="bg-white p-1 rounded-xs border border-neutral-300 dark:border-slate-600 flex items-center justify-center shadow-xs">
+              <BarcodeSVG
+                value={product.barcode || product.sku}
+                width={1.5}
+                height={36}
+                showText={false}
+              />
+            </div>
             <div>
               <div className="font-bold text-xs text-neutral-800 dark:text-neutral-200">
                 Barcode Label
