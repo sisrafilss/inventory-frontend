@@ -568,33 +568,34 @@ export function StockAgingReportView({
                       </tr>
                     ) : (
                       data.users.map((u: any, idx: number) => (
-                      <tr key={u.userId || idx} className="hover:bg-neutral-50 dark:hover:bg-slate-900/60 transition-colors">
-                        <td className="py-2 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono text-neutral-500">
-                          {idx + 1}
-                        </td>
-                        <td className="py-2 px-3 border-r border-neutral-200 dark:border-slate-800 font-bold text-neutral-900 dark:text-neutral-100">
-                          {u.userName}
-                        </td>
-                        <td className="py-2 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono text-[10px] uppercase font-bold text-neutral-600">
-                          {u.userRole}
-                        </td>
-                        <td className="py-2 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono font-bold">
-                          {u.salesCount} Invoices
-                        </td>
-                        <td className="py-2 px-3 border-r border-neutral-200 dark:border-slate-800 text-right font-mono font-bold text-neutral-900 dark:text-neutral-100">
-                          {formatMoney(u.totalRevenue)}
-                        </td>
-                        <td className="py-2 px-3 border-r border-neutral-200 dark:border-slate-800 text-right font-mono font-bold text-emerald-700 dark:text-emerald-400">
-                          {formatMoney(u.totalCollected)}
-                        </td>
-                        <td className="py-2 px-3 border-r border-neutral-200 dark:border-slate-800 text-right font-mono font-bold text-red-600">
-                          {formatMoney(u.totalDue)}
-                        </td>
-                        <td className="py-2 px-3 text-right font-mono font-bold text-blue-700 dark:text-blue-400">
-                          {formatMoney(u.avgOrderValue)}
-                        </td>
-                      </tr>
-                    ))}
+                        <tr key={u.userId || idx} className="hover:bg-neutral-50 dark:hover:bg-slate-900/60 transition-colors">
+                          <td className="py-2 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono text-neutral-500">
+                            {idx + 1}
+                          </td>
+                          <td className="py-2 px-3 border-r border-neutral-200 dark:border-slate-800 font-bold text-neutral-900 dark:text-neutral-100">
+                            {u.userName}
+                          </td>
+                          <td className="py-2 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono text-[10px] uppercase font-bold text-neutral-600">
+                            {u.userRole}
+                          </td>
+                          <td className="py-2 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono font-bold">
+                            {u.salesCount} Invoices
+                          </td>
+                          <td className="py-2 px-3 border-r border-neutral-200 dark:border-slate-800 text-right font-mono font-bold text-neutral-900 dark:text-neutral-100">
+                            {formatMoney(u.totalRevenue)}
+                          </td>
+                          <td className="py-2 px-3 border-r border-neutral-200 dark:border-slate-800 text-right font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                            {formatMoney(u.totalCollected)}
+                          </td>
+                          <td className="py-2 px-3 border-r border-neutral-200 dark:border-slate-800 text-right font-mono font-bold text-red-600">
+                            {formatMoney(u.totalDue)}
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-blue-700 dark:text-blue-400">
+                            {formatMoney(u.avgOrderValue)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
