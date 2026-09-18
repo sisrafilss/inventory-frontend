@@ -7,6 +7,7 @@ import { User, Role, UserStatus, Warehouse } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
 import { Dialog } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { WarehouseMultiSelect } from '@/components/ui/warehouse-multi-select';
 import {
   Users,
   UserPlus,
@@ -43,14 +44,42 @@ export default function UsersPage() {
 
   // Modals
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({
-    username: '', name: '', email: '', phone: '', role: Role.MANAGER as Role, password: '', warehouseId: '',
+  const [createForm, setCreateForm] = useState<{
+    username: string;
+    name: string;
+    email: string;
+    phone: string;
+    role: Role;
+    password: string;
+    warehouseIds: string[];
+  }>({
+    username: '',
+    name: '',
+    email: '',
+    phone: '',
+    role: Role.MANAGER as Role,
+    password: '',
+    warehouseIds: [],
   });
   const [isCreating, setIsCreating] = useState(false);
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [editForm, setEditForm] = useState({
-    username: '', name: '', email: '', phone: '', address: '', role: Role.MANAGER as Role, warehouseId: '',
+  const [editForm, setEditForm] = useState<{
+    username: string;
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    role: Role;
+    warehouseIds: string[];
+  }>({
+    username: '',
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    role: Role.MANAGER as Role,
+    warehouseIds: [],
   });
   const [isEditing, setIsEditing] = useState(false);
 
@@ -126,22 +155,48 @@ export default function UsersPage() {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (createForm.role === Role.MANAGER && !createForm.warehouseId) {
-      toast.warning('Please assign a warehouse for the Manager.');
+    if (createForm.role === Role.MANAGER && createForm.warehouseIds.length === 0) {
+      toast.warning('Please assign at least one warehouse for the Manager.');
       return;
     }
+    if (createForm.role !== Role.SR && !createForm.username.trim()) {
+      toast.warning('Please enter a username for this account.');
+      return;
+    }
+    if (createForm.role !== Role.SR && (!createForm.password || createForm.password.length < 6)) {
+      toast.warning('Password must be at least 6 characters.');
+      return;
+    }
+
     setIsCreating(true);
     try {
       await api.post('/users', {
-        ...createForm,
-        username: createForm.username.trim(),
+        name: createForm.name.trim(),
+        role: createForm.role,
+        ...(createForm.role !== Role.SR
+          ? {
+              username: createForm.username.trim(),
+              password: createForm.password,
+            }
+          : {
+              username: createForm.username.trim() || undefined,
+            }),
         email: createForm.email?.trim() || undefined,
         phone: createForm.phone?.trim() || undefined,
-        warehouseId: createForm.warehouseId || undefined,
+        warehouseIds: createForm.warehouseIds,
       });
       setIsCreateOpen(false);
-      setCreateForm({ username: '', name: '', email: '', phone: '', role: Role.MANAGER, password: '', warehouseId: '' });
-      if (page === 1) fetchUsers(); else setPage(1);
+      setCreateForm({
+        username: '',
+        name: '',
+        email: '',
+        phone: '',
+        role: Role.MANAGER,
+        password: '',
+        warehouseIds: [],
+      });
+      if (page === 1) fetchUsers();
+      else setPage(1);
       toast.success('User created successfully!');
     } catch (err: any) {
       toast.error(err.message || 'Failed to create user');
@@ -152,6 +207,19 @@ export default function UsersPage() {
 
   const openEdit = (u: User) => {
     setEditingUser(u);
+    const existingWhIds: string[] = [];
+    if (u.assignedWarehouses && u.assignedWarehouses.length > 0) {
+      u.assignedWarehouses.forEach((uw) => {
+        if (uw.warehouseId && !existingWhIds.includes(uw.warehouseId)) {
+          existingWhIds.push(uw.warehouseId);
+        } else if (uw.warehouse?.id && !existingWhIds.includes(uw.warehouse.id)) {
+          existingWhIds.push(uw.warehouse.id);
+        }
+      });
+    } else if (u.warehouseId) {
+      existingWhIds.push(u.warehouseId);
+    }
+
     setEditForm({
       username: u.username || '',
       name: u.name,
@@ -159,26 +227,27 @@ export default function UsersPage() {
       phone: u.phone || '',
       address: u.address || '',
       role: u.role,
-      warehouseId: u.warehouseId || '',
+      warehouseIds: existingWhIds,
     });
   };
 
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser) return;
-    if (editForm.role === Role.MANAGER && !editForm.warehouseId) {
-      toast.warning('Please assign a warehouse for the Manager.');
+    if (editForm.role === Role.MANAGER && editForm.warehouseIds.length === 0) {
+      toast.warning('Please assign at least one warehouse for the Manager.');
       return;
     }
     setIsEditing(true);
     try {
       await api.patch(`/users/${editingUser.id}`, {
-        ...editForm,
-        username: editForm.username.trim(),
+        name: editForm.name.trim(),
+        role: editForm.role,
+        username: editForm.username.trim() || undefined,
         email: editForm.email?.trim() || null,
         phone: editForm.phone?.trim() || null,
         address: editForm.address?.trim() || null,
-        warehouseId: editForm.warehouseId || undefined,
+        warehouseIds: editForm.warehouseIds,
       });
       setEditingUser(null);
       fetchUsers();
@@ -373,7 +442,33 @@ export default function UsersPage() {
                           </span>
                         </td>
                         <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 ${isSelected ? 'text-blue-100' : 'text-neutral-700 dark:text-neutral-300'}`}>
-                          {u.warehouse ? (
+                          {u.assignedWarehouses && u.assignedWarehouses.length > 0 ? (
+                            u.assignedWarehouses.length === warehouses.length && warehouses.length > 1 ? (
+                              <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-bold uppercase border ${
+                                isSelected
+                                  ? 'bg-blue-600 text-white border-blue-400'
+                                  : 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700'
+                              }`}>
+                                All Warehouses ({u.assignedWarehouses.length})
+                              </span>
+                            ) : (
+                              <div className="flex flex-wrap gap-1">
+                                {u.assignedWarehouses.map((uw) => (
+                                  <span
+                                    key={uw.warehouseId || uw.id}
+                                    className={`px-1.5 py-0.5 rounded-xs text-[10px] font-medium border ${
+                                      isSelected
+                                        ? 'bg-blue-700 text-white border-blue-400'
+                                        : 'bg-neutral-100 dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border-neutral-300 dark:border-slate-700'
+                                    }`}
+                                  >
+                                    {uw.warehouse?.name}
+                                    {uw.warehouse?.code && <span className="opacity-70 text-[9px] ml-1">({uw.warehouse.code})</span>}
+                                  </span>
+                                ))}
+                              </div>
+                            )
+                          ) : u.warehouse ? (
                             <div className="flex flex-col">
                               <span className="font-semibold">{u.warehouse.name}</span>
                               {u.warehouse.code && <span className="text-[10px] font-mono">Code: {u.warehouse.code}</span>}
@@ -407,16 +502,18 @@ export default function UsersPage() {
                               >
                                 <Pencil className="w-3 h-3" />
                               </button>
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); setSelectedUserForReset(u); }}
-                                className={`p-1 rounded-xs border transition-colors cursor-pointer ${
-                                  isSelected ? 'bg-white text-blue-700 border-white hover:bg-blue-50' : 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-500 border-neutral-300 dark:border-slate-700 hover:bg-amber-50'
-                                }`}
-                                title="Reset Password"
-                              >
-                                <KeyRound className="w-3 h-3" />
-                              </button>
+                              {u.role !== 'SR' && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); setSelectedUserForReset(u); }}
+                                  className={`p-1 rounded-xs border transition-colors cursor-pointer ${
+                                    isSelected ? 'bg-white text-blue-700 border-white hover:bg-blue-50' : 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-500 border-neutral-300 dark:border-slate-700 hover:bg-amber-50'
+                                  }`}
+                                  title="Reset Password"
+                                >
+                                  <KeyRound className="w-3 h-3" />
+                                </button>
+                              )}
                               {u.id !== currentUser?.id && (
                                 <button
                                   type="button"
@@ -493,71 +590,182 @@ export default function UsersPage() {
             </button>
           </div>
           <div className="p-4 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Username <span className="text-rose-600">*</span></label>
-                <input
-                  required
-                  type="text"
-                  placeholder="e.g. manager1"
-                  value={createForm.username}
-                  onChange={(e) => setCreateForm({ ...createForm, username: e.target.value.replace(/\s+/g, '') })}
-                  className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400] font-mono"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Full Name <span className="text-rose-600">*</span></label>
-                <input
-                  required
-                  type="text"
-                  placeholder="e.g. John Doe"
-                  value={createForm.name}
-                  onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                  className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Email Address <span className="text-neutral-500 font-normal lowercase">(optional)</span></label>
-                <input
-                  type="email"
-                  placeholder="user@example.com (optional)"
-                  value={createForm.email}
-                  onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
-                  className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Phone Number <span className="text-neutral-500 font-normal lowercase">(optional)</span></label>
-                <input
-                  type="text"
-                  placeholder="017XXXXXXXX (optional)"
-                  value={createForm.phone}
-                  onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
-                  className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
-                />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Role <span className="text-rose-600">*</span></label>
-              <select value={createForm.role} onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as Role })} className="w-full h-8 px-1.5 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]">
-                {isSuperAdmin && <option value="ADMIN">ADMIN</option>}
-                <option value="MANAGER">MANAGER</option>
-                <option value="SR">SALES REPRESENTATIVE (SR)</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Assigned Warehouse {createForm.role === 'MANAGER' ? '*' : ''}</label>
-              <select required={createForm.role === 'MANAGER'} value={createForm.warehouseId} onChange={(e) => setCreateForm({ ...createForm, warehouseId: e.target.value })} className="w-full h-8 px-1.5 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]">
-                <option value="">{createForm.role === 'MANAGER' ? '-- Select Warehouse for Manager * --' : '-- No Warehouse Assigned (Global) --'}</option>
-                {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name} {w.code ? `(${w.code})` : ''} {w.isDefault ? '[Default]' : ''}</option>)}
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Initial Password <span className="text-rose-600">*</span></label>
-              <input required type="password" placeholder="Min. 6 characters" value={createForm.password} onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]" />
-            </div>
+            {createForm.role === 'SR' ? (
+              // SR Role: ONLY Full Name, Email (optional), Phone (optional), Role, Assigned Warehouse
+              <>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
+                    Full Name <span className="text-rose-600">*</span>
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    placeholder="e.g. Rahim Uddin"
+                    value={createForm.name}
+                    onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                    className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
+                      Email Address <span className="text-neutral-500 font-normal lowercase">(optional)</span>
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="sr@example.com (optional)"
+                      value={createForm.email}
+                      onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                      className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
+                      Phone Number <span className="text-neutral-500 font-normal lowercase">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="017XXXXXXXX (optional)"
+                      value={createForm.phone}
+                      onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
+                      className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
+                    Role <span className="text-rose-600">*</span>
+                  </label>
+                  <select
+                    value={createForm.role}
+                    onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as Role })}
+                    className="w-full h-8 px-1.5 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
+                  >
+                    {isSuperAdmin && <option value="ADMIN">ADMIN</option>}
+                    <option value="MANAGER">MANAGER</option>
+                    <option value="SR">SALES REPRESENTATIVE (SR)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider flex items-center justify-between">
+                    <span>Assign Warehouse(s)</span>
+                    <span className="text-[10px] text-neutral-500 font-normal lowercase">(1, multiple, or all)</span>
+                  </label>
+                  <WarehouseMultiSelect
+                    warehouses={warehouses}
+                    selectedIds={createForm.warehouseIds}
+                    onChange={(ids) => setCreateForm({ ...createForm, warehouseIds: ids })}
+                    placeholder="Search and select warehouses..."
+                  />
+                </div>
+              </>
+            ) : (
+              // Non-SR Roles (MANAGER / ADMIN): Standard User Form
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
+                      Username <span className="text-rose-600">*</span>
+                    </label>
+                    <input
+                      required
+                      type="text"
+                      placeholder="e.g. manager1"
+                      value={createForm.username}
+                      onChange={(e) => setCreateForm({ ...createForm, username: e.target.value.replace(/\s+/g, '') })}
+                      className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400] font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
+                      Full Name <span className="text-rose-600">*</span>
+                    </label>
+                    <input
+                      required
+                      type="text"
+                      placeholder="e.g. John Doe"
+                      value={createForm.name}
+                      onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                      className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
+                      Email Address <span className="text-neutral-500 font-normal lowercase">(optional)</span>
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="user@example.com (optional)"
+                      value={createForm.email}
+                      onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                      className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
+                      Phone Number <span className="text-neutral-500 font-normal lowercase">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="017XXXXXXXX (optional)"
+                      value={createForm.phone}
+                      onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
+                      className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
+                    Role <span className="text-rose-600">*</span>
+                  </label>
+                  <select
+                    value={createForm.role}
+                    onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as Role })}
+                    className="w-full h-8 px-1.5 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
+                  >
+                    {isSuperAdmin && <option value="ADMIN">ADMIN</option>}
+                    <option value="MANAGER">MANAGER</option>
+                    <option value="SR">SALES REPRESENTATIVE (SR)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider flex items-center justify-between">
+                    <span>Assigned Warehouse(s) {createForm.role === 'MANAGER' ? '*' : ''}</span>
+                    <span className="text-[10px] text-neutral-500 font-normal lowercase">
+                      {createForm.role === 'MANAGER' ? '(at least 1 required, or all)' : '(1, multiple, or all)'}
+                    </span>
+                  </label>
+                  <WarehouseMultiSelect
+                    warehouses={warehouses}
+                    selectedIds={createForm.warehouseIds}
+                    onChange={(ids) => setCreateForm({ ...createForm, warehouseIds: ids })}
+                    placeholder="Search and select warehouses..."
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
+                    Initial Password <span className="text-rose-600">*</span>
+                  </label>
+                  <input
+                    required
+                    type="password"
+                    placeholder="Min. 6 characters"
+                    value={createForm.password}
+                    onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                    className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]"
+                  />
+                </div>
+              </>
+            )}
             <div className="flex justify-end gap-2 pt-3 border-t border-neutral-300 dark:border-slate-700 mt-3">
               <button type="button" onClick={() => setIsCreateOpen(false)} disabled={isCreating} className="w-24 h-8 bg-white dark:bg-slate-800 hover:bg-neutral-100 text-neutral-900 dark:text-neutral-100 border border-neutral-500 font-bold text-[11px] uppercase tracking-wider shadow-sm transition-colors cursor-pointer disabled:opacity-50">Cancel</button>
               <button type="submit" disabled={isCreating} className="w-32 h-8 bg-[#006400] hover:bg-emerald-800 text-white border border-[#004d00] font-bold text-[11px] uppercase tracking-wider shadow-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50">
@@ -589,13 +797,16 @@ export default function UsersPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Username <span className="text-rose-600">*</span></label>
+                <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
+                  Username {editingUser?.role === 'SR' ? '(Auto)' : <span className="text-rose-600">*</span>}
+                </label>
                 <input
-                  required
+                  required={editingUser?.role !== 'SR'}
+                  disabled={editingUser?.role === 'SR'}
                   type="text"
                   value={editForm.username}
                   onChange={(e) => setEditForm({ ...editForm, username: e.target.value.replace(/\s+/g, '') })}
-                  className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400] font-mono"
+                  className="w-full h-8 px-2 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400] font-mono disabled:opacity-60 disabled:bg-neutral-100 dark:disabled:bg-slate-800"
                 />
               </div>
               <div className="space-y-1">
@@ -646,11 +857,18 @@ export default function UsersPage() {
               </div>
             )}
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Assigned Warehouse {editForm.role === 'MANAGER' ? '*' : ''}</label>
-              <select required={editForm.role === 'MANAGER'} value={editForm.warehouseId} onChange={(e) => setEditForm({ ...editForm, warehouseId: e.target.value })} className="w-full h-8 px-1.5 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400]">
-                <option value="">{editForm.role === 'MANAGER' ? '-- Select Warehouse for Manager * --' : '-- No Warehouse Assigned (Global) --'}</option>
-                {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name} {w.code ? `(${w.code})` : ''}</option>)}
-              </select>
+              <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider flex items-center justify-between">
+                <span>Assigned Warehouse(s) {editForm.role === 'MANAGER' ? '*' : ''}</span>
+                <span className="text-[10px] text-neutral-500 font-normal lowercase">
+                  {editForm.role === 'MANAGER' ? '(at least 1 required, or all)' : '(1, multiple, or all)'}
+                </span>
+              </label>
+              <WarehouseMultiSelect
+                warehouses={warehouses}
+                selectedIds={editForm.warehouseIds}
+                onChange={(ids) => setEditForm({ ...editForm, warehouseIds: ids })}
+                placeholder="Search and select warehouses..."
+              />
             </div>
             <div className="flex justify-end gap-2 pt-3 border-t border-neutral-300 dark:border-slate-700 mt-3">
               <button type="button" onClick={() => setEditingUser(null)} disabled={isEditing} className="w-24 h-8 bg-white dark:bg-slate-800 hover:bg-neutral-100 text-neutral-900 dark:text-neutral-100 border border-neutral-500 font-bold text-[11px] uppercase tracking-wider shadow-sm transition-colors cursor-pointer disabled:opacity-50">Cancel</button>

@@ -48,6 +48,15 @@ export interface User {
     name: string;
     code?: string | null;
   } | null;
+  assignedWarehouses?: {
+    id: string;
+    warehouseId: string;
+    warehouse: {
+      id: string;
+      name: string;
+      code?: string | null;
+    };
+  }[];
   mustChangePassword?: boolean;
   lastLoginAt?: string | null;
   createdAt?: string;
