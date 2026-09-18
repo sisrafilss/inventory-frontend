@@ -8,11 +8,16 @@
 [![Vercel](https://img.shields.io/badge/Deployed-Vercel-black?logo=vercel)](https://vercel.com/)
 
 > **Language / ভাষা নির্বাচন:**  
-> 🇺🇸 **English Version (Default)** | [🇧🇩 বাংলা সংস্করণে যেতে নিচে স্ক্রোল করুন বা ক্লিক করুন](#-বাংলা-ডকুমেন্টেশন)
+> 🇺🇸 **English Version (Default)** | [🇧🇩 বাংলা সংস্করণে যান](#-বাংলা-ডকুমেন্টেশন) | [📖 **সুপার এডমিন সহজ বাংলা সহায়িকা (User Guide)**](./USER_GUIDE.md)
+
+> [!TIP]
+> 🇧🇩 **নন-টেকনিক্যাল সুপার এডমিনদের জন্য বিস্তারিত বাংলা সহায়িকা:**  
+> প্রতিটি স্ক্রিন, বোতাম ও হিসাব-নিকাশের সহজ ব্যাখ্যা পড়তে আমাদের [**বাংলা ইউজার গাইড (USER_GUIDE.md)**](./USER_GUIDE.md) দেখুন।
 
 ---
 
 ## 📑 Table of Contents (English)
+
 1. [Project Overview](#-project-overview)
 2. [User Interface & Theme Philosophy](#-user-interface--theme-philosophy)
 3. [Key Modules & Feature Walkthrough](#-key-modules--feature-walkthrough)
@@ -32,6 +37,7 @@
 The **M.R. Enterprise Frontend Application** is a high-performance, responsive ERP dashboard and Point-of-Sale (POS) interface tailored for high-throughput commercial enterprises. Built using **Next.js 14 App Router**, **React 18**, and **TypeScript**, the interface is specifically designed to minimize operator fatigue, maximize keyboard-driven transactional speed, and present complex multi-dimensional inventory data with zero latency.
 
 ### Core Business Capabilities:
+
 - **Instantaneous Point of Sale:** Barcode-scanner-ready checkout modal alongside comprehensive manual billing.
 - **Dynamic Carton/Loose Quantity Conversion:** Automatically calculates line totals, carton pack sizes, and loose piece quantities in real time.
 - **Deep Financial Transparency:** Live calculations of gross profit, customer/supplier dues, discount structures, and multi-channel receipts.
@@ -43,6 +49,7 @@ The **M.R. Enterprise Frontend Application** is a high-performance, responsive E
 ## 🎨 User Interface & Theme Philosophy
 
 Unlike typical minimalist generic templates, this application is styled with a purpose-built **Classic High-Contrast Enterprise Theme**:
+
 - **Dense Data Display:** Maximizes vertical information density so store operators can see 20-30 line items without excessive scrolling.
 - **Visual Alerting:** High-contrast status badges (e.g., Deep Crimson `#800000` for critical reorder warnings/dues and Forest Green `#006400` for active/paid balances).
 - **Consistent Feedback Modal System:** Unified `<ConfirmDialog>` component for destructive and high-value operations with detailed bill-summary breakdowns before submission.
@@ -54,24 +61,24 @@ Unlike typical minimalist generic templates, this application is styled with a p
 
 The frontend dashboard consists of **16 core operational routes**:
 
-| Route Path | Page Title | Primary Functionality |
-| :--- | :--- | :--- |
-| `/dashboard` | **Executive Overview** | Real-time sales metrics, today's gross margin, low-stock alerts counter, and visual revenue charts. |
-| `/products` | **Product Catalog** | Product directory with instant SKU/Barcode search, category & company filters, and sale rate updater modal. |
-| `/sales` | **Sales & Billing** | Sales invoice list, invoice detail modal, thermal memo print layout, POS Barcode modal, and Manual Sale invoice generator. |
-| `/purchases` | **Purchases & Inward** | Vendor purchase history, purchase invoice modal, auto carton/piece breakdown, and supplier balance sync. |
-| `/inventory` | **Stock Management** | Multi-warehouse stock level inspection, stock adjustment modal (`RESTOCK`, `DAMAGE`, `LOSS`, `CORRECTION`), and inter-warehouse stock transfer. |
-| `/parties` | **Customers & Suppliers** | Directory of customers and suppliers, opening dues, credit limits, SR groups, and one-click access to detailed financial ledgers. |
-| `/payments` | **Collections & Vouchers** | Customer due collections and vendor disbursement vouchers with Cash, Bank, bKash, Nagad, and Cheque payment modes. |
-| `/returns` | **Sales & Purchase Returns** | Comprehensive return management with restock logic and Cash or Credit Adjustment options. |
-| `/expenses` | **Operational Expenses** | Expense tracking by category (Rents, Salaries, Utilities, Logistics) with date range filters. |
-| `/reports` | **Analytics & Aging** | Interactive 4-tab analytical suite: Stock Aging (custom day intervals), Product Velocity, Low Stock Reorder Alerts, and User Performance. |
-| `/warehouses` | **Warehouse Settings** | Physical warehouse management, stock count per location, and default warehouse assignment. |
-| `/categories` | **Category Setup** | Catalog classification taxonomy management. |
-| `/companies` | **Companies / Brands** | Manufacturer registrations associated with product lines. |
-| `/users` | **User Administration** | User accounts, approval pipeline (`PENDING` $\rightarrow$ `ACTIVE`), and warehouse role assignments. |
-| `/audit-logs` | **System Audit Trail** | Security logs recording administrative modifications with actor, action, timestamp, and JSON metadata. |
-| `/profile` | **User Profile** | Operator credential management and secure password change modal. |
+| Route Path    | Page Title                   | Primary Functionality                                                                                                                           |
+| :------------ | :--------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/dashboard`  | **Executive Overview**       | Real-time sales metrics, today's gross margin, low-stock alerts counter, and visual revenue charts.                                             |
+| `/products`   | **Product Catalog**          | Product directory with instant SKU/Barcode search, category & company filters, and sale rate updater modal.                                     |
+| `/sales`      | **Sales & Billing**          | Sales invoice list, invoice detail modal, thermal memo print layout, POS Barcode modal, and Manual Sale invoice generator.                      |
+| `/purchases`  | **Purchases & Inward**       | Vendor purchase history, purchase invoice modal, auto carton/piece breakdown, and supplier balance sync.                                        |
+| `/inventory`  | **Stock Management**         | Multi-warehouse stock level inspection, stock adjustment modal (`RESTOCK`, `DAMAGE`, `LOSS`, `CORRECTION`), and inter-warehouse stock transfer. |
+| `/parties`    | **Customers & Suppliers**    | Directory of customers and suppliers, opening dues, credit limits, SR groups, and one-click access to detailed financial ledgers.               |
+| `/payments`   | **Collections & Vouchers**   | Customer due collections and vendor disbursement vouchers with Cash, Bank, bKash, Nagad, and Cheque payment modes.                              |
+| `/returns`    | **Sales & Purchase Returns** | Comprehensive return management with restock logic and Cash or Credit Adjustment options.                                                       |
+| `/expenses`   | **Operational Expenses**     | Expense tracking by category (Rents, Salaries, Utilities, Logistics) with date range filters.                                                   |
+| `/reports`    | **Analytics & Aging**        | Interactive 4-tab analytical suite: Stock Aging (custom day intervals), Product Velocity, Low Stock Reorder Alerts, and User Performance.       |
+| `/warehouses` | **Warehouse Settings**       | Physical warehouse management, stock count per location, and default warehouse assignment.                                                      |
+| `/categories` | **Category Setup**           | Catalog classification taxonomy management.                                                                                                     |
+| `/companies`  | **Companies / Brands**       | Manufacturer registrations associated with product lines.                                                                                       |
+| `/users`      | **User Administration**      | User accounts, approval pipeline (`PENDING` $\rightarrow$ `ACTIVE`), and warehouse role assignments.                                            |
+| `/audit-logs` | **System Audit Trail**       | Security logs recording administrative modifications with actor, action, timestamp, and JSON metadata.                                          |
+| `/profile`    | **User Profile**             | Operator credential management and secure password change modal.                                                                                |
 
 ---
 
@@ -151,21 +158,24 @@ NEXT_PUBLIC_API_URL="http://localhost:5000/api"
 ```
 
 ### Environment URL Mappings:
-| Environment | Branch | Value |
-| :--- | :--- | :--- |
-| **Local Development** | `local` | `http://localhost:5000/api` |
-| **Dev / Preview** | `dev` | `https://inventory-backend-dev.vercel.app/api` |
-| **Production** | `main` | `https://inventory-backend-production-main.vercel.app/api` |
+
+| Environment           | Branch  | Value                                                      |
+| :-------------------- | :------ | :--------------------------------------------------------- |
+| **Local Development** | `local` | `http://localhost:5000/api`                                |
+| **Dev / Preview**     | `dev`   | `https://inventory-backend-dev.vercel.app/api`             |
+| **Production**        | `main`  | `https://inventory-backend-production-main.vercel.app/api` |
 
 ---
 
 ## 🛠 Installation & Local Development
 
 ### Prerequisites:
+
 - **Node.js:** v20.x or v22.x
 - Running instance of the **Backend API** (Local on port 5000 or remote)
 
 ### Setup Steps:
+
 ```bash
 # 1. Navigate to the frontend directory
 cd frontend
@@ -204,12 +214,14 @@ npm run test
 The frontend is deployed on **Vercel** with full GitHub CI/CD integration:
 
 ### 1. Production Environment (`main` Branch):
+
 - **Live URL:** 👉 **[https://mr-enterprise-main.vercel.app](https://mr-enterprise-main.vercel.app)**
 - **Connected Backend API:** `https://inventory-backend-production-main.vercel.app/api`
 - **Connected Database:** Neon Production PostgreSQL (Real client data)
 - **Deployment Trigger:** Merging and pushing code to the `main` branch.
 
 ### 2. Dev / Staging Environment (`dev` Branch):
+
 - **Live URL:** 👉 **[https://mr-enterprise-dev.vercel.app](https://mr-enterprise-dev.vercel.app)**
 - **Connected Backend API:** `https://inventory-backend-dev.vercel.app/api`
 - **Connected Database:** Neon Dev PostgreSQL (Testing data)
@@ -238,6 +250,9 @@ The frontend is deployed on **Vercel** with full GitHub CI/CD integration:
 
 এম.আর. এন্টারপ্রাইজ ইনভেন্টরি ম্যানেজমেন্ট ফ্রন্টএন্ড হলো একটি আধুনিক, দ্রুতগতির এবং রেস্পন্সিভ ERP ও পয়েন্ট-অব-সেল (POS) ড্যাশবোর্ড। এটি পাইকারি ও খুচরা বাণিজ্যিক প্রতিষ্ঠানের প্রতিদিনের হাজার হাজার পণ্যের কেনাবেচা, ওয়্যারহাউস স্টক ট্র্যাকিং, কাস্টমার ও সাপ্লায়ারদের বাকি-বকেয়া খতিয়ান এবং রিয়েল-টাইম এনালিটিক্স নির্ভুলভাবে পরিচালনার জন্য বিশেষভাবে তৈরি করা হয়েছে।
 
+> 📖 **সুপার এডমিনদের জন্য বিশেষ গাইড:**  
+> আপনি যদি কম্পিউটার ব্যবহারে নতুন হন বা প্রতিটি বাটন ও স্ক্রিনের সহজ বাংলা ব্যাখ্যা চান, তবে অনুগ্রহ করে আমাদের [**পূর্ণাঙ্গ বাংলা ইউজার গাইড (USER_GUIDE.md)**](./USER_GUIDE.md) পড়ুন।
+
 ---
 
 ### 📌 প্রধান ফিচার ও মডিউলসমূহ:
@@ -264,6 +279,7 @@ The frontend is deployed on **Vercel** with full GitHub CI/CD integration:
 ---
 
 ### 💻 টেকনোলজি স্ট্যাক:
+
 - **ফ্রেমওয়ার্ক:** Next.js 14.2 (App Router)
 - **লাইব্রেরি:** React 18.3
 - **ল্যাঙ্গুয়েজ:** TypeScript 5.6
@@ -295,6 +311,7 @@ npm install
 # ৩. লোকাল ডেভেলপমেন্ট সার্ভার চালু করুন
 npm run dev
 ```
+
 ব্রাউজারে ভিজিট করুন: `http://localhost:3000`
 
 ---
@@ -302,6 +319,7 @@ npm run dev
 ### 🌐 Vercel ক্লাউড ডেপ্লয়মেন্ট আর্কিটেকচার:
 
 সিস্টেমটি দুটি পৃথক ক্লাউড পরিবেশে পরিচালিত হচ্ছে:
+
 1. **প্রোডাকশন এনভায়রনমেন্ট (`main` ব্রাঞ্চ):**
    - লাইভ URL: 👉 **[https://mr-enterprise-main.vercel.app](https://mr-enterprise-main.vercel.app)**
    - সংযুক্ত ব্যাকএন্ড: `https://inventory-backend-production-main.vercel.app/api`
@@ -314,6 +332,7 @@ npm run dev
 ---
 
 ### 👨‍💻 লেখক ও রক্ষণাবেক্ষণ:
+
 - **ডেভেলপার:** মো: ইসরাফিল হোসেন (Israfil Hossen)
 - **লাইসেন্স:** ISC License
 
