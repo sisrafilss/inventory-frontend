@@ -30,7 +30,8 @@ import {
   FileText,
   KeyRound,
   ExternalLink,
-  Info,
+  ChevronUp,
+  Check,
 } from 'lucide-react';
 
 interface GuideSection {
@@ -41,6 +42,8 @@ interface GuideSection {
   category: string;
   keywords: string[];
   summary: string;
+  routeHref?: string;
+  routeLabel?: string;
   content: React.ReactNode;
 }
 
@@ -48,41 +51,105 @@ export default function UserGuidePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSectionId, setActiveSectionId] = useState<string>('sec-intro');
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const contentContainerRef = useRef<HTMLDivElement>(null);
+  const [faqsExpanded, setFaqsExpanded] = useState(false);
 
-  // Handle scroll detection for back-to-top and active section
+  const contentContainerRef = useRef<HTMLDivElement>(null);
+  const tocNavRef = useRef<HTMLDivElement>(null);
+  const isProgrammaticScroll = useRef(false);
+
+  // Scroll detection on the <main> container for TOC active spy and back-to-top button
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 400) {
-        setShowScrollTop(true);
-      } else {
-        setShowScrollTop(false);
+    const container = contentContainerRef.current;
+    if (!container) return;
+
+    let ticking = false;
+
+    const handleContainerScroll = () => {
+      setShowScrollTop(container.scrollTop > 300);
+
+      // Skip scroll spy if programmatic smooth scroll is currently executing
+      if (isProgrammaticScroll.current) return;
+
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          ticking = false;
+          const containerRect = container.getBoundingClientRect();
+
+          // Check which section is in view from top down
+          let currentId = sections[0]?.id || 'sec-intro';
+          for (let i = 0; i < sections.length; i++) {
+            const el = document.getElementById(sections[i].id);
+            if (el) {
+              const elRect = el.getBoundingClientRect();
+              // When section top is at or above the upper portion of container
+              if (elRect.top - containerRect.top <= 140) {
+                currentId = sections[i].id;
+              }
+            }
+          }
+          setActiveSectionId(currentId);
+        });
+        ticking = true;
       }
     };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+
+    container.addEventListener('scroll', handleContainerScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleContainerScroll);
   }, []);
+
+  // When activeSectionId changes, ensure active item remains in view in TOC sidebar
+  useEffect(() => {
+    const nav = tocNavRef.current;
+    if (!nav) return;
+    const activeBtn = nav.querySelector(`[data-toc-id="${activeSectionId}"]`) as HTMLElement;
+    if (activeBtn) {
+      const navRect = nav.getBoundingClientRect();
+      const btnRect = activeBtn.getBoundingClientRect();
+      if (btnRect.top < navRect.top || btnRect.bottom > navRect.bottom) {
+        activeBtn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }, [activeSectionId]);
 
   const scrollToSection = (id: string) => {
     setActiveSectionId(id);
-    const element = document.getElementById(id);
-    if (element) {
-      const headerOffset = 70;
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-      window.scrollTo({
-        top: offsetPosition,
+    const container = contentContainerRef.current;
+    const target = document.getElementById(id);
+    if (container && target) {
+      isProgrammaticScroll.current = true;
+      const containerRect = container.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const targetOffset = targetRect.top - containerRect.top + container.scrollTop;
+
+      container.scrollTo({
+        top: Math.max(0, targetOffset - 10),
         behavior: 'smooth',
       });
+
+      // Reset programmatic flag after smooth scroll completes
+      setTimeout(() => {
+        isProgrammaticScroll.current = false;
+      }, 700);
     }
   };
 
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    contentContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const toggleAllFaqs = () => {
+    const detailsElements = contentContainerRef.current?.querySelectorAll('details');
+    if (detailsElements) {
+      const nextState = !faqsExpanded;
+      detailsElements.forEach((d) => {
+        d.open = nextState;
+      });
+      setFaqsExpanded(nextState);
+    }
   };
 
   // Section definitions
@@ -211,6 +278,8 @@ export default function UserGuidePage() {
         category: 'দৈনন্দিন কার্যক্রম',
         keywords: ['ড্যাশবোর্ড', 'আজকের বিক্রি', 'চলতি মাস', 'স্টক ভ্যালুয়েশন', 'লো স্টক', 'শর্টকাট'],
         summary: 'ব্যবসার সার্বিক আয়, মোট বিক্রি, মজুদ মালের সম্পদ এবং সতর্কতা এক নজরে পরখ করুন।',
+        routeHref: '/dashboard',
+        routeLabel: 'সরাসরি Dashboard পেজে যান ↗',
         content: (
           <div className="space-y-4 text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed">
             <p>
@@ -261,6 +330,8 @@ export default function UserGuidePage() {
         category: 'পণ্য ও স্টক',
         keywords: ['পণ্য', 'প্রোডাক্ট', 'বারকোড', 'প্যাক সাইজ', 'কার্টন', 'ক্রয়মূল্য', 'বিক্রয়মূল্য', 'রিঅর্ডার'],
         summary: 'নতুন পণ্য যোগ করা, বারকোড দেওয়া, কেনা দর ও বিক্রয় দর নির্ধারণ এবং লেবেল প্রিন্ট।',
+        routeHref: '/products',
+        routeLabel: 'সরাসরি Product Catalog পেজে যান ↗',
         content: (
           <div className="space-y-4 text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed">
             <h4 className="font-bold text-base text-[#004d00] dark:text-emerald-400">
@@ -304,6 +375,8 @@ export default function UserGuidePage() {
         category: 'দৈনন্দিন কার্যক্রম',
         keywords: ['বিক্রি', 'সেলস', 'পিওএস', 'বারকোড', 'ম্যানুয়াল চালান', 'ক্যাশ মেমো', 'প্রিন্ট', 'কেন্সেল'],
         summary: 'ম্যানুয়াল চালান বা বারকোড স্ক্যানার দিয়ে নিমেষে ক্যাশ ও বাকির বিল তৈরি ও প্রিন্ট।',
+        routeHref: '/sales',
+        routeLabel: 'সরাসরি Sales রেজিস্টার পেজে যান ↗',
         content: (
           <div className="space-y-4 text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed">
             <p>সফটওয়্যারে দুই ধরনের বিক্রির ব্যবস্থা রাখা হয়েছে:</p>
@@ -358,6 +431,8 @@ export default function UserGuidePage() {
         category: 'দৈনন্দিন কার্যক্রম',
         keywords: ['ক্রয়', 'পারচেজ', 'সাপ্লায়ার', 'মহাজন', 'স্টক ইন', 'গুদামে মাল ঢোকা'],
         summary: 'মহাজন বা কোম্পানির কাছ থেকে মাল ক্রয়ের চালান এন্ট্রি ও গুদামের স্টক বৃদ্ধি।',
+        routeHref: '/purchases',
+        routeLabel: 'সরাসরি Purchases পেজে যান ↗',
         content: (
           <div className="space-y-4 text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed">
             <p>মহাজন বা কোম্পানির গাড়ি থেকে মাল নামার সাথে সাথে এই সেকশনে এন্ট্রি করতে হবে। এতে গুদামের স্টক স্বয়ংক্রিয়ভাবে বেড়ে যায়।</p>
@@ -384,6 +459,8 @@ export default function UserGuidePage() {
         category: 'পণ্য ও স্টক',
         keywords: ['ওয়্যারহাউস', 'গুদাম', 'গোডাউন', 'মাল্টি গুদাম', 'ডিফল্ট গুদাম'],
         summary: 'একাধিক দোকান বা গোডাউন তৈরি করা এবং কোন গুদামে কত মাল আছে তা পর্যবেক্ষণ।',
+        routeHref: '/warehouses',
+        routeLabel: 'সরাসরি Warehouses পেজে যান ↗',
         content: (
           <div className="space-y-4 text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed">
             <p>আপনার প্রতিষ্ঠানে যদি একাধিক দোকান বা গোডাউন থাকে (যেমন: মেইন শোরুম, গোডাউন-১, গোডাউন-২), তবে এটি ব্যবহার করবেন।</p>
@@ -404,6 +481,8 @@ export default function UserGuidePage() {
         category: 'পণ্য ও স্টক',
         keywords: ['এডজাস্টমেন্ট', 'ভাঙা মাল', 'নষ্ট মাল', 'ট্রান্সফার', 'কারেকশন', 'ড্যামেজ'],
         summary: 'মাল ভেঙে নষ্ট হলে, হারিয়ে গেলে বা গুদামের মধ্যে মাল স্থানান্তরের সঠিক নিয়ম।',
+        routeHref: '/inventory',
+        routeLabel: 'সরাসরি Inventory পেজে যান ↗',
         content: (
           <div className="space-y-4 text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -445,6 +524,8 @@ export default function UserGuidePage() {
         category: 'হিসাব ও দেনা-পাওনা',
         keywords: ['কাস্টমার', 'সাপ্লায়ার', 'বাকি', 'লেজার', 'খতিয়ান', 'এসআর গ্রুপ', 'ওপেনিং ডিউ'],
         summary: 'কাস্টমার ও মহাজনদের আগের বাকি সেট করা এবং তাদের সম্পূর্ণ খতিয়ান (Ledger) দেখা।',
+        routeHref: '/parties',
+        routeLabel: 'সরাসরি Parties পেজে যান ↗',
         content: (
           <div className="space-y-4 text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed">
             <p>মেন্যু থেকে <strong>Parties</strong>-এ গেলে দুটি ট্যাব দেখতে পাবেন: <strong>Suppliers</strong> (মহাজন) এবং <strong>Customers</strong> (কাস্টমার)।</p>
@@ -475,6 +556,8 @@ export default function UserGuidePage() {
         category: 'হিসাব ও দেনা-পাওনা',
         keywords: ['পেমেন্ট', 'টাকা আদায়', 'কালেকশন', 'মহাজন পরিশোধ', 'ভাউচার', 'বিকাশ', 'চেক'],
         summary: 'কাস্টমার বাকি টাকা দিতে আসলে মানি রিসিট কাটা এবং মহাজনের বাকি শোধ করা।',
+        routeHref: '/payments',
+        routeLabel: 'সরাসরি Payments পেজে যান ↗',
         content: (
           <div className="space-y-4 text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -498,6 +581,8 @@ export default function UserGuidePage() {
         category: 'দৈনন্দিন কার্যক্রম',
         keywords: ['রিটার্ন', 'মাল ফেরত', 'সেলস রিটার্ন', 'পারচেজ রিটার্ন', 'টাকা ফেরত', 'এডজাস্টমেন্ট'],
         summary: 'কাস্টমার মাল ফেরত দিলে ক্যাশ ফেরত দেওয়া বা বকেয়া থেকে টাকা কাটার উপায়।',
+        routeHref: '/returns',
+        routeLabel: 'সরাসরি Returns পেজে যান ↗',
         content: (
           <div className="space-y-4 text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed">
             <h4 className="font-bold text-base text-[#004d00] dark:text-emerald-400">
@@ -520,6 +605,8 @@ export default function UserGuidePage() {
         category: 'হিসাব ও দেনা-পাওনা',
         keywords: ['খরচ', 'দোকান ভাড়া', 'বিদ্যুৎ বিল', 'বেতন', 'চা নাস্তা', 'এক্সপেন্স'],
         summary: 'দোকান ভাড়া, কর্মচারীর বেতন ও নাস্তা বিল এন্ট্রি রাখা যাতে সঠিক নিট লাভ জানা যায়।',
+        routeHref: '/expenses',
+        routeLabel: 'সরাসরি Expenses পেজে যান ↗',
         content: (
           <div className="space-y-4 text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed">
             <p>দোকানের প্রতিদিনের ছোট-বড় সব খরচ এন্ট্রি দিতে <strong>Expenses</strong> মেন্যুতে যান।</p>
@@ -539,6 +626,8 @@ export default function UserGuidePage() {
         category: 'রিপোর্ট ও বিশ্লেষণ',
         keywords: ['রিপোর্ট', 'স্টক এজিং', 'ফাস্ট মুভিং', 'ব্যালেন্স শিট', 'ইনভয়েস লাভ', 'এসআর সেলস'],
         summary: 'স্টক এজিং, ডেড স্টক, ব্যালেন্স শিট এবং প্রতিটি চালানে লাভ দেখার পূর্ণাঙ্গ গাইড।',
+        routeHref: '/reports',
+        routeLabel: 'সরাসরি Reports পেজে যান ↗',
         content: (
           <div className="space-y-4 text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed">
             <p>ব্যবসার গুরুত্বপূর্ণ সিদ্ধান্ত নেওয়ার জন্য <strong>Reports & Ledger</strong> হলো প্রধান জায়গা।</p>
@@ -579,6 +668,8 @@ export default function UserGuidePage() {
         category: 'এডমিন ও নিরাপত্তা',
         keywords: ['ইউজার', 'কর্মচারী', 'ম্যানেজার', 'পাসওয়ার্ড রিসেট', 'অনুমোদন', 'ডিএক্টিভ'],
         summary: 'কর্মচারীদের জন্য আইডি তৈরি, পাসওয়ার্ড ভুলে গেলে রিসেট করা এবং পদবী নিয়ন্ত্রণ।',
+        routeHref: '/users',
+        routeLabel: 'সরাসরি Users পেজে যান ↗',
         content: (
           <div className="space-y-4 text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed">
             <p>দোকানে কাজ করা কর্মচারীদের জন্য আলাদা ইউজার আইডি তৈরি করতে <strong>Users</strong> মেন্যুতে যান।</p>
@@ -599,6 +690,8 @@ export default function UserGuidePage() {
         category: 'এডমিন ও নিরাপত্তা',
         keywords: ['অডিট', 'প্রমাণ', 'লগ', 'কারচুপি', 'নিরাপত্তা', 'ইতিহাস'],
         summary: 'কে কখন কোন চালান কাটলো বা তথ্য পরিবর্তন করলো তার ডিজিটাল প্রমাণ দেখা।',
+        routeHref: '/audit-logs',
+        routeLabel: 'সরাসরি Audit Trail পেজে যান ↗',
         content: (
           <div className="space-y-4 text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed">
             <p>সফটওয়্যারে কোনো কর্মচারী কারচুপি করতে পারবে না। <strong>Audit Trail</strong> মেন্যুতে প্রতিটি কাজের ডিজিটাল লগ সংরক্ষিত থাকে:</p>
@@ -659,28 +752,54 @@ export default function UserGuidePage() {
               </div>
             </div>
 
-            <h4 className="font-bold text-base text-[#800000] dark:text-rose-400 pt-2">
-              সচরাচর প্রশ্ন ও সমাধান (FAQ):
-            </h4>
+            <div className="flex items-center justify-between pt-2">
+              <h4 className="font-bold text-base text-[#800000] dark:text-rose-400">
+                সচরাচর প্রশ্ন ও সমাধান (FAQ):
+              </h4>
+              <button
+                type="button"
+                onClick={toggleAllFaqs}
+                className="text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer flex items-center gap-1"
+              >
+                {faqsExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                <span>{faqsExpanded ? 'সবগুলো বন্ধ করুন' : 'সবগুলো উত্তর দেখুন'}</span>
+              </button>
+            </div>
+
             <div className="space-y-2 text-xs">
-              <details className="p-2.5 bg-white dark:bg-slate-900 border border-neutral-300 dark:border-slate-700 rounded-xs cursor-pointer">
-                <summary className="font-bold text-neutral-900 dark:text-neutral-100">প্রশ্ন: আমি ভুল করে একটি চালানে ভুল মাল বা ভুল টাকা লিখে ফেলেছি, এখন কী করব?</summary>
-                <p className="mt-1.5 text-neutral-600 dark:text-neutral-400 pl-2">উত্তর: কোনো চিন্তা নেই! Sales মেন্যুতে যান। সেই চালানটি খুঁজে বের করে পাশে থাকা লাল রঙের <strong>Cancel</strong> বাটনে চাপ দিন। সাথে সাথে চালানটি বাতিল হয়ে মাল আবার গুদামে ফিরে আসবে এবং কাস্টমারের বাকি মুছে যাবে। এরপর নতুন সঠিক চালানটি কেটে নিন।</p>
+              <details className="p-2.5 bg-white dark:bg-slate-900 border border-neutral-300 dark:border-slate-700 rounded-xs cursor-pointer group">
+                <summary className="font-bold text-neutral-900 dark:text-neutral-100 flex items-center justify-between">
+                  <span>প্রশ্ন: আমি ভুল করে একটি চালানে ভুল মাল বা ভুল টাকা লিখে ফেলেছি, এখন কী করব?</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-neutral-400 group-open:rotate-180 transition-transform" />
+                </summary>
+                <p className="mt-1.5 text-neutral-600 dark:text-neutral-400 pl-2 border-t border-neutral-200 dark:border-slate-800 pt-1.5">
+                  উত্তর: কোনো চিন্তা নেই! Sales মেন্যুতে যান। সেই চালানটি খুঁজে বের করে পাশে থাকা লাল রঙের <strong>Cancel</strong> বাটনে চাপ দিন। সাথে সাথে চালানটি বাতিল হয়ে মাল আবার গুদামে ফিরে আসবে এবং কাস্টমারের বাকি মুছে যাবে। এরপর নতুন সঠিক চালানটি কেটে নিন।
+                </p>
               </details>
-              <details className="p-2.5 bg-white dark:bg-slate-900 border border-neutral-300 dark:border-slate-700 rounded-xs cursor-pointer">
-                <summary className="font-bold text-neutral-900 dark:text-neutral-100">প্রশ্ন: কাস্টমারের নাম তালিকায় খুঁজে পাচ্ছি না কেন?</summary>
-                <p className="mt-1.5 text-neutral-600 dark:text-neutral-400 pl-2">উত্তর: কাস্টমারটি হয়তো দোকানে নতুন। চালান কাটার সময় কাস্টমার ঘরের পাশে থাকা <strong>+ Add Customer</strong> বাটনে চাপ দিয়ে নাম ও ফোন নম্বর লিখে সাথে সাথে যুক্ত করে নিন।</p>
+              <details className="p-2.5 bg-white dark:bg-slate-900 border border-neutral-300 dark:border-slate-700 rounded-xs cursor-pointer group">
+                <summary className="font-bold text-neutral-900 dark:text-neutral-100 flex items-center justify-between">
+                  <span>প্রশ্ন: কাস্টমারের নাম তালিকায় খুঁজে পাচ্ছি না কেন?</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-neutral-400 group-open:rotate-180 transition-transform" />
+                </summary>
+                <p className="mt-1.5 text-neutral-600 dark:text-neutral-400 pl-2 border-t border-neutral-200 dark:border-slate-800 pt-1.5">
+                  উত্তর: কাস্টমারটি হয়তো দোকানে নতুন। চালান কাটার সময় কাস্টমার ঘরের পাশে থাকা <strong>+ Add Customer</strong> বাটনে চাপ দিয়ে নাম ও ফোন নম্বর লিখে সাথে সাথে যুক্ত করে নিন।
+                </p>
               </details>
-              <details className="p-2.5 bg-white dark:bg-slate-900 border border-neutral-300 dark:border-slate-700 rounded-xs cursor-pointer">
-                <summary className="font-bold text-neutral-900 dark:text-neutral-100">প্রশ্ন: কম্পিউটার হঠাৎ নষ্ট হয়ে গেলে আমার দোকানের ডাটা কি মুছে যাবে?</summary>
-                <p className="mt-1.5 text-neutral-600 dark:text-neutral-400 pl-2">উত্তর: না, কখনোই না! আপনার সমস্ত ডাটা আন্তর্জাতিক ক্লাউড সার্ভারে (Neon PostgreSQL) সুরক্ষিত থাকে। কম্পিউটার নষ্ট হলেও যেকোনো নতুন কম্পিউটার বা মোবাইল দিয়ে লগইন করলেই আপনার সব হিসাব অক্ষত অবস্থায় পেয়ে যাবেন।</p>
+              <details className="p-2.5 bg-white dark:bg-slate-900 border border-neutral-300 dark:border-slate-700 rounded-xs cursor-pointer group">
+                <summary className="font-bold text-neutral-900 dark:text-neutral-100 flex items-center justify-between">
+                  <span>প্রশ্ন: কম্পিউটার হঠাৎ নষ্ট হয়ে গেলে আমার দোকানের ডাটা কি মুছে যাবে?</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-neutral-400 group-open:rotate-180 transition-transform" />
+                </summary>
+                <p className="mt-1.5 text-neutral-600 dark:text-neutral-400 pl-2 border-t border-neutral-200 dark:border-slate-800 pt-1.5">
+                  উত্তর: না, কখনোই না! আপনার সমস্ত ডাটা আন্তর্জাতিক ক্লাউড সার্ভারে (Neon PostgreSQL) সুরক্ষিত থাকে। কম্পিউটার নষ্ট হলেও যেকোনো নতুন কম্পিউটার বা মোবাইল দিয়ে লগইন করলেই আপনার সব হিসাব অক্ষত অবস্থায় পেয়ে যাবেন।
+                </p>
               </details>
             </div>
           </div>
         ),
       },
     ],
-    []
+    [faqsExpanded]
   );
 
   // Filter sections by search query
@@ -697,21 +816,46 @@ export default function UserGuidePage() {
 
   return (
     <div className="w-full h-full flex-1 min-h-0 flex flex-col bg-[#eef4f9] dark:bg-slate-950">
+      {/* Global CSS for Print Mode */}
+      <style jsx global>{`
+        @media print {
+          body, html {
+            overflow: visible !important;
+            height: auto !important;
+            background: white !important;
+          }
+          aside, header, nav, button, .no-print {
+            display: none !important;
+          }
+          main {
+            overflow: visible !important;
+            height: auto !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          section {
+            page-break-inside: avoid;
+            margin-bottom: 24px !important;
+            border: 1px solid #ccc !important;
+            box-shadow: none !important;
+          }
+        }
+      `}</style>
       
       {/* 1. Header Banner Bar */}
-      <div className="bg-[#004d00] dark:bg-emerald-950 text-white px-4 py-2.5 border-b border-[#003800] dark:border-emerald-900 flex flex-wrap items-center justify-between gap-3 shadow-md select-none shrink-0 sticky top-0 z-20">
+      <div className="bg-[#004d00] dark:bg-emerald-950 text-white px-4 py-2 border-b border-[#003800] dark:border-emerald-900 flex flex-wrap items-center justify-between gap-3 shadow-md select-none shrink-0 sticky top-0 z-20">
         <div className="flex items-center gap-2.5">
           <BookOpen className="w-5 h-5 text-emerald-300 shrink-0" />
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-base font-bold tracking-wide">
-                এম.আর. এন্টারপ্রাইজ — সফটওয়্যার ব্যবহার সহায়িকা (User Manual)
+                এম.আর. এন্টারপ্রাইজ — ব্যবহারকারী সহায়িকা (User Manual)
               </h1>
               <span className="text-[10px] bg-emerald-800 text-emerald-100 px-1.5 py-0.2 rounded-xs font-mono font-bold border border-emerald-700">
                 সহজ বাংলা গাইড
               </span>
             </div>
-            <p className="text-[11.5px] text-emerald-100/85">
+            <p className="text-[11px] text-emerald-100/85">
               নন-টেকনিক্যাল সুপার এডমিন ও অপারেটরদের জন্য প্রতিটি স্ক্রিন ও বাটনের বিস্তারিত নিয়মাবলী
             </p>
           </div>
@@ -722,12 +866,12 @@ export default function UserGuidePage() {
           <div className="relative">
             <input
               type="text"
-              placeholder="গাইডে কোনো কিছু খুঁজুন..."
+              placeholder="গাইডে যেকোনো কিছু খুঁজুন..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-48 sm:w-64 pl-7 pr-2 py-1 bg-white/10 hover:bg-white/15 focus:bg-white text-white focus:text-neutral-900 placeholder:text-emerald-200/70 border border-emerald-600/60 rounded-xs text-xs focus:outline-none transition-all"
+              className="w-48 sm:w-60 pl-7 pr-2 py-1 bg-white/10 hover:bg-white/15 focus:bg-white text-white focus:text-neutral-900 placeholder:text-emerald-200/70 border border-emerald-600/60 rounded-xs text-xs focus:outline-none transition-all"
             />
-            <Search className="w-3.5 h-3.5 text-emerald-300 absolute left-2 top-2" />
+            <Search className="w-3.5 h-3.5 text-emerald-300 absolute left-2 top-1.5" />
           </div>
 
           {/* Print Button */}
@@ -764,13 +908,17 @@ export default function UserGuidePage() {
             )}
           </div>
 
-          <nav className="flex-1 overflow-y-auto p-1.5 space-y-0.5 custom-scrollbar text-xs">
+          <nav
+            ref={tocNavRef}
+            className="flex-1 overflow-y-auto p-1.5 space-y-0.5 custom-scrollbar text-xs"
+          >
             {filteredSections.map((sec) => {
               const Icon = sec.icon;
               const isActive = activeSectionId === sec.id;
               return (
                 <button
                   key={sec.id}
+                  data-toc-id={sec.id}
                   type="button"
                   onClick={() => scrollToSection(sec.id)}
                   className={`w-full text-left px-2 py-1.5 rounded-xs transition-all flex items-start gap-2 cursor-pointer ${
@@ -833,7 +981,7 @@ export default function UserGuidePage() {
                 <section
                   key={sec.id}
                   id={sec.id}
-                  className="bg-white dark:bg-slate-900 border border-neutral-300 dark:border-slate-800 rounded-xs shadow-xs overflow-hidden transition-all scroll-mt-20"
+                  className="bg-white dark:bg-slate-900 border border-neutral-300 dark:border-slate-800 rounded-xs shadow-xs overflow-hidden transition-all scroll-mt-4"
                 >
                   {/* Section Title Bar */}
                   <div className="bg-[#eaf1f8] dark:bg-slate-800/90 border-b border-neutral-300 dark:border-slate-700 px-3 py-2 flex items-center justify-between gap-2">
@@ -846,9 +994,21 @@ export default function UserGuidePage() {
                         {sec.title}
                       </h3>
                     </div>
-                    <span className="hidden sm:inline text-[10px] text-neutral-500 font-bold uppercase tracking-wider px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-neutral-300 dark:border-slate-700 rounded-xs">
-                      {sec.category}
-                    </span>
+
+                    <div className="flex items-center gap-2">
+                      {sec.routeHref && (
+                        <Link
+                          href={sec.routeHref}
+                          className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 flex items-center gap-1 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-xs border border-neutral-300 dark:border-slate-700 hover:border-emerald-600 transition-colors shadow-2xs"
+                        >
+                          <span>{sec.routeLabel}</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      )}
+                      <span className="hidden sm:inline text-[10px] text-neutral-500 font-bold uppercase tracking-wider px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-neutral-300 dark:border-slate-700 rounded-xs">
+                        {sec.category}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Summary Callout */}
