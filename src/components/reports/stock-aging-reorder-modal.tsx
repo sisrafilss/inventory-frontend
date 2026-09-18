@@ -42,6 +42,13 @@ export function StockAgingReportView({
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
 
+  const handleTabChange = (tab: 'reorder' | 'aging' | 'velocity' | 'user') => {
+    if (activeTab === tab) return;
+    setData(null);
+    setLoading(true);
+    setActiveTab(tab);
+  };
+
   useEffect(() => {
     if (initialTab) setActiveTab(initialTab);
   }, [initialTab]);
@@ -52,6 +59,7 @@ export function StockAgingReportView({
 
   const fetchTabData = async () => {
     setLoading(true);
+    setData(null);
     try {
       let endpoint = '/reports/reorder-alerts';
       if (activeTab === 'aging') endpoint = '/reports/stock-aging';
@@ -165,8 +173,8 @@ export function StockAgingReportView({
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`px-3 py-1.5 font-bold rounded-xs text-xs flex items-center gap-1.5 transition-colors uppercase tracking-wider ${
+                  onClick={() => handleTabChange(tab.id as any)}
+                  className={`px-3 py-1.5 font-bold rounded-xs text-xs flex items-center gap-1.5 transition-colors uppercase tracking-wider cursor-pointer ${
                     activeTab === tab.id
                       ? 'bg-[#0056b3] text-white shadow-xs'
                       : 'bg-white dark:bg-slate-900 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 border border-neutral-300 dark:border-slate-700'
@@ -250,21 +258,21 @@ export function StockAgingReportView({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-200 dark:divide-slate-800 font-medium">
-                    {loading ? (
+                    {loading || !data?.items ? (
                       <tr>
                         <td colSpan={9} className="py-12 text-center text-neutral-500">
                           <Loader2 className="w-5 h-5 animate-spin mx-auto mb-1 text-emerald-700" />
                           Checking stock reorder levels...
                         </td>
                       </tr>
-                    ) : (data?.items || []).length === 0 ? (
+                    ) : data.items.length === 0 ? (
                       <tr>
                         <td colSpan={9} className="py-12 text-center text-emerald-700 font-bold">
                           ✓ All inventory items are sufficiently stocked above reorder levels.
                         </td>
                       </tr>
                     ) : (
-                      (data?.items || []).map((item: any, idx: number) => (
+                      data.items.map((item: any, idx: number) => (
                         <tr key={item.id || idx} className="hover:bg-neutral-50 dark:hover:bg-slate-900/60 transition-colors">
                           <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono text-neutral-500">
                             {idx + 1}
@@ -365,52 +373,63 @@ export function StockAgingReportView({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-200 dark:divide-slate-800 font-medium">
-                    {loading ? (
+                    {loading || !data?.items ? (
                       <tr>
                         <td colSpan={9} className="py-12 text-center text-neutral-500">
                           <Loader2 className="w-5 h-5 animate-spin mx-auto mb-1 text-emerald-700" />
                           Calculating stock aging metrics...
                         </td>
                       </tr>
-                    ) : (data?.items || []).map((item: any, idx: number) => (
-                      <tr key={item.id || idx} className="hover:bg-neutral-50 dark:hover:bg-slate-900/60 transition-colors">
-                        <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono text-neutral-500">
-                          {idx + 1}
-                        </td>
-                        <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 font-mono font-bold text-neutral-800 dark:text-neutral-200">
-                          {item.sku}
-                        </td>
-                        <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 font-mono text-[11px] text-emerald-700 dark:text-emerald-400 font-bold">
-                          {item.barcode}
-                        </td>
-                        <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 font-bold">
-                          {item.name}
-                          <span className="text-[10px] font-normal text-neutral-500 block">{item.company} • {item.category}</span>
-                        </td>
-                        <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono font-bold">
-                          {item.currentStock} {item.unit}
-                        </td>
-                        <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono text-[11px]">
-                          {item.lastSaleDate}
-                        </td>
-                        <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono font-bold">
-                          {item.ageDays} Days
-                        </td>
-                        <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center">
-                          <span className={`px-2 py-0.5 rounded font-mono font-bold text-[10px] ${
-                            item.ageBracket.includes('90+') ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300' :
-                            item.ageBracket.includes('61') ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' :
-                            item.ageBracket.includes('31') ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
-                            'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                          }`}>
-                            {item.ageBracket}
-                          </span>
-                        </td>
-                        <td className="py-1.5 px-3 text-right font-mono font-bold text-neutral-900 dark:text-neutral-100">
-                          {formatMoney(item.totalValuation)}
+                    ) : data.items.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="py-12 text-center text-neutral-500 font-bold">
+                          No stock aging data available.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      data.items.map((item: any, idx: number) => {
+                        const bracket = item.ageBracket || '0-30 Days';
+                        return (
+                          <tr key={item.id || idx} className="hover:bg-neutral-50 dark:hover:bg-slate-900/60 transition-colors">
+                            <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono text-neutral-500">
+                              {idx + 1}
+                            </td>
+                            <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 font-mono font-bold text-neutral-800 dark:text-neutral-200">
+                              {item.sku}
+                            </td>
+                            <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 font-mono text-[11px] text-emerald-700 dark:text-emerald-400 font-bold">
+                              {item.barcode}
+                            </td>
+                            <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 font-bold">
+                              {item.name}
+                              <span className="text-[10px] font-normal text-neutral-500 block">{item.company} • {item.category}</span>
+                            </td>
+                            <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono font-bold">
+                              {item.currentStock} {item.unit}
+                            </td>
+                            <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono text-[11px]">
+                              {item.lastSaleDate || '—'}
+                            </td>
+                            <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono font-bold">
+                              {item.ageDays ?? 0} Days
+                            </td>
+                            <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center">
+                              <span className={`px-2 py-0.5 rounded font-mono font-bold text-[10px] ${
+                                bracket.includes('90+') ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300' :
+                                bracket.includes('61') ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' :
+                                bracket.includes('31') ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
+                                'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                              }`}>
+                                {bracket}
+                              </span>
+                            </td>
+                            <td className="py-1.5 px-3 text-right font-mono font-bold text-neutral-900 dark:text-neutral-100">
+                              {formatMoney(item.totalValuation)}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -456,49 +475,60 @@ export function StockAgingReportView({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-200 dark:divide-slate-800 font-medium">
-                    {loading ? (
+                    {loading || !data?.items ? (
                       <tr>
                         <td colSpan={8} className="py-12 text-center text-neutral-500">
                           <Loader2 className="w-5 h-5 animate-spin mx-auto mb-1 text-emerald-700" />
                           Analyzing product sales velocity...
                         </td>
                       </tr>
-                    ) : (data?.items || []).map((item: any, idx: number) => (
-                      <tr key={item.id || idx} className="hover:bg-neutral-50 dark:hover:bg-slate-900/60 transition-colors">
-                        <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono text-neutral-500">
-                          {idx + 1}
-                        </td>
-                        <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 font-mono font-bold text-neutral-800 dark:text-neutral-200">
-                          {item.sku}
-                        </td>
-                        <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 font-mono text-[11px] text-emerald-700 dark:text-emerald-400 font-bold">
-                          {item.barcode}
-                        </td>
-                        <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 font-bold">
-                          {item.name}
-                          <span className="text-[10px] font-normal text-neutral-500 block">{item.company} • {item.category}</span>
-                        </td>
-                        <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono font-bold">
-                          {item.currentStock} {item.unit}
-                        </td>
-                        <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono font-bold text-emerald-700 dark:text-emerald-400">
-                          {item.unitsSold60Days} Pcs
-                        </td>
-                        <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-right font-mono font-bold">
-                          {formatMoney(item.revenue60Days)}
-                        </td>
-                        <td className="py-1.5 px-3 text-center">
-                          <span className={`px-2 py-0.5 rounded font-mono font-bold text-[10px] ${
-                            item.velocityCategory === 'FAST_MOVING' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
-                            item.velocityCategory === 'MODERATE' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
-                            item.velocityCategory === 'SLOW_MOVING' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' :
-                            'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-                          }`}>
-                            {item.velocityCategory.replace('_', ' ')}
-                          </span>
+                    ) : data.items.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-12 text-center text-neutral-500 font-bold">
+                          No product velocity data available.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      data.items.map((item: any, idx: number) => {
+                        const velocityCat = item.velocityCategory || 'MODERATE';
+                        return (
+                          <tr key={item.id || idx} className="hover:bg-neutral-50 dark:hover:bg-slate-900/60 transition-colors">
+                            <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono text-neutral-500">
+                              {idx + 1}
+                            </td>
+                            <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 font-mono font-bold text-neutral-800 dark:text-neutral-200">
+                              {item.sku}
+                            </td>
+                            <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 font-mono text-[11px] text-emerald-700 dark:text-emerald-400 font-bold">
+                              {item.barcode}
+                            </td>
+                            <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 font-bold">
+                              {item.name}
+                              <span className="text-[10px] font-normal text-neutral-500 block">{item.company} • {item.category}</span>
+                            </td>
+                            <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono font-bold">
+                              {item.currentStock} {item.unit}
+                            </td>
+                            <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                              {item.unitsSold60Days ?? 0} Pcs
+                            </td>
+                            <td className="py-1.5 px-3 border-r border-neutral-200 dark:border-slate-800 text-right font-mono font-bold">
+                              {formatMoney(item.revenue60Days)}
+                            </td>
+                            <td className="py-1.5 px-3 text-center">
+                              <span className={`px-2 py-0.5 rounded font-mono font-bold text-[10px] ${
+                                velocityCat === 'FAST_MOVING' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
+                                velocityCat === 'MODERATE' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
+                                velocityCat === 'SLOW_MOVING' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' :
+                                'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                              }`}>
+                                {String(velocityCat).replace('_', ' ')}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -523,14 +553,21 @@ export function StockAgingReportView({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-200 dark:divide-slate-800 font-medium">
-                    {loading ? (
+                    {loading || !data?.users ? (
                       <tr>
                         <td colSpan={8} className="py-12 text-center text-neutral-500">
                           <Loader2 className="w-5 h-5 animate-spin mx-auto mb-1 text-emerald-700" />
                           Calculating staff performance analytics...
                         </td>
                       </tr>
-                    ) : (data?.users || []).map((u: any, idx: number) => (
+                    ) : data.users.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-12 text-center text-neutral-500 font-bold">
+                          No staff performance data available.
+                        </td>
+                      </tr>
+                    ) : (
+                      data.users.map((u: any, idx: number) => (
                       <tr key={u.userId || idx} className="hover:bg-neutral-50 dark:hover:bg-slate-900/60 transition-colors">
                         <td className="py-2 px-3 border-r border-neutral-200 dark:border-slate-800 text-center font-mono text-neutral-500">
                           {idx + 1}
