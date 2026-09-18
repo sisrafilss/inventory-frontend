@@ -67,6 +67,19 @@ class ApiClient {
           }
         }
 
+        // Handle deactivated / blocked account
+        if (
+          response.status === 403 &&
+          data.code === "ACCOUNT_INACTIVE" &&
+          typeof window !== "undefined"
+        ) {
+          localStorage.removeItem("auth_token");
+          localStorage.removeItem("auth_user");
+          if (!window.location.pathname.startsWith("/login")) {
+            window.location.href = "/login?deactivated=true";
+          }
+        }
+
         const error = new Error(
           data.message || "API request failed",
         ) as Error & {

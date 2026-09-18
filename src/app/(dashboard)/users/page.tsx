@@ -19,7 +19,8 @@ import {
   Loader2,
   X,
   Save,
-  CheckCircle2
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 
 export default function UsersPage() {
@@ -71,6 +72,7 @@ export default function UsersPage() {
     phone: string;
     address: string;
     role: Role;
+    status: UserStatus;
     warehouseIds: string[];
   }>({
     username: '',
@@ -79,6 +81,7 @@ export default function UsersPage() {
     phone: '',
     address: '',
     role: Role.MANAGER as Role,
+    status: 'ACTIVE' as UserStatus,
     warehouseIds: [],
   });
   const [isEditing, setIsEditing] = useState(false);
@@ -152,6 +155,23 @@ export default function UsersPage() {
   };
 
   const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN';
+  const isAdminOrSuperAdmin = currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN';
+
+  const canManageUser = (targetUser: User) => {
+    if (!currentUser) return false;
+    if (currentUser.role === Role.SUPER_ADMIN) return true;
+    if (currentUser.role === Role.ADMIN) {
+      return targetUser.role === Role.MANAGER || targetUser.role === Role.SR;
+    }
+    return false;
+  };
+
+  const canToggleStatus = (targetUser: User) => {
+    if (!canManageUser(targetUser)) return false;
+    if (targetUser.id === currentUser?.id) return false;
+    if (targetUser.role === Role.SUPER_ADMIN) return false;
+    return true;
+  };
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -227,6 +247,7 @@ export default function UsersPage() {
       phone: u.phone || '',
       address: u.address || '',
       role: u.role,
+      status: u.status,
       warehouseIds: existingWhIds,
     });
   };
@@ -241,12 +262,13 @@ export default function UsersPage() {
     setIsEditing(true);
     try {
       await api.patch(`/users/${editingUser.id}`, {
-        name: editForm.name.trim(),
+        name: editForm.name?.trim(),
         role: editForm.role,
-        username: editForm.username.trim() || undefined,
+        username: editForm.username?.trim() || undefined,
         email: editForm.email?.trim() || null,
         phone: editForm.phone?.trim() || null,
         address: editForm.address?.trim() || null,
+        status: editForm.status,
         warehouseIds: editForm.warehouseIds,
       });
       setEditingUser(null);
@@ -300,7 +322,7 @@ export default function UsersPage() {
             <Users className="w-5 h-5 text-emerald-200" />
             <h1 className="text-lg font-bold tracking-wide">User & Access Management</h1>
           </div>
-          {isSuperAdmin && (
+          {isAdminOrSuperAdmin && (
             <button
               type="button"
               onClick={() => setIsCreateOpen(true)}
@@ -376,13 +398,13 @@ export default function UsersPage() {
                 <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-48">Branch / Warehouse</th>
                 <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-32">Joined Date</th>
                 <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center">Status</th>
-                {isSuperAdmin && <th className="px-3 py-1.5 w-32 text-center">Actions</th>}
+                {isAdminOrSuperAdmin && <th className="px-3 py-1.5 w-32 text-center">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
               {loading && page === 1 ? (
                 <tr>
-                  <td colSpan={isSuperAdmin ? 7 : 6} className="py-16 text-center text-neutral-500 font-medium">
+                  <td colSpan={isAdminOrSuperAdmin ? 7 : 6} className="py-16 text-center text-neutral-500 font-medium">
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="w-4 h-4 animate-spin text-[#006400]" />
                       <span>Loading user records...</span>
@@ -391,13 +413,13 @@ export default function UsersPage() {
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={isSuperAdmin ? 7 : 6} className="py-12 text-center text-rose-600 font-medium">
+                  <td colSpan={isAdminOrSuperAdmin ? 7 : 6} className="py-12 text-center text-rose-600 font-medium">
                     {error}
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={isSuperAdmin ? 7 : 6} className="py-16 text-center text-neutral-500 font-medium">
+                  <td colSpan={isAdminOrSuperAdmin ? 7 : 6} className="py-16 text-center text-neutral-500 font-medium">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Users className="w-8 h-8 text-neutral-400" />
                       <span>No users found matching criteria.</span>
@@ -421,8 +443,8 @@ export default function UsersPage() {
                             : 'bg-[#f4f8fc] dark:bg-slate-900/50 hover:bg-[#c6d8ea]/50 dark:hover:bg-slate-800/80'
                         }`}
                         onClick={() => setSelectedUserRow(u)}
-                        onDoubleClick={() => isSuperAdmin && openEdit(u)}
-                        title={isSuperAdmin ? "Double-click to edit user" : ""}
+                        onDoubleClick={() => canManageUser(u) && openEdit(u)}
+                        title={canManageUser(u) ? "Double-click to edit user" : ""}
                       >
                         <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono ${isSelected ? 'text-blue-200' : 'text-neutral-500'}`}>{idx + 1}</td>
                         <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5">
@@ -481,28 +503,31 @@ export default function UsersPage() {
                           {u.createdAt ? formatDate(u.createdAt) : '—'}
                         </td>
                         <td className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center">
-                          <span className={`px-1.5 py-0.5 rounded-xs text-[10px] font-bold uppercase border ${
+                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-xs text-[10px] font-bold uppercase border ${
                             isActive
-                              ? isSelected ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                              : isSelected ? 'bg-rose-600 text-white border-rose-500' : 'bg-rose-100 text-rose-800 border-rose-300'
+                              ? isSelected ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
+                              : isSelected ? 'bg-rose-600 text-white border-rose-500' : 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800'
                           }`}>
-                            {isActive ? 'ACTIVE' : 'INACTIVE'}
+                            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-600 dark:bg-emerald-400' : 'bg-rose-600 dark:bg-rose-400'}`} />
+                            {isActive ? 'ACTIVE' : 'BLOCKED'}
                           </span>
                         </td>
-                        {isSuperAdmin && (
+                        {isAdminOrSuperAdmin && (
                           <td className="px-2 py-1.5 text-center">
                             <div className="flex items-center justify-center gap-1">
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); openEdit(u); }}
-                                className={`p-1 rounded-xs border transition-colors cursor-pointer ${
-                                  isSelected ? 'bg-white text-blue-700 border-white hover:bg-blue-50' : 'bg-white dark:bg-slate-800 text-[#006400] dark:text-emerald-400 border-neutral-300 dark:border-slate-700 hover:bg-emerald-50'
-                                }`}
-                                title="Edit Details"
-                              >
-                                <Pencil className="w-3 h-3" />
-                              </button>
-                              {u.role !== 'SR' && (
+                              {canManageUser(u) && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); openEdit(u); }}
+                                  className={`p-1 rounded-xs border transition-colors cursor-pointer ${
+                                    isSelected ? 'bg-white text-blue-700 border-white hover:bg-blue-50' : 'bg-white dark:bg-slate-800 text-[#006400] dark:text-emerald-400 border-neutral-300 dark:border-slate-700 hover:bg-emerald-50'
+                                  }`}
+                                  title="Edit User Details"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </button>
+                              )}
+                              {canManageUser(u) && u.role !== 'SR' && (
                                 <button
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); setSelectedUserForReset(u); }}
@@ -514,7 +539,7 @@ export default function UsersPage() {
                                   <KeyRound className="w-3 h-3" />
                                 </button>
                               )}
-                              {u.id !== currentUser?.id && (
+                              {canToggleStatus(u) && (
                                 <button
                                   type="button"
                                   onClick={(e) => {
@@ -528,7 +553,7 @@ export default function UsersPage() {
                                         ? 'bg-white dark:bg-slate-800 text-rose-600 border-neutral-300 dark:border-slate-700 hover:bg-rose-50'
                                         : 'bg-white dark:bg-slate-800 text-emerald-600 border-neutral-300 dark:border-slate-700 hover:bg-emerald-50'
                                   }`}
-                                  title={isActive ? 'Deactivate User' : 'Activate User'}
+                                  title={isActive ? 'Block / Deactivate User' : 'Unblock / Activate User'}
                                 >
                                   {isActive ? <PowerOff className="w-3 h-3" /> : <Power className="w-3 h-3" />}
                                 </button>
@@ -541,7 +566,7 @@ export default function UsersPage() {
                   })}
                   {loadingMore && (
                     <tr>
-                      <td colSpan={isSuperAdmin ? 7 : 6} className="py-4 text-center text-neutral-500 font-medium">
+                      <td colSpan={isAdminOrSuperAdmin ? 7 : 6} className="py-4 text-center text-neutral-500 font-medium">
                         <div className="flex items-center justify-center gap-2">
                           <Loader2 className="w-4 h-4 animate-spin text-[#006400]" />
                           <span>Loading more...</span>
@@ -567,7 +592,7 @@ export default function UsersPage() {
               </span>
             ) : (
               <span className="italic text-neutral-600 dark:text-neutral-400 font-sans">
-                Tip: {isSuperAdmin ? 'Double-click a row to edit user' : 'Single-click a row to highlight'}
+                Tip: {isAdminOrSuperAdmin ? 'Double-click a row to edit user' : 'Single-click a row to highlight'}
               </span>
             )}
           </div>
@@ -845,6 +870,39 @@ export default function UsersPage() {
                 </select>
               </div>
             )}
+            {/* Account Status Field */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider flex items-center justify-between">
+                <span>Account Status <span className="text-rose-600">*</span></span>
+                {editingUser?.role === 'SUPER_ADMIN' ? (
+                  <span className="text-[10px] text-amber-700 dark:text-amber-400 font-normal">
+                    (Super Admin status cannot be altered)
+                  </span>
+                ) : editingUser?.id === currentUser?.id ? (
+                  <span className="text-[10px] text-amber-700 dark:text-amber-400 font-normal">
+                    (Cannot alter own account status)
+                  </span>
+                ) : null}
+              </label>
+              <select
+                disabled={editingUser?.role === 'SUPER_ADMIN' || editingUser?.id === currentUser?.id}
+                value={editForm.status}
+                onChange={(e) => setEditForm({ ...editForm, status: e.target.value as UserStatus })}
+                className="w-full h-8 px-1.5 text-sm border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#006400] disabled:opacity-60 disabled:bg-neutral-100 dark:disabled:bg-slate-800"
+              >
+                <option value="ACTIVE">ACTIVE (Full System Access)</option>
+                <option value="INACTIVE">INACTIVE / BLOCKED (All Access Suspended)</option>
+              </select>
+              {editForm.status === 'INACTIVE' && (
+                <div className="p-2 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200 text-[11px] flex items-center gap-1.5 rounded-xs">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-600 dark:text-rose-400" />
+                  <span>
+                    Warning: Setting status to <strong>INACTIVE</strong> will terminate all active sessions and block the user from logging in or performing any system operations.
+                  </span>
+                </div>
+              )}
+            </div>
+
             <div className="space-y-1">
               <label className="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider flex items-center justify-between">
                 <span>Assigned Warehouse(s) {editForm.role === 'MANAGER' ? '*' : ''}</span>
@@ -907,18 +965,23 @@ export default function UsersPage() {
       <ConfirmDialog
         open={!!statusConfirm}
         onOpenChange={(isOpen) => !isStatusUpdating && !isOpen && setStatusConfirm(null)}
-        title={`${statusConfirm?.newStatus === 'ACTIVE' ? 'Activate' : 'Deactivate'} User`}
-        description={`Are you sure you want to ${statusConfirm?.newStatus === 'ACTIVE' ? 'activate' : 'deactivate'} this user account? ${statusConfirm?.newStatus === 'INACTIVE' ? 'They will be immediately blocked from logging in.' : ''}`}
+        title={`${statusConfirm?.newStatus === 'ACTIVE' ? 'Activate / Unblock' : 'Block / Deactivate'} User`}
+        description={
+          statusConfirm?.newStatus === 'ACTIVE'
+            ? 'Are you sure you want to activate / unblock this user account? They will regain full access to system operations.'
+            : 'Are you sure you want to block / deactivate this user account? All their active sessions will be terminated and all operations across the system will be immediately blocked.'
+        }
         onConfirm={confirmStatusUpdate}
-        confirmText={statusConfirm?.newStatus === 'ACTIVE' ? 'Activate' : 'Deactivate'}
+        confirmText={statusConfirm?.newStatus === 'ACTIVE' ? 'Yes, Activate' : 'Yes, Block User'}
         cancelText="Cancel"
         variant={statusConfirm?.newStatus === 'ACTIVE' ? 'success' : 'danger'}
         isLoading={isStatusUpdating}
         details={statusConfirm ? [
-          { label: 'User:', value: statusConfirm.user.name },
-          { label: 'Username:', value: `@${statusConfirm.user.username}` },
-          { label: 'Email:', value: statusConfirm.user.email || 'None' },
+          { label: 'User Name:', value: statusConfirm.user.name },
+          { label: 'Role:', value: statusConfirm.user.role === 'SR' ? 'SALES REP (SR)' : statusConfirm.user.role },
+          { label: 'Username:', value: statusConfirm.user.username ? `@${statusConfirm.user.username}` : 'None' },
           { label: 'Current Status:', value: statusConfirm.user.status },
+          { label: 'Target Status:', value: statusConfirm.newStatus === 'ACTIVE' ? 'ACTIVE' : 'BLOCKED / INACTIVE', color: statusConfirm.newStatus === 'ACTIVE' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' },
         ] : []}
       />
     </div>

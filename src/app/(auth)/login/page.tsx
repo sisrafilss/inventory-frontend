@@ -27,6 +27,19 @@ export default function LoginPage() {
     }
   }, [user, router]);
 
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('deactivated')) {
+        setError(
+          'Your account has been deactivated / blocked by an administrator. All system access has been suspended.',
+        );
+      } else if (params.get('expired')) {
+        setError('Your session has expired. Please sign in again.');
+      }
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
