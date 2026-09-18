@@ -298,66 +298,7 @@ function ReportsPageContent() {
           </div>
         </div>
 
-        {/* Category Modules Bar - Row 1 */}
-        <div className="bg-[#dbe7f3] dark:bg-slate-900 px-3 py-1.5 border-b border-neutral-300 dark:border-slate-700 flex flex-wrap items-center justify-between gap-2 shrink-0">
-          <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar py-0.5">
-            <span className="text-[10px] font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider mr-1 shrink-0">
-              Module:
-            </span>
-            {categories.map((cat) => {
-              const isCatActive = activeCategoryObj.id === cat.id;
-              const Icon = cat.icon;
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => handleSelectCategory(cat.id)}
-                  className={`px-3 py-1 text-xs font-bold rounded-xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0 border ${
-                    isCatActive
-                      ? 'bg-[#006400] text-white border-[#004d00] shadow-xs'
-                      : 'bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-slate-700 hover:bg-neutral-100 dark:hover:bg-slate-700'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5 shrink-0" />
-                  <span>{cat.label}</span>
-                  <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                      isCatActive
-                        ? 'bg-emerald-950 text-emerald-200'
-                        : 'bg-neutral-200 dark:bg-slate-700 text-neutral-600 dark:text-neutral-400'
-                    }`}
-                  >
-                    {cat.reports.length}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Jump To Dropdown */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-[11px] font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider hidden sm:inline">
-              Jump To:
-            </span>
-            <select
-              value={activeReport}
-              onChange={(e) => handleSelectReport(e.target.value)}
-              className="h-7 px-2 text-xs border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 font-bold text-neutral-900 dark:text-neutral-100 focus:outline-none focus:border-[#006400] shadow-xs cursor-pointer"
-            >
-              {categories.map((cat) => (
-                <optgroup key={cat.id} label={cat.label}>
-                  {cat.reports.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.label}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Active Module Sub-Reports Tab Bar - Row 2 */}
+        {/* Active Module Sub-Reports Tab Bar */}
         <div className="bg-[#eaf1f8] dark:bg-slate-800/80 px-3 pt-2 border-b border-neutral-300 dark:border-slate-700 shrink-0 flex items-end gap-1.5 overflow-x-auto custom-scrollbar">
           {activeCategoryObj.reports.map((tab) => {
             const isTabActive = activeReport === tab.id;
