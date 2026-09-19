@@ -49,6 +49,13 @@ export function PartyPaymentModal({
 
   const amountInputRef = useRef<HTMLInputElement>(null);
 
+  const effectiveSrDues =
+    party?.srDues && party.srDues.length > 0
+      ? party.srDues
+      : party?.srGroup
+      ? [{ id: 'sr-group-default', srName: party.srGroup, currentDue: party.due, openingDue: 0 }]
+      : [];
+
   useEffect(() => {
     if (open && party) {
       // Default amount to full due if positive, else 0
@@ -57,9 +64,9 @@ export function PartyPaymentModal({
       setReferenceNote('');
       setStatusMessage(null);
 
-      if (type === 'COLLECT' && party.srDues && party.srDues.length > 0) {
+      if (type === 'COLLECT' && effectiveSrDues.length > 0) {
         // If there's an SR with positive due, pick the first one; else first SR
-        const firstWithDue = party.srDues.find((s) => Number(s.currentDue) > 0) || party.srDues[0];
+        const firstWithDue = effectiveSrDues.find((s) => Number(s.currentDue) > 0) || effectiveSrDues[0];
         const key = firstWithDue.id || firstWithDue.srName;
         setSelectedSrKey(key);
         setSelectedSrUserId(firstWithDue.srUserId || null);
@@ -82,29 +89,35 @@ export function PartyPaymentModal({
 
   const handleSrChange = (key: string) => {
     setSelectedSrKey(key);
-    if (key === 'GENERAL') {
+    const sr = effectiveSrDues.find((s) => (s.id && s.id === key) || s.srName === key);
+    if (sr) {
+      setSelectedSrUserId(sr.srUserId || null);
+      setSelectedSrName(sr.srName);
+      const srDue = Number(sr.currentDue) || 0;
+      setAmount(srDue > 0 ? srDue : 0);
+    } else if (key === 'GENERAL') {
       setSelectedSrUserId(null);
       setSelectedSrName(null);
       const currentDue = Number(party?.due) || 0;
       setAmount(currentDue > 0 ? currentDue : 0);
-    } else {
-      const sr = party?.srDues?.find((s) => (s.id && s.id === key) || s.srName === key);
-      if (sr) {
-        setSelectedSrUserId(sr.srUserId || null);
-        setSelectedSrName(sr.srName);
-        const srDue = Number(sr.currentDue) || 0;
-        setAmount(srDue > 0 ? srDue : 0);
-      }
     }
   };
 
-  const activeSr = party?.srDues?.find(
+  const activeSr = effectiveSrDues.find(
     (s) => (s.id && s.id === selectedSrKey) || s.srName === selectedSrKey
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!party) return;
+
+    if (!isPay && effectiveSrDues.length > 0 && (!selectedSrName || selectedSrKey === 'GENERAL')) {
+      setStatusMessage({
+        text: 'Please select a Sales Representative (SR).',
+        isError: true,
+      });
+      return;
+    }
 
     if (amount <= 0) {
       setStatusMessage({
@@ -269,7 +282,7 @@ export function PartyPaymentModal({
         {/* Structured Inputs Card */}
         <div className="space-y-2.5 bg-[#dbe7f3] dark:bg-slate-800/60 p-3.5 rounded border border-[#b2c8dc] dark:border-slate-700 shadow-inner">
           {/* SR Selection Field */}
-          {!isPay && party.srDues && party.srDues.length > 0 && (
+          {!isPay && effectiveSrDues.length > 0 && (
             <div className="grid grid-cols-12 items-center gap-2">
               <label className="col-span-4 text-right font-medium text-neutral-800 dark:text-neutral-200">
                 Sales Rep (SR) <span className="text-rose-600 font-bold">*</span>
@@ -281,8 +294,7 @@ export function PartyPaymentModal({
                   disabled={isProcessing}
                   className="w-full h-7 px-2 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100 font-medium"
                 >
-                  <option value="GENERAL">-- General / All SRs (সাধারণ কালেকশন) --</option>
-                  {party.srDues.map((s) => (
+                  {effectiveSrDues.map((s) => (
                     <option key={s.id || s.srName} value={s.id || s.srName}>
                       {s.srName} (Due: ৳{Number(s.currentDue).toLocaleString()})
                     </option>

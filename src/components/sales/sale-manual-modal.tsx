@@ -913,6 +913,11 @@ export function SaleManualModal({
       return;
     }
 
+    if (paymentMode === 'CUSTOMER' && currentDues > 0 && (!selectedSrName || !selectedSrName.trim())) {
+      setValidationWarning('Please select an SR. When selling on credit/due to a customer, SR cannot be left empty.');
+      return;
+    }
+
     setShowConfirmSave(true);
   };
 
@@ -1854,7 +1859,7 @@ export function SaleManualModal({
               {paymentMode === 'CUSTOMER' && (
                 <div className="flex items-center gap-2">
                   <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
-                    Sales Rep
+                    Select SR
                   </label>
                   <div className="flex items-center gap-1.5 flex-1 min-w-0">
                     <select
@@ -1867,9 +1872,13 @@ export function SaleManualModal({
                         setSelectedSrUserId(customerSr?.srUserId || systemSr?.id || null);
                       }}
                       disabled={isSaving || !selectedCustomer}
-                      className="flex-1 min-w-0 h-6 px-2 text-xs font-semibold bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 truncate disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400"
+                      className={`flex-1 min-w-0 h-6 px-2 text-xs font-semibold bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border focus:outline-none focus:ring-1 truncate disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400 ${
+                        currentDues > 0 && !selectedSrName
+                          ? 'border-red-500 focus:ring-red-500 text-red-700 dark:text-red-400 font-bold'
+                          : 'border-neutral-400 dark:border-slate-600 focus:ring-emerald-600'
+                      }`}
                     >
-                      <option value="">-- Select Sales Rep --</option>
+                      <option value="">-- Select SR --</option>
                       {selectedCustomer?.srDues?.map((s) => (
                         <option key={s.id || s.srName} value={s.srName}>
                           {s.srName} (Due: ৳{Number(s.currentDue || 0).toLocaleString()})

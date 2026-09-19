@@ -581,7 +581,6 @@ export function EditCollectionPaidModal({
                   onChange={(e) => handleSrChange(e.target.value)}
                   className="w-full h-7 px-2 bg-white dark:bg-slate-900 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 rounded-xs font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-600"
                 >
-                  <option value="GENERAL">-- General / All SRs (সাধারণ কালেকশন) --</option>
                   {customerSrDues.map((s) => (
                     <option key={s.id || s.srName} value={s.id || s.srName}>
                       {s.srName} (Due: ৳{Number(s.currentDue).toLocaleString()})
