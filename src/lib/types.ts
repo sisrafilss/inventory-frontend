@@ -152,7 +152,7 @@ export interface SRUser {
   status: UserStatus;
 }
 
-export type CustomerType = 'RETAIL' | 'WHOLESALE';
+export type CustomerType = "RETAIL" | "WHOLESALE";
 
 export interface Customer {
   id: string;
