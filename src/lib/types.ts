@@ -356,6 +356,9 @@ export interface Sale {
   invoiceProfit?: number;
   customerName?: string | null;
   customerPhone?: string | null;
+  srUserId?: string | null;
+  srUser?: { id: string; name: string; phone?: string | null } | null;
+  srName?: string | null;
   note?: string | null;
   approvedById?: string | null;
   approvedBy?: {

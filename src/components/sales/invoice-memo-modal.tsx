@@ -55,6 +55,9 @@ export interface MemoSale {
   } | null;
   customerName?: string | null;
   customerPhone?: string | null;
+  srUserId?: string | null;
+  srUser?: { id: string; name: string; phone?: string | null } | null;
+  srName?: string | null;
   createdBy?: {
     id?: string;
     name?: string;
@@ -310,6 +313,16 @@ export function InvoiceMemoModal({
                   {warehouseName}
                 </span>
               </div>
+              {(memoSale.srName || memoSale.srUser?.name) && (
+                <div className="flex">
+                  <span className="w-16 sm:w-20 font-bold text-black whitespace-nowrap">
+                    SR:
+                  </span>
+                  <span className="font-bold text-black border-b-[1.5px] border-dotted border-black flex-1 pl-1 truncate">
+                    {memoSale.srName || memoSale.srUser?.name}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 

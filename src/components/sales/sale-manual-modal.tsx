@@ -15,9 +15,11 @@ import {
   ChevronDown,
   UserPlus,
   Lock,
+  Plus,
+  UserCheck,
 } from 'lucide-react';
 import { useAuth } from '@/lib/context/auth-context';
-import { Product, Customer, Warehouse, Sale } from '@/lib/types';
+import { Product, Customer, Warehouse, Sale, SRUser, CustomerSrDue } from '@/lib/types';
 import { api } from '@/lib/api/client';
 import { InvoiceMemoModal, MemoSale } from './invoice-memo-modal';
 import { ProductLookupModal } from '../products/product-lookup-modal';
@@ -99,6 +101,15 @@ export function SaleManualModal({
 
   // Customer ref
   const customerInputRef = useRef<HTMLInputElement>(null);
+
+  // Sales Rep (SR) State
+  const [srUsers, setSrUsers] = useState<SRUser[]>([]);
+  const [selectedSrName, setSelectedSrName] = useState<string | null>(null);
+  const [selectedSrUserId, setSelectedSrUserId] = useState<string | null>(null);
+  const [isAddSrModalOpen, setIsAddSrModalOpen] = useState(false);
+  const [newSrNameInput, setNewSrNameInput] = useState('');
+  const [newSrUserIdSelect, setNewSrUserIdSelect] = useState('');
+  const [isAddingSr, setIsAddingSr] = useState(false);
 
   // Item Form Fields
   const [itemCode, setItemCode] = useState('');
@@ -237,6 +248,12 @@ export function SaleManualModal({
       api.get<Customer[]>('/parties/customers')
         .then((res) => {
           if (res.data) setCustomersList(res.data);
+        })
+        .catch(() => {});
+
+      api.get<SRUser[]>('/users/srs')
+        .then((res) => {
+          if (res.data) setSrUsers(res.data);
         })
         .catch(() => {});
 
@@ -639,6 +656,8 @@ export function SaleManualModal({
     setCustomerDues('0.00');
     setCustomerWarning(null);
     setCustomerSuccess(false);
+    setSelectedSrName(null);
+    setSelectedSrUserId(null);
     setActiveFocusedField('itemCode');
     setTimeout(() => codeInputRef.current?.focus(), 50);
   };
@@ -683,6 +702,22 @@ export function SaleManualModal({
     setCustomerWarning(null);
     setIsSearchingCustomer(false);
     setIsCustomerDropdownOpen(false);
+
+    // Auto-select SR if customer has assigned SRs
+    if (c.srDues && c.srDues.length > 0) {
+      const active = c.srDues.find((s) => Number(s.currentDue) > 0) || c.srDues[0];
+      setSelectedSrName(active.srName);
+      setSelectedSrUserId(active.srUserId || null);
+    } else if (c.srGroup) {
+      setSelectedSrName(c.srGroup);
+      const matched = srUsers.find(
+        (u) => u.name.toLowerCase() === c.srGroup?.toLowerCase()
+      );
+      setSelectedSrUserId(matched?.id || null);
+    } else {
+      setSelectedSrName(null);
+      setSelectedSrUserId(null);
+    }
   };
 
   const handleSelectCustomerFromLookup = (c: Customer) => {
@@ -779,6 +814,88 @@ export function SaleManualModal({
 
   const currentDues = Number(Math.max(0, netAmount - effectivePaid).toFixed(2));
 
+  const activeSr = selectedCustomer?.srDues?.find(
+    (s) =>
+      (selectedSrUserId && s.srUserId === selectedSrUserId) ||
+      (selectedSrName && s.srName.toLowerCase() === selectedSrName.toLowerCase())
+  );
+
+  // Handle Add/Assign new SR to the selected customer
+  const handleAddNewSr = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedName = newSrNameInput.trim();
+    if (!trimmedName) {
+      toast.warning('Please select or enter an SR name.');
+      return;
+    }
+    if (!selectedCustomer) {
+      toast.warning('Please select a customer first.');
+      return;
+    }
+
+    setIsAddingSr(true);
+    try {
+      const payload = {
+        srName: trimmedName,
+        srUserId: newSrUserIdSelect || undefined,
+      };
+
+      const res = await api.post<CustomerSrDue>(
+        `/parties/customers/${selectedCustomer.id}/sr`,
+        payload
+      );
+      const createdSr = res.data;
+
+      // Update selectedCustomer srDues locally
+      setSelectedCustomer((prev) => {
+        if (!prev) return null;
+        const exists = prev.srDues?.some(
+          (s) => s.srName.toLowerCase() === trimmedName.toLowerCase()
+        );
+        const updatedDues = exists
+          ? prev.srDues?.map((s) =>
+              s.srName.toLowerCase() === trimmedName.toLowerCase()
+                ? { ...s, srUserId: createdSr.srUserId || s.srUserId }
+                : s
+            )
+          : [...(prev.srDues || []), createdSr];
+        return {
+          ...prev,
+          srDues: updatedDues,
+        };
+      });
+
+      // Update in customersList
+      setCustomersList((prev) =>
+        prev.map((c) =>
+          c.id === selectedCustomer.id
+            ? {
+                ...c,
+                srDues: c.srDues?.some(
+                  (s) => s.srName.toLowerCase() === trimmedName.toLowerCase()
+                )
+                  ? c.srDues.map((s) =>
+                      s.srName.toLowerCase() === trimmedName.toLowerCase()
+                        ? { ...s, srUserId: createdSr.srUserId || s.srUserId }
+                        : s
+                    )
+                  : [...(c.srDues || []), createdSr],
+              }
+            : c
+        )
+      );
+
+      setSelectedSrName(trimmedName);
+      setSelectedSrUserId(createdSr.srUserId || null);
+      setIsAddSrModalOpen(false);
+      toast.success(`SR "${trimmedName}" assigned successfully.`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err.message || 'Failed to assign SR.');
+    } finally {
+      setIsAddingSr(false);
+    }
+  };
+
   // Save Validation & Trigger
   const handleInitiateSave = () => {
     if (!selectedWarehouseId) {
@@ -820,6 +937,8 @@ export function SaleManualModal({
         discount: discountVal,
         discountPercent: parseFloat(String(discountPercent)) || undefined,
         paidAmount: effectivePaid,
+        srUserId: paymentMode === 'CUSTOMER' ? (selectedSrUserId || undefined) : undefined,
+        srName: paymentMode === 'CUSTOMER' ? (selectedSrName || undefined) : undefined,
         items: lineItems.map((item) => ({
           productId: item.productId,
           warehouseId: targetWarehouseId,
@@ -889,6 +1008,9 @@ export function SaleManualModal({
           warehouseName: memoWarehouse?.name || selectedWhObj?.name || 'Main Warehouse',
           customerName: created.customerName || effectiveCustName,
           customerPhone: created.customerPhone || effectiveCustPhone,
+          srUserId: created.srUserId || (paymentMode === 'CUSTOMER' ? selectedSrUserId : null),
+          srUser: created.srUser || (selectedSrUserId ? srUsers.find((u) => u.id === selectedSrUserId) : null),
+          srName: created.srName || (paymentMode === 'CUSTOMER' ? selectedSrName : null),
           customer: {
             name: created.customer?.name || effectiveCustName,
             phone: created.customer?.phone || effectiveCustPhone,
@@ -1728,18 +1850,80 @@ export function SaleManualModal({
                 />
               </div>
 
-              {/* Row 7: Dues (Read-only) */}
+              {/* Row 7: Sales Rep (SR) */}
+              {paymentMode === 'CUSTOMER' && (
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
+                    Sales Rep
+                  </label>
+                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                    <select
+                      value={selectedSrName || ''}
+                      onChange={(e) => {
+                        const name = e.target.value;
+                        setSelectedSrName(name || null);
+                        const customerSr = selectedCustomer?.srDues?.find((s) => s.srName === name);
+                        const systemSr = srUsers.find((u) => u.name === name);
+                        setSelectedSrUserId(customerSr?.srUserId || systemSr?.id || null);
+                      }}
+                      disabled={isSaving || !selectedCustomer}
+                      className="flex-1 min-w-0 h-6 px-2 text-xs font-semibold bg-white dark:bg-slate-800 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 truncate disabled:bg-neutral-200 dark:disabled:bg-slate-800 disabled:text-neutral-400"
+                    >
+                      <option value="">-- Select Sales Rep --</option>
+                      {selectedCustomer?.srDues?.map((s) => (
+                        <option key={s.id || s.srName} value={s.srName}>
+                          {s.srName} (Due: ৳{Number(s.currentDue || 0).toLocaleString()})
+                        </option>
+                      ))}
+                      {srUsers
+                        .filter((u) => !selectedCustomer?.srDues?.some((s) => s.srName === u.name))
+                        .map((u) => (
+                          <option key={u.id} value={u.name}>
+                            {u.name} (New for this customer)
+                          </option>
+                        ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!selectedCustomer) {
+                          toast.warning('Please select a customer first before adding an SR.');
+                          return;
+                        }
+                        setNewSrNameInput('');
+                        setNewSrUserIdSelect('');
+                        setIsAddSrModalOpen(true);
+                      }}
+                      disabled={isSaving || !selectedCustomer}
+                      title="Add/Assign New SR to this Customer"
+                      className="h-6 px-2 bg-[#006400] hover:bg-emerald-700 text-white border border-[#004d00] font-bold text-xs shadow-sm transition-colors shrink-0 cursor-pointer flex items-center gap-0.5 disabled:opacity-50"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>SR</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Row 8: Dues (Read-only) */}
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-neutral-900 dark:text-neutral-200 w-20 text-right shrink-0">
                   Dues
                 </label>
-                <input
-                  type="text"
-                  value={customerDues}
-                  readOnly
-                  tabIndex={-1}
-                  className="w-28 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-slate-700 font-bold focus:outline-none select-none cursor-not-allowed placeholder:text-neutral-400"
-                />
+                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                  <input
+                    type="text"
+                    value={customerDues}
+                    readOnly
+                    tabIndex={-1}
+                    className="w-28 h-6 px-2 bg-neutral-200 dark:bg-slate-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-slate-700 font-bold focus:outline-none select-none cursor-not-allowed placeholder:text-neutral-400"
+                  />
+                  {activeSr && (
+                    <span className="text-[10px] font-mono text-emerald-800 dark:text-emerald-300 font-bold truncate">
+                      (SR: ৳{Number(activeSr.currentDue || 0).toLocaleString()})
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -2006,6 +2190,7 @@ export function SaleManualModal({
           { label: 'Invoice:', value: invoiceNumber || 'Auto-generated' },
           { label: 'Payment Mode:', value: paymentMode },
           { label: 'Customer:', value: customerName.trim() || (paymentMode === 'CASH' ? 'Cash Party' : 'Customer') },
+          ...(paymentMode === 'CUSTOMER' && selectedSrName ? [{ label: 'Sales Rep (SR):', value: selectedSrName }] : []),
           { label: 'Total Items:', value: String(lineItems.length) },
           { label: 'Net Amount:', value: `৳${Number(netAmount).toFixed(2)}` },
           { label: 'Paid Amount:', value: `৳${Number(effectivePaid).toFixed(2)}`, color: 'text-emerald-700 dark:text-emerald-400' },
@@ -2077,6 +2262,109 @@ export function SaleManualModal({
           toast.success(`Scanned Barcode: ${scannedBarcode}`);
         }}
       />
+
+      {/* Add / Assign SR Dialog */}
+      <Dialog
+        open={isAddSrModalOpen}
+        onOpenChange={(isOpen) => !isAddingSr && setIsAddSrModalOpen(isOpen)}
+        draggable={true}
+        className="p-0 max-w-sm w-full border-2 border-[#800000] dark:border-rose-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 overflow-hidden shadow-2xl z-[80]"
+      >
+        <div className="bg-[#006400] dark:bg-emerald-950 py-1.5 px-4 border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-between text-white select-none">
+          <div className="flex items-center gap-2">
+            <UserCheck className="w-4 h-4 text-lime-300" />
+            <span className="font-bold text-xs tracking-wide">Add / Assign Sales Rep (SR)</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsAddSrModalOpen(false)}
+            disabled={isAddingSr}
+            className="text-white/80 hover:text-white p-0.5 rounded cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleAddNewSr} className="p-4 space-y-3 text-neutral-900 dark:text-neutral-100">
+          <div className="text-xs">
+            <span className="text-neutral-600 dark:text-neutral-400">Customer: </span>
+            <span className="font-bold text-neutral-900 dark:text-neutral-100">
+              {selectedCustomer?.name || 'None selected'}
+            </span>
+          </div>
+
+          {/* Option A: Pick existing registered SR */}
+          {srUsers.length > 0 && (
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                Pick Registered SR
+              </label>
+              <select
+                value={newSrUserIdSelect}
+                onChange={(e) => {
+                  const uid = e.target.value;
+                  setNewSrUserIdSelect(uid);
+                  const matched = srUsers.find((u) => u.id === uid);
+                  if (matched) {
+                    setNewSrNameInput(matched.name);
+                  }
+                }}
+                className="w-full h-7 px-2 text-xs bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-600"
+              >
+                <option value="">-- Choose from registered users --</option>
+                {srUsers.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name} {u.phone ? `(${u.phone})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Option B: Enter Custom SR Name */}
+          <div className="space-y-1">
+            <label className="block text-xs font-bold text-neutral-700 dark:text-neutral-300">
+              SR Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Rahim, Karim, etc."
+              value={newSrNameInput}
+              onChange={(e) => {
+                setNewSrNameInput(e.target.value);
+                const matched = srUsers.find(
+                  (u) => u.name.toLowerCase() === e.target.value.trim().toLowerCase()
+                );
+                if (matched) {
+                  setNewSrUserIdSelect(matched.id);
+                }
+              }}
+              className="w-full h-7 px-2 text-xs bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-600"
+            />
+          </div>
+
+          <div className="pt-2 flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isAddingSr}
+              onClick={() => setIsAddSrModalOpen(false)}
+              className="h-7 px-4 rounded-none bg-white dark:bg-slate-800 hover:bg-neutral-100 border border-neutral-400 dark:border-slate-600 font-bold text-xs shadow-sm"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isAddingSr || !newSrNameInput.trim()}
+              className="h-7 px-5 rounded-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5"
+            >
+              {isAddingSr && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>Assign SR</span>
+            </Button>
+          </div>
+        </form>
+      </Dialog>
     </>
   );
 }
