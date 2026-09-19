@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '@/lib/api/client';
 import { useAuth } from '@/lib/context/auth-context';
-import { Supplier, Customer } from '@/lib/types';
+import { Supplier, Customer, CustomerSrDue } from '@/lib/types';
 import {
   Users,
   Truck,
@@ -75,6 +75,8 @@ export default function PartiesPage() {
     name: string;
     phone?: string | null;
     due: number;
+    srDues?: CustomerSrDue[];
+    srGroup?: string | null;
   } | null>(null);
 
   // Fetch Data
@@ -266,6 +268,8 @@ export default function PartiesPage() {
       name: c.name,
       phone: c.phone,
       due: Number(c.currentDue) || 0,
+      srDues: c.srDues,
+      srGroup: c.srGroup,
     });
     setIsPaymentModalOpen(true);
   };

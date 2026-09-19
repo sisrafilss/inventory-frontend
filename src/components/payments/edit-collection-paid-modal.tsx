@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog } from '@/components/ui/dialog';
 import { X, Loader2, Search, RotateCcw, Trash2, Save } from 'lucide-react';
 import { api } from '@/lib/api/client';
-import { PartyPayment, Customer, Supplier } from '@/lib/types';
+import { PartyPayment, Customer, Supplier, CustomerSrDue } from '@/lib/types';
 
 interface EditCollectionPaidModalProps {
   open: boolean;
@@ -45,6 +45,10 @@ export function EditCollectionPaidModal({
 
   // Loaded party metadata & transaction metadata
   const [partyId, setPartyId] = useState<string>('');
+  const [customerSrDues, setCustomerSrDues] = useState<CustomerSrDue[]>([]);
+  const [selectedSrKey, setSelectedSrKey] = useState<string>('GENERAL');
+  const [selectedSrUserId, setSelectedSrUserId] = useState<string | null>(null);
+  const [selectedSrName, setSelectedSrName] = useState<string | null>(null);
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
   const [originalPaymentAmount, setOriginalPaymentAmount] = useState<number>(0);
 
@@ -78,6 +82,10 @@ export function EditCollectionPaidModal({
     setPaymentMethod('CASH');
     setReferenceNote('');
     setPartyId('');
+    setCustomerSrDues([]);
+    setSelectedSrKey('GENERAL');
+    setSelectedSrUserId(null);
+    setSelectedSrName(null);
     setEditingPaymentId(null);
     setOriginalPaymentAmount(0);
     setStatusMessage(null);
@@ -117,9 +125,27 @@ export function EditCollectionPaidModal({
             setPartyName(p.customer.name);
             setPartyAddress(p.customer.address || '');
             setCurrentDue(Number(p.customer.currentDue || 0));
+            const dues = p.customer.srDues || [];
+            setCustomerSrDues(dues);
+            if (p.srName || p.srUserId) {
+              const matched = dues.find(
+                (s) => (p.srUserId && s.srUserId === p.srUserId) || s.srName === p.srName
+              );
+              setSelectedSrKey(matched?.id || matched?.srName || p.srName || 'GENERAL');
+              setSelectedSrUserId(p.srUserId || null);
+              setSelectedSrName(p.srName || null);
+            } else {
+              setSelectedSrKey('GENERAL');
+              setSelectedSrUserId(null);
+              setSelectedSrName(null);
+            }
           }
         } else {
           setReportType('PURCHASE');
+          setCustomerSrDues([]);
+          setSelectedSrKey('GENERAL');
+          setSelectedSrUserId(null);
+          setSelectedSrName(null);
           if (p.supplier) {
             setPartyId(p.supplier.id);
             setPartyCode(p.supplier.id.slice(0, 8));
@@ -167,8 +193,24 @@ export function EditCollectionPaidModal({
           setPartyName(c.name);
           setPartyAddress(c.address || '');
           setCurrentDue(Number(c.currentDue || 0));
-          if (!editingPaymentId && (!amount || amount === 0) && Number(c.currentDue) > 0) {
-            setAmount(Number(c.currentDue));
+          const dues = c.srDues || [];
+          setCustomerSrDues(dues);
+          if (dues.length > 0) {
+            const firstWithDue = dues.find((s) => Number(s.currentDue) > 0) || dues[0];
+            setSelectedSrKey(firstWithDue.id || firstWithDue.srName);
+            setSelectedSrUserId(firstWithDue.srUserId || null);
+            setSelectedSrName(firstWithDue.srName);
+            if (!editingPaymentId && (!amount || amount === 0)) {
+              const srDue = Number(firstWithDue.currentDue) || 0;
+              setAmount(srDue > 0 ? srDue : (Number(c.currentDue) || ''));
+            }
+          } else {
+            setSelectedSrKey('GENERAL');
+            setSelectedSrUserId(null);
+            setSelectedSrName(null);
+            if (!editingPaymentId && (!amount || amount === 0) && Number(c.currentDue) > 0) {
+              setAmount(Number(c.currentDue));
+            }
           }
           setStatusMessage({ text: `Customer "${c.name}" loaded successfully.`, isError: false });
         }
@@ -180,6 +222,10 @@ export function EditCollectionPaidModal({
           setPartyName(s.name);
           setPartyAddress(s.address || '');
           setCurrentDue(Number(s.currentDue || 0));
+          setCustomerSrDues([]);
+          setSelectedSrKey('GENERAL');
+          setSelectedSrUserId(null);
+          setSelectedSrName(null);
           if (!editingPaymentId && (!amount || amount === 0) && Number(s.currentDue) > 0) {
             setAmount(Number(s.currentDue));
           }
@@ -195,6 +241,10 @@ export function EditCollectionPaidModal({
       setPartyAddress('');
       setCurrentDue(0);
       setPartyId('');
+      setCustomerSrDues([]);
+      setSelectedSrKey('GENERAL');
+      setSelectedSrUserId(null);
+      setSelectedSrName(null);
     } finally {
       setIsSearchingParty(false);
     }
@@ -206,6 +256,31 @@ export function EditCollectionPaidModal({
   const remainingDue = effectiveDueBefore - numericAmount;
   const isExceedingDue = Boolean(partyId && effectiveDueBefore > 0 && numericAmount > effectiveDueBefore);
   const hasNoDue = Boolean(partyId && effectiveDueBefore <= 0);
+
+  const handleSrChange = (key: string) => {
+    setSelectedSrKey(key);
+    if (key === 'GENERAL') {
+      setSelectedSrUserId(null);
+      setSelectedSrName(null);
+      if (!editingPaymentId) {
+        setAmount(currentDue > 0 ? currentDue : '');
+      }
+    } else {
+      const sr = customerSrDues.find((s) => (s.id && s.id === key) || s.srName === key);
+      if (sr) {
+        setSelectedSrUserId(sr.srUserId || null);
+        setSelectedSrName(sr.srName);
+        if (!editingPaymentId) {
+          const srDue = Number(sr.currentDue) || 0;
+          setAmount(srDue > 0 ? srDue : '');
+        }
+      }
+    }
+  };
+
+  const activeSr = customerSrDues.find(
+    (s) => (s.id && s.id === selectedSrKey) || s.srName === selectedSrKey
+  );
 
   // Handle Save / Submit
   const handleSave = async (e: React.FormEvent) => {
@@ -240,6 +315,14 @@ export function EditCollectionPaidModal({
       return;
     }
 
+    if (activeSr && !editingPaymentId && numericAmount > Number(activeSr.currentDue)) {
+      setStatusMessage({
+        text: `Collection amount (৳${numericAmount.toLocaleString()}) cannot exceed SR "${activeSr.srName}" current due of ৳${Number(activeSr.currentDue).toLocaleString()}.`,
+        isError: true,
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     setStatusMessage(null);
 
@@ -251,6 +334,8 @@ export function EditCollectionPaidModal({
           paymentMethod,
           referenceNote,
           date,
+          srUserId: selectedSrUserId || null,
+          srName: selectedSrName || null,
         });
         toast.success('Transaction updated and ledger balances recalculated successfully!');
       } else {
@@ -262,6 +347,8 @@ export function EditCollectionPaidModal({
             paymentMethod,
             referenceNote,
             date,
+            srUserId: selectedSrUserId || undefined,
+            srName: selectedSrName || undefined,
           });
           toast.success('Customer collection recorded and customer due reduced successfully!');
         } else {
@@ -482,6 +569,29 @@ export function EditCollectionPaidModal({
             </div>
           </div>
 
+          {/* Row 4.5: Sales Representative (SR) */}
+          {reportType === 'SALES' && customerSrDues.length > 0 && (
+            <div className="grid grid-cols-12 items-center gap-2">
+              <label className="col-span-4 text-right font-medium text-neutral-800 dark:text-neutral-200">
+                Sales Rep (SR)
+              </label>
+              <div className="col-span-8">
+                <select
+                  value={selectedSrKey}
+                  onChange={(e) => handleSrChange(e.target.value)}
+                  className="w-full h-7 px-2 bg-white dark:bg-slate-900 text-neutral-900 dark:text-neutral-100 border border-neutral-400 dark:border-slate-600 rounded-xs font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                >
+                  <option value="GENERAL">-- General / All SRs (সাধারণ কালেকশন) --</option>
+                  {customerSrDues.map((s) => (
+                    <option key={s.id || s.srName} value={s.id || s.srName}>
+                      {s.srName} (Due: ৳{Number(s.currentDue).toLocaleString()})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
           {/* Row 5: Address */}
           <div className="grid grid-cols-12 items-center gap-2">
             <label className="col-span-4 text-right font-medium text-neutral-800 dark:text-neutral-200">
@@ -503,10 +613,15 @@ export function EditCollectionPaidModal({
             <label className="col-span-4 text-right font-semibold text-neutral-800 dark:text-neutral-200">
               {reportType === 'SALES' ? 'Current Due' : 'Current Payable'}
             </label>
-            <div className="col-span-8 flex items-center gap-2">
+            <div className="col-span-8 flex items-center gap-2 flex-wrap">
               <div className="h-7 px-2 flex items-center bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 font-mono font-bold rounded-xs min-w-[120px]">
                 ৳{effectiveDueBefore.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
+              {activeSr && (
+                <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-xs bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                  SR Due: ৳{Number(activeSr.currentDue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </span>
+              )}
               {editingPaymentId && (
                 <span className="text-[11px] text-muted-foreground italic">
                   (Includes previous payment of ৳{originalPaymentAmount.toLocaleString()})

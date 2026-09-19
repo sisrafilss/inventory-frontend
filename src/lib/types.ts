@@ -239,6 +239,7 @@ export interface PartyPayment {
     phone: string;
     address?: string | null;
     currentDue?: number;
+    srDues?: CustomerSrDue[];
   } | null;
   supplierId?: string | null;
   supplier?: {
@@ -252,6 +253,9 @@ export interface PartyPayment {
   amount: number;
   paymentMethod: string;
   referenceNote?: string | null;
+  srUserId?: string | null;
+  srUser?: { id: string; name: string; phone?: string | null } | null;
+  srName?: string | null;
   createdById: string;
   createdBy?: { id: string; name: string; role: Role } | null;
   createdAt: string;

@@ -213,6 +213,7 @@ export default function PaymentsPage() {
                 <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24">Date</th>
                 <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-36">Type</th>
                 <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[180px]">Party (Customer / Supplier)</th>
+                <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-28">SR</th>
                 <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center">Method</th>
                 <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[160px]">Ref Note</th>
                 <th className="px-3 py-1.5 w-28 text-right">Amount (৳)</th>
@@ -221,7 +222,7 @@ export default function PaymentsPage() {
             <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
               {loading && page === 1 ? (
                 <tr>
-                  <td colSpan={8} className="py-16 text-center text-neutral-500 font-medium">
+                  <td colSpan={9} className="py-16 text-center text-neutral-500 font-medium">
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
                       <span>Loading cash flow...</span>
@@ -230,7 +231,7 @@ export default function PaymentsPage() {
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-rose-600 font-medium">
+                  <td colSpan={9} className="py-12 text-center text-rose-600 font-medium">
                     <div className="flex items-center justify-center gap-2">
                       <AlertCircle className="w-4 h-4" />
                       <span>{error}</span>
@@ -239,7 +240,7 @@ export default function PaymentsPage() {
                 </tr>
               ) : payments.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-16 text-center text-neutral-500 font-medium">
+                  <td colSpan={9} className="py-16 text-center text-neutral-500 font-medium">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <BadgeDollarSign className="w-8 h-8 text-neutral-400" />
                       <span>No payment or collection records found.</span>
@@ -288,6 +289,19 @@ export default function PaymentsPage() {
                             </span>
                           </div>
                         </td>
+                        <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 ${isSelected ? 'text-blue-100' : 'text-neutral-700 dark:text-neutral-300'}`}>
+                          {p.srName || p.srUser?.name ? (
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-xs text-[10px] font-semibold border ${
+                              isSelected
+                                ? 'bg-blue-800 text-white border-blue-600'
+                                : 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                            }`}>
+                              {p.srName || p.srUser?.name}
+                            </span>
+                          ) : (
+                            <span className="text-neutral-400 dark:text-neutral-600">--</span>
+                          )}
+                        </td>
                         <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono font-bold ${isSelected ? 'text-blue-100' : 'text-neutral-700 dark:text-neutral-300'}`}>
                           {p.paymentMethod}
                         </td>
@@ -306,7 +320,7 @@ export default function PaymentsPage() {
                   })}
                   {loadingMore && (
                     <tr>
-                      <td colSpan={8} className="py-6 text-center text-neutral-500 font-medium">
+                      <td colSpan={9} className="py-6 text-center text-neutral-500 font-medium">
                         <div className="flex items-center justify-center gap-2">
                           <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
                           <span>Loading more...</span>

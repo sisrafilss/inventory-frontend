@@ -11,8 +11,10 @@ import {
   CheckCircle2,
   TrendingDown,
   TrendingUp,
+  UserCheck,
 } from 'lucide-react';
 import { api } from '@/lib/api/client';
+import { CustomerSrDue } from '@/lib/types';
 
 export interface PartyPaymentModalProps {
   open: boolean;
@@ -23,6 +25,8 @@ export interface PartyPaymentModalProps {
     name: string;
     phone?: string | null;
     due: number;
+    srDues?: CustomerSrDue[];
+    srGroup?: string | null;
   } | null;
   onSuccess?: () => void;
 }
@@ -37,6 +41,9 @@ export function PartyPaymentModal({
   const [amount, setAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [referenceNote, setReferenceNote] = useState('');
+  const [selectedSrKey, setSelectedSrKey] = useState<string>('GENERAL');
+  const [selectedSrUserId, setSelectedSrUserId] = useState<string | null>(null);
+  const [selectedSrName, setSelectedSrName] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ text: string; isError: boolean } | null>(null);
 
@@ -46,16 +53,54 @@ export function PartyPaymentModal({
     if (open && party) {
       // Default amount to full due if positive, else 0
       const currentDue = Number(party.due) || 0;
-      setAmount(currentDue > 0 ? currentDue : 0);
       setPaymentMethod('CASH');
       setReferenceNote('');
       setStatusMessage(null);
+
+      if (type === 'COLLECT' && party.srDues && party.srDues.length > 0) {
+        // If there's an SR with positive due, pick the first one; else first SR
+        const firstWithDue = party.srDues.find((s) => Number(s.currentDue) > 0) || party.srDues[0];
+        const key = firstWithDue.id || firstWithDue.srName;
+        setSelectedSrKey(key);
+        setSelectedSrUserId(firstWithDue.srUserId || null);
+        setSelectedSrName(firstWithDue.srName);
+        const srDue = Number(firstWithDue.currentDue) || 0;
+        setAmount(srDue > 0 ? srDue : (currentDue > 0 ? currentDue : 0));
+      } else {
+        setSelectedSrKey('GENERAL');
+        setSelectedSrUserId(null);
+        setSelectedSrName(null);
+        setAmount(currentDue > 0 ? currentDue : 0);
+      }
+
       setTimeout(() => amountInputRef.current?.focus(), 80);
     } else {
       setStatusMessage(null);
       setIsProcessing(false);
     }
-  }, [open, party]);
+  }, [open, party, type]);
+
+  const handleSrChange = (key: string) => {
+    setSelectedSrKey(key);
+    if (key === 'GENERAL') {
+      setSelectedSrUserId(null);
+      setSelectedSrName(null);
+      const currentDue = Number(party?.due) || 0;
+      setAmount(currentDue > 0 ? currentDue : 0);
+    } else {
+      const sr = party?.srDues?.find((s) => (s.id && s.id === key) || s.srName === key);
+      if (sr) {
+        setSelectedSrUserId(sr.srUserId || null);
+        setSelectedSrName(sr.srName);
+        const srDue = Number(sr.currentDue) || 0;
+        setAmount(srDue > 0 ? srDue : 0);
+      }
+    }
+  };
+
+  const activeSr = party?.srDues?.find(
+    (s) => (s.id && s.id === selectedSrKey) || s.srName === selectedSrKey
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +109,14 @@ export function PartyPaymentModal({
     if (amount <= 0) {
       setStatusMessage({
         text: 'Payment amount must be greater than 0.',
+        isError: true,
+      });
+      return;
+    }
+
+    if (activeSr && amount > Number(activeSr.currentDue)) {
+      setStatusMessage({
+        text: `Collection amount (৳${amount.toLocaleString()}) cannot exceed SR "${activeSr.srName}" due of ৳${Number(activeSr.currentDue).toLocaleString()}.`,
         isError: true,
       });
       return;
@@ -90,9 +143,11 @@ export function PartyPaymentModal({
           amount: Number(amount),
           paymentMethod,
           referenceNote: referenceNote.trim() || undefined,
+          srUserId: selectedSrUserId || undefined,
+          srName: selectedSrName || undefined,
         });
         setStatusMessage({
-          text: `Collection of ৳${amount.toLocaleString()} from ${party.name} recorded successfully!`,
+          text: `Collection of ৳${amount.toLocaleString()} from ${party.name}${selectedSrName ? ` (SR: ${selectedSrName})` : ''} recorded successfully!`,
           isError: false,
         });
       }
@@ -185,6 +240,12 @@ export function PartyPaymentModal({
                 {party.phone}
               </div>
             )}
+            {selectedSrName && (
+              <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-xs bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                <UserCheck className="w-3 h-3" />
+                <span>SR: {selectedSrName}</span>
+              </div>
+            )}
           </div>
           <div className="text-right">
             <div className="text-[10px] text-neutral-600 dark:text-neutral-400 font-semibold uppercase">
@@ -197,11 +258,40 @@ export function PartyPaymentModal({
             >
               ৳{Number(party.due).toLocaleString()}
             </div>
+            {activeSr && (
+              <div className="text-[10px] font-mono text-neutral-600 dark:text-neutral-400 mt-0.5">
+                SR Due: <span className="font-bold text-emerald-800 dark:text-emerald-300">৳{Number(activeSr.currentDue).toLocaleString()}</span>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Structured Inputs Card */}
         <div className="space-y-2.5 bg-[#dbe7f3] dark:bg-slate-800/60 p-3.5 rounded border border-[#b2c8dc] dark:border-slate-700 shadow-inner">
+          {/* SR Selection Field */}
+          {!isPay && party.srDues && party.srDues.length > 0 && (
+            <div className="grid grid-cols-12 items-center gap-2">
+              <label className="col-span-4 text-right font-medium text-neutral-800 dark:text-neutral-200">
+                Sales Rep (SR) <span className="text-rose-600 font-bold">*</span>
+              </label>
+              <div className="col-span-8">
+                <select
+                  value={selectedSrKey}
+                  onChange={(e) => handleSrChange(e.target.value)}
+                  disabled={isProcessing}
+                  className="w-full h-7 px-2 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100 font-medium"
+                >
+                  <option value="GENERAL">-- General / All SRs (সাধারণ কালেকশন) --</option>
+                  {party.srDues.map((s) => (
+                    <option key={s.id || s.srName} value={s.id || s.srName}>
+                      {s.srName} (Due: ৳{Number(s.currentDue).toLocaleString()})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
           {/* Amount Field */}
           <div className="grid grid-cols-12 items-center gap-2">
             <label className="col-span-4 text-right font-medium text-neutral-800 dark:text-neutral-200">
