@@ -126,12 +126,12 @@ export function AddCustomerModal({
       draggable={true}
       closeOnBackdropClick={!isSaving}
       zIndex="z-[85]"
-      className="p-0 max-w-md w-full border-2 border-emerald-700 dark:border-emerald-600 rounded-none bg-white dark:bg-slate-900 overflow-hidden shadow-2xl"
+      className="p-0 max-w-md w-full border-2 border-emerald-700 dark:border-emerald-600 rounded-none bg-white dark:bg-slate-900 overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
     >
       {/* Header with Drag Handle */}
       <div
         data-drag-handle
-        className="bg-emerald-700 dark:bg-emerald-800 py-2.5 px-4 select-none flex items-center justify-between cursor-grab active:cursor-grabbing text-white"
+        className="shrink-0 bg-emerald-700 dark:bg-emerald-800 py-2.5 px-4 select-none flex items-center justify-between cursor-grab active:cursor-grabbing text-white"
       >
         <div className="flex items-center gap-2">
           <UserPlus className="w-5 h-5 text-emerald-200" />
@@ -148,7 +148,8 @@ export function AddCustomerModal({
       </div>
 
       {/* Form Body */}
-      <form onSubmit={handleSubmit} className="p-4 space-y-3.5">
+      <form onSubmit={handleSubmit} className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3.5 custom-scrollbar">
         {error && (
           <div className="flex items-start gap-2 p-2 bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 text-xs rounded">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -264,14 +265,15 @@ export function AddCustomerModal({
             </div>
           </div>
         </div>
+        </div>
 
-        {/* Action Buttons */}
-        <div className="pt-2 flex items-center justify-end gap-2 border-t border-neutral-200 dark:border-slate-700">
+        {/* Action Buttons (Pinned at bottom) */}
+        <div className="shrink-0 p-3 px-4 flex items-center justify-end gap-2 border-t border-neutral-200 dark:border-slate-700 bg-neutral-50 dark:bg-slate-900">
           <button
             type="button"
             onClick={() => onOpenChange(false)}
             disabled={isSaving}
-            className="px-4 h-7 text-xs font-semibold bg-neutral-100 dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-slate-700 border border-neutral-300 dark:border-slate-600 cursor-pointer disabled:opacity-50"
+            className="px-4 h-7 text-xs font-semibold bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-slate-700 border border-neutral-300 dark:border-slate-600 cursor-pointer disabled:opacity-50"
           >
             Cancel
           </button>

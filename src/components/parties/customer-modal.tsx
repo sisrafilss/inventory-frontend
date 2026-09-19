@@ -511,13 +511,13 @@ export function CustomerModal({
       draggable={true}
       closeOnBackdropClick={false}
       zIndex={zIndex || 'z-50'}
-      className="p-0 max-w-lg w-full border-2 border-[#006400] dark:border-emerald-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 overflow-hidden shadow-2xl"
+      className="p-0 max-w-lg w-full border-2 border-[#006400] dark:border-emerald-900 rounded-none bg-[#c6d8ea] dark:bg-slate-900 overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
     >
       {/* Top Banner Header with Drag Handle */}
       <div
         data-drag-handle
         title="Click and drag to move window"
-        className="relative bg-[#006400] dark:bg-emerald-950 py-2 px-4 select-none border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none"
+        className="shrink-0 relative bg-[#006400] dark:bg-emerald-950 py-2 px-4 select-none border-b border-[#004d00] dark:border-emerald-900 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none"
       >
         <div className="text-center">
           <span className="text-[10px] uppercase font-mono tracking-widest text-emerald-200/90 block -mb-0.5">
@@ -541,7 +541,9 @@ export function CustomerModal({
       </div>
 
       {/* Form Body */}
-      <form onSubmit={handleSave} className="p-4 space-y-3 text-xs">
+      <form onSubmit={handleSave} className="flex-1 min-h-0 flex flex-col overflow-hidden text-xs">
+        {/* Scrollable Form Content */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 custom-scrollbar">
         {/* Top Control Bar: Reset & Info */}
         <div className="flex items-center justify-between gap-2 pb-1 border-b border-[#a8c2dc] dark:border-slate-800">
           <button
@@ -1147,9 +1149,10 @@ export function CustomerModal({
             </div>
           </div>
         </div>
+        </div>
 
-        {/* Footer Actions */}
-        <div className="flex items-center justify-between pt-2 border-t border-[#a8c2dc] dark:border-slate-800">
+        {/* Footer Actions (Pinned at bottom, always visible) */}
+        <div className="shrink-0 flex items-center justify-between p-3 px-4 bg-[#c6d8ea] dark:bg-slate-900 border-t border-[#a8c2dc] dark:border-slate-800">
           <div>
             {isEdit && isAdmin && (
               <button
