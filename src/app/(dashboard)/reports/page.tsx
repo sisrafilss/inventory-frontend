@@ -129,6 +129,7 @@ function ReportsPageContent() {
   const [endDate, setEndDate] = useState('');
   const [invoiceLookup, setInvoiceLookup] = useState('');
   const [dueListSrGroup, setDueListSrGroup] = useState<string>('ALL');
+  const [reportCustomerType, setReportCustomerType] = useState<'ALL' | 'WHOLESALE' | 'RETAIL'>('ALL');
 
   // Warehouse Stock Report States
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('ALL');
@@ -284,6 +285,10 @@ function ReportsPageContent() {
         endDate: endDate || undefined,
       };
 
+      if (reportCustomerType !== 'ALL') {
+        params.customerType = reportCustomerType;
+      }
+
       if (activeReport === 'daily-sales') {
         endpoint = '/reports/daily-sales';
         if (startDate) params.date = startDate;
@@ -335,7 +340,7 @@ function ReportsPageContent() {
       return;
     }
     fetchReport();
-  }, [activeReport, selectedWarehouseId, dueListSrGroup, startDate, endDate]);
+  }, [activeReport, selectedWarehouseId, dueListSrGroup, reportCustomerType, startDate, endDate]);
 
   // Sync when urlTab changes (e.g. from sidebar clicks)
   useEffect(() => {
@@ -496,6 +501,18 @@ function ReportsPageContent() {
             ) : activeReport === 'due-list' ? (
               <div className="flex flex-wrap items-center gap-2">
                 <label className="font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>Customer Type:</span>
+                </label>
+                <select
+                  value={reportCustomerType}
+                  onChange={(e) => setReportCustomerType(e.target.value as any)}
+                  className="h-7 px-2 text-xs border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#0056b3] font-medium"
+                >
+                  <option value="ALL">All Types (সকল ধরণ)</option>
+                  <option value="WHOLESALE">Wholesale (পাইকারি)</option>
+                  <option value="RETAIL">Retail (খুচরা)</option>
+                </select>
+                <label className="font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider flex items-center gap-1.5">
                   <span>Filter by Group SR:</span>
                 </label>
                 <select
@@ -510,10 +527,13 @@ function ReportsPageContent() {
                     </option>
                   ))}
                 </select>
-                {dueListSrGroup !== 'ALL' && (
+                {(dueListSrGroup !== 'ALL' || reportCustomerType !== 'ALL') && (
                   <button
                     type="button"
-                    onClick={() => setDueListSrGroup('ALL')}
+                    onClick={() => {
+                      setDueListSrGroup('ALL');
+                      setReportCustomerType('ALL');
+                    }}
                     className="h-7 px-2.5 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 text-neutral-700 dark:text-neutral-300 font-bold text-xs rounded-xs hover:bg-neutral-50 transition-colors shadow-sm cursor-pointer"
                   >
                     Reset Filter
@@ -747,13 +767,27 @@ function ReportsPageContent() {
                   onChange={(e) => setEndDate(e.target.value)}
                   className="h-7 px-1.5 text-xs border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#0056b3]"
                 />
+                {(activeReport === 'sales' || activeReport === 'daily-sales') && (
+                  <div className="flex items-center gap-1.5 ml-1">
+                    <label className="font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">Customer Type:</label>
+                    <select
+                      value={reportCustomerType}
+                      onChange={(e) => setReportCustomerType(e.target.value as any)}
+                      className="h-7 px-2 text-xs border border-neutral-400 dark:border-slate-600 rounded-xs bg-white dark:bg-slate-900 focus:outline-none focus:border-[#0056b3] font-medium"
+                    >
+                      <option value="ALL">All Types (সকল ধরণ)</option>
+                      <option value="WHOLESALE">Wholesale (পাইকারি)</option>
+                      <option value="RETAIL">Retail (খুচরা)</option>
+                    </select>
+                  </div>
+                )}
                 <button type="submit" className="h-7 px-4 bg-[#0056b3] hover:bg-blue-800 text-white border border-blue-900 font-bold text-xs rounded-xs shadow-sm uppercase tracking-wider ml-2">
                   Load Report
                 </button>
-                {(startDate || endDate) && (
+                {(startDate || endDate || reportCustomerType !== 'ALL') && (
                   <button
                     type="button"
-                    onClick={() => { setStartDate(''); setEndDate(''); fetchReport(); }}
+                    onClick={() => { setStartDate(''); setEndDate(''); setReportCustomerType('ALL'); fetchReport(); }}
                     className="h-7 px-3 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 text-neutral-700 dark:text-neutral-300 font-bold text-xs rounded-xs hover:bg-neutral-50 transition-colors shadow-sm ml-1"
                   >
                     Clear
@@ -895,7 +929,18 @@ function ReportsPageContent() {
                             ) : data.customerDues.map((d: any, i: number) => (
                               <tr key={i} className="hover:bg-neutral-50 dark:hover:bg-slate-800/50">
                                 <td className="p-2 border-r border-neutral-300 dark:border-slate-700 font-semibold">
-                                  {d.name}
+                                  <div className="flex items-center gap-1.5">
+                                    <span>{d.name}</span>
+                                    <span
+                                      className={`px-1 py-0.2 rounded text-[9px] font-bold ${
+                                        d.customerType === 'RETAIL'
+                                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
+                                          : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-300 dark:border-blue-800'
+                                      }`}
+                                    >
+                                      {d.customerType === 'RETAIL' ? 'Retail' : 'Wholesale'}
+                                    </span>
+                                  </div>
                                   {d.companyName && (
                                     <span className="block text-[10px] text-neutral-500 font-normal">
                                       {d.companyName}

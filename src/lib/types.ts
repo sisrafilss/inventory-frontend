@@ -152,6 +152,8 @@ export interface SRUser {
   status: UserStatus;
 }
 
+export type CustomerType = 'RETAIL' | 'WHOLESALE';
+
 export interface Customer {
   id: string;
   code: string;
@@ -161,6 +163,7 @@ export interface Customer {
   email?: string | null;
   address?: string | null;
   srGroup?: string | null;
+  customerType?: CustomerType;
   openingDue: number;
   currentDue: number;
   isActive: boolean;
@@ -334,6 +337,7 @@ export interface Sale {
     phone: string;
     address?: string | null;
     currentDue?: number;
+    customerType?: CustomerType;
   } | null;
   warehouseId?: string | null;
   warehouse?: { id: string; name: string } | null;

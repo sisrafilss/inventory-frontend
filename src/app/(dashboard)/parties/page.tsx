@@ -52,6 +52,7 @@ export default function PartiesPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE' | 'DUE'>('ALL');
+  const [customerTypeFilter, setCustomerTypeFilter] = useState<'ALL' | 'WHOLESALE' | 'RETAIL'>('ALL');
 
   // Selected row in table
   const [selectedPartyId, setSelectedPartyId] = useState<string | null>(null);
@@ -150,6 +151,8 @@ export default function PartiesPage() {
   // Filtered Customers
   const filteredCustomers = useMemo(() => {
     return customers.filter((c) => {
+      if (customerTypeFilter === 'WHOLESALE' && c.customerType === 'RETAIL') return false;
+      if (customerTypeFilter === 'RETAIL' && (c.customerType === 'WHOLESALE' || !c.customerType)) return false;
       if (statusFilter === 'ACTIVE' && !c.isActive) return false;
       if (statusFilter === 'INACTIVE' && c.isActive) return false;
       if (statusFilter === 'DUE' && (Number(c.currentDue) || 0) <= 0) return false;
@@ -168,7 +171,7 @@ export default function PartiesPage() {
 
       return matchCode || matchName || matchCompany || matchPhone || matchAddress || matchId || matchSr;
     });
-  }, [customers, statusFilter, search]);
+  }, [customers, customerTypeFilter, statusFilter, search]);
 
   // Currently Selected Objects
   const selectedSupplier = useMemo(
@@ -275,19 +278,28 @@ export default function PartiesPage() {
   };
 
   // Current active counts
-  const currentListCount = activeTab === 'suppliers' ? suppliers.length : customers.length;
+  const wholesaleCustomerCount = customers.filter((c) => c.customerType === 'WHOLESALE' || !c.customerType).length;
+  const retailCustomerCount = customers.filter((c) => c.customerType === 'RETAIL').length;
+  const currentListCount =
+    activeTab === 'suppliers'
+      ? suppliers.length
+      : customerTypeFilter === 'WHOLESALE'
+      ? wholesaleCustomerCount
+      : customerTypeFilter === 'RETAIL'
+      ? retailCustomerCount
+      : customers.length;
   const currentActiveCount =
     activeTab === 'suppliers'
       ? suppliers.filter((s) => s.isActive).length
-      : customers.filter((c) => c.isActive).length;
+      : filteredCustomers.filter((c) => c.isActive).length;
   const currentInactiveCount =
     activeTab === 'suppliers'
       ? suppliers.filter((s) => !s.isActive).length
-      : customers.filter((c) => !c.isActive).length;
+      : filteredCustomers.filter((c) => !c.isActive).length;
   const currentDueCount =
     activeTab === 'suppliers'
       ? suppliers.filter((s) => Number(s.currentDue) > 0).length
-      : customers.filter((c) => Number(c.currentDue) > 0).length;
+      : filteredCustomers.filter((c) => Number(c.currentDue) > 0).length;
 
   return (
     <div className="w-full h-full flex-1 min-h-0 flex flex-col">
@@ -510,6 +522,47 @@ export default function PartiesPage() {
 
             {/* Quick Status Filters & Action Buttons */}
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+              {activeTab === 'customers' && (
+                <div className="flex items-center gap-1 mr-1 pr-2 border-r border-neutral-300 dark:border-slate-700">
+                  <span className="text-[11px] font-semibold text-neutral-700 dark:text-neutral-300 mr-1">
+                    Type:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCustomerTypeFilter('ALL')}
+                    className={`px-2 py-0.5 text-xs font-bold rounded-xs border transition-colors cursor-pointer ${
+                      customerTypeFilter === 'ALL'
+                        ? 'bg-[#004d00] text-white border-[#004d00]'
+                        : 'bg-white dark:bg-slate-800 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-slate-700 hover:bg-neutral-100'
+                    }`}
+                  >
+                    All ({customers.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCustomerTypeFilter('WHOLESALE')}
+                    className={`px-2 py-0.5 text-xs font-bold rounded-xs border transition-colors cursor-pointer ${
+                      customerTypeFilter === 'WHOLESALE'
+                        ? 'bg-blue-700 text-white border-blue-700'
+                        : 'bg-white dark:bg-slate-800 text-blue-800 dark:text-blue-400 border-neutral-300 dark:border-slate-700 hover:bg-neutral-100'
+                    }`}
+                  >
+                    Wholesale ({wholesaleCustomerCount})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCustomerTypeFilter('RETAIL')}
+                    className={`px-2 py-0.5 text-xs font-bold rounded-xs border transition-colors cursor-pointer ${
+                      customerTypeFilter === 'RETAIL'
+                        ? 'bg-amber-700 text-white border-amber-700'
+                        : 'bg-white dark:bg-slate-800 text-amber-800 dark:text-amber-400 border-neutral-300 dark:border-slate-700 hover:bg-neutral-100'
+                    }`}
+                  >
+                    Retail ({retailCustomerCount})
+                  </button>
+                </div>
+              )}
+
               <div className="flex items-center gap-1">
                 <span className="text-[11px] font-semibold text-neutral-700 dark:text-neutral-300 mr-1">
                   Status:
@@ -886,6 +939,9 @@ export default function PartiesPage() {
                       <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 w-24 text-center font-mono">
                         Code
                       </th>
+                      <th className="border-r border-neutral-300 dark:border-slate-700 px-2 py-1.5 w-24 text-center">
+                        Type
+                      </th>
                       <th className="border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 min-w-[180px]">
                         Customer Name
                       </th>
@@ -912,7 +968,7 @@ export default function PartiesPage() {
                   <tbody className="divide-y divide-neutral-200 dark:divide-slate-800">
                     {loading ? (
                       <tr>
-                        <td colSpan={9} className="py-16 text-center text-neutral-500 font-medium">
+                        <td colSpan={10} className="py-16 text-center text-neutral-500 font-medium">
                           <div className="flex items-center justify-center gap-2">
                             <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
                             <span>Loading customers from database...</span>
@@ -921,7 +977,7 @@ export default function PartiesPage() {
                       </tr>
                     ) : error ? (
                       <tr>
-                        <td colSpan={9} className="py-12 text-center text-rose-600 font-medium">
+                        <td colSpan={10} className="py-12 text-center text-rose-600 font-medium">
                           <div className="flex items-center justify-center gap-2">
                             <AlertCircle className="w-4 h-4" />
                             <span>{error}</span>
@@ -930,7 +986,7 @@ export default function PartiesPage() {
                       </tr>
                     ) : filteredCustomers.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="py-16 text-center text-neutral-500 font-medium">
+                        <td colSpan={10} className="py-16 text-center text-neutral-500 font-medium">
                           <div className="flex flex-col items-center justify-center gap-2">
                             <Users className="w-8 h-8 text-neutral-400" />
                             <span>No customers found matching your filter criteria.</span>
@@ -984,6 +1040,23 @@ export default function PartiesPage() {
                                   --
                                 </span>
                               )}
+                            </td>
+
+                            {/* Type */}
+                            <td className="border-r border-neutral-300 dark:border-slate-700 px-2 py-1.5 text-center">
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                  c.customerType === 'RETAIL'
+                                    ? isSelected
+                                      ? 'bg-amber-600 text-white'
+                                      : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
+                                    : isSelected
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-300 dark:border-blue-800'
+                                }`}
+                              >
+                                {c.customerType === 'RETAIL' ? 'Retail' : 'Wholesale'}
+                              </span>
                             </td>
 
                             {/* Customer Name */}

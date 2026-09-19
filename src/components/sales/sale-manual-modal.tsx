@@ -1,7 +1,7 @@
 'use client';
 import { toast } from 'sonner';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Dialog } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,7 @@ import { api } from '@/lib/api/client';
 import { InvoiceMemoModal, MemoSale } from './invoice-memo-modal';
 import { ProductLookupModal } from '../products/product-lookup-modal';
 import { CustomerLookupModal } from '../customers/customer-lookup-modal';
-import { CustomerModal } from '@/components/parties/customer-modal';
+import { AddKhusraCustomerModal } from '@/components/parties/add-khusra-customer-modal';
 import { CameraScannerModal } from '@/components/ui/camera-scanner-modal';
 import { Camera, Barcode } from 'lucide-react';
 import { formatStock, formatUnitLabel, isPackagedUnit, getDefaultPackSize } from '@/lib/stock-utils';
@@ -741,8 +741,17 @@ export function SaleManualModal({
         ? (selectedCustomer.code || (selectedCustomer.id.length > 12 ? selectedCustomer.id.slice(0, 8) : selectedCustomer.id)).toLowerCase()
         : '');
 
+  // Filtered customers based on search text and customerType (CASH = RETAIL, CUSTOMER = WHOLESALE)
+  const scopedCustomers = useMemo(() => {
+    if (paymentMode === 'CASH') {
+      return customersList.filter((c) => c.customerType === 'RETAIL');
+    } else {
+      return customersList.filter((c) => c.customerType === 'WHOLESALE' || !c.customerType);
+    }
+  }, [customersList, paymentMode]);
+
   const filteredCustomers = isSearchingCustomerText
-    ? customersList.filter((c) => {
+    ? scopedCustomers.filter((c) => {
         const query = customerSearchText.toLowerCase();
         return (
           (c.code && c.code.toLowerCase().includes(query)) ||
@@ -752,7 +761,7 @@ export function SaleManualModal({
           (c.address && c.address.toLowerCase().includes(query))
         );
       })
-    : customersList;
+    : scopedCustomers;
 
   // Totals Calculations
   const totalAmount = lineItems.reduce((acc, item) => acc + item.amount, 0);
@@ -1728,37 +1737,45 @@ export function SaleManualModal({
                   <div className="absolute left-20 right-0 top-full mt-1 max-h-60 overflow-y-auto bg-white dark:bg-slate-800 border border-neutral-300 dark:border-slate-600 shadow-xl z-50 py-1">
                     <div className="px-2.5 py-1 border-b border-neutral-200 dark:border-slate-700 bg-neutral-50 dark:bg-slate-800/90 text-[11px] flex items-center justify-between">
                       <span className="font-bold text-neutral-600 dark:text-neutral-300">
-                        {filteredCustomers.length} Customers
+                        {filteredCustomers.length} {paymentMode === 'CASH' ? 'Retail' : 'Wholesale'} Customers
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsCustomerDropdownOpen(false);
-                          setAddCustomerModalOpen(true);
-                        }}
-                        className="text-[#006400] dark:text-emerald-400 hover:underline font-bold text-[11px] flex items-center gap-1 cursor-pointer"
-                      >
-                        <UserPlus className="w-3 h-3" />
-                        <span>Add New Customer</span>
-                      </button>
-                    </div>
-
-                    {filteredCustomers.length === 0 ? (
-                      <div className="p-3 text-center space-y-2">
-                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                          No customer found {customerSearchText ? `for "${customerSearchText}"` : ''}
-                        </p>
+                      {paymentMode === 'CASH' && (
                         <button
                           type="button"
                           onClick={() => {
                             setIsCustomerDropdownOpen(false);
                             setAddCustomerModalOpen(true);
                           }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded shadow cursor-pointer transition-colors"
+                          className="text-[#006400] dark:text-emerald-400 hover:underline font-bold text-[11px] flex items-center gap-1 cursor-pointer"
                         >
-                          <UserPlus className="w-3.5 h-3.5" />
-                          <span>Add New Customer</span>
+                          <UserPlus className="w-3 h-3" />
+                          <span>Add Retail Customer</span>
                         </button>
+                      )}
+                    </div>
+
+                    {filteredCustomers.length === 0 ? (
+                      <div className="p-3 text-center space-y-2">
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          No {paymentMode === 'CASH' ? 'retail' : 'wholesale'} customer found {customerSearchText ? `for "${customerSearchText}"` : ''}
+                        </p>
+                        {paymentMode === 'CASH' ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsCustomerDropdownOpen(false);
+                              setAddCustomerModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded shadow cursor-pointer transition-colors"
+                          >
+                            <UserPlus className="w-3.5 h-3.5" />
+                            <span>Add Retail Customer</span>
+                          </button>
+                        ) : (
+                          <p className="text-[11px] text-neutral-400">
+                            Wholesale customers are added via Parties &rarr; Customers.
+                          </p>
+                        )}
                       </div>
                     ) : (
                       filteredCustomers.map((c) => {
@@ -2250,10 +2267,11 @@ export function SaleManualModal({
         onOpenChange={setCustomerLookupOpen}
         onSelectCustomer={handleSelectCustomerFromLookup}
         initialSearch={customerSearchText}
+        defaultCustomerType={paymentMode === 'CASH' ? 'RETAIL' : 'WHOLESALE'}
       />
 
-      {/* Add Customer Modal */}
-      <CustomerModal
+      {/* Add Retail Customer Modal */}
+      <AddKhusraCustomerModal
         open={addCustomerModalOpen}
         onOpenChange={setAddCustomerModalOpen}
         onSuccess={handleCustomerCreated}

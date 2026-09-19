@@ -16,6 +16,7 @@ import {
 import { Customer } from '@/lib/types';
 import { api } from '@/lib/api/client';
 import { AddCustomerModal } from './add-customer-modal';
+import { AddKhusraCustomerModal } from '@/components/parties/add-khusra-customer-modal';
 
 export interface CustomerLookupModalProps {
   open: boolean;
@@ -23,6 +24,7 @@ export interface CustomerLookupModalProps {
   onSelectCustomer: (customer: Customer) => void;
   title?: string;
   initialSearch?: string;
+  defaultCustomerType?: 'ALL' | 'RETAIL' | 'WHOLESALE';
 }
 
 export function CustomerLookupModal({
@@ -31,10 +33,12 @@ export function CustomerLookupModal({
   onSelectCustomer,
   title = 'Select Customer',
   initialSearch = '',
+  defaultCustomerType = 'ALL',
 }: CustomerLookupModalProps) {
   // Search & Filter States
   const [search, setSearch] = useState(initialSearch);
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
+  const [customerTypeFilter, setCustomerTypeFilter] = useState<'ALL' | 'RETAIL' | 'WHOLESALE'>(defaultCustomerType);
   const [dueFilter, setDueFilter] = useState<'ALL' | 'HAS_DUE' | 'NO_DUE'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
 
@@ -42,8 +46,9 @@ export function CustomerLookupModal({
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Add Customer Modal State
+  // Add Customer Modal States
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
+  const [addKhusraCustomerOpen, setAddKhusraCustomerOpen] = useState(false);
 
   // Refs
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -56,17 +61,20 @@ export function CustomerLookupModal({
         setSearch(initialSearch);
         setDebouncedSearch(initialSearch);
       }
+      setCustomerTypeFilter(defaultCustomerType);
       setTimeout(() => searchInputRef.current?.focus(), 100);
       fetchCustomers();
     } else {
       setSearch('');
       setDebouncedSearch('');
+      setCustomerTypeFilter(defaultCustomerType);
       setDueFilter('ALL');
       setStatusFilter('ALL');
       setCustomers([]);
       setAddCustomerOpen(false);
+      setAddKhusraCustomerOpen(false);
     }
-  }, [open, initialSearch]);
+  }, [open, initialSearch, defaultCustomerType]);
 
   // Debounce search input
   useEffect(() => {
@@ -82,6 +90,7 @@ export function CustomerLookupModal({
     try {
       const params: Record<string, any> = {
         search: debouncedSearch.trim() || undefined,
+        customerType: customerTypeFilter !== 'ALL' ? customerTypeFilter : undefined,
         isActive:
           statusFilter === 'ACTIVE'
             ? 'true'
@@ -104,17 +113,18 @@ export function CustomerLookupModal({
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, statusFilter, dueFilter]);
+  }, [debouncedSearch, customerTypeFilter, statusFilter, dueFilter]);
 
   // Refetch when filters change
   useEffect(() => {
     if (!open) return;
     fetchCustomers();
-  }, [debouncedSearch, statusFilter, dueFilter, open, fetchCustomers]);
+  }, [debouncedSearch, customerTypeFilter, statusFilter, dueFilter, open, fetchCustomers]);
 
   const handleResetFilters = () => {
     setSearch('');
     setDebouncedSearch('');
+    setCustomerTypeFilter(defaultCustomerType);
     setDueFilter('ALL');
     setStatusFilter('ALL');
   };
@@ -169,7 +179,7 @@ export function CustomerLookupModal({
       <div className="p-3 bg-neutral-100 dark:bg-slate-800/90 border-b border-neutral-300 dark:border-slate-700 space-y-2 shrink-0">
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
           {/* Main Search Input */}
-          <div className="sm:col-span-6 relative">
+          <div className="sm:col-span-4 relative">
             <Search className="w-4 h-4 text-neutral-400 dark:text-neutral-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               ref={searchInputRef}
@@ -190,8 +200,21 @@ export function CustomerLookupModal({
             )}
           </div>
 
-          {/* Due Filter */}
+          {/* Customer Type Filter */}
           <div className="sm:col-span-3">
+            <select
+              value={customerTypeFilter}
+              onChange={(e) => setCustomerTypeFilter(e.target.value as any)}
+              className="w-full h-8 px-2 bg-white dark:bg-slate-900 text-neutral-900 dark:text-neutral-100 text-xs border border-neutral-300 dark:border-slate-600 rounded-sm focus:outline-none focus:ring-1 focus:ring-emerald-600 font-medium"
+            >
+              <option value="ALL">All Types (সব ধরণ)</option>
+              <option value="WHOLESALE">Wholesale (পাইকারি)</option>
+              <option value="RETAIL">Retail (খুচরা)</option>
+            </select>
+          </div>
+
+          {/* Due Filter */}
+          <div className="sm:col-span-2">
             <select
               value={dueFilter}
               onChange={(e) => setDueFilter(e.target.value as any)}
@@ -244,6 +267,9 @@ export function CustomerLookupModal({
               <th className="py-2 px-3 text-left border-r border-neutral-300 dark:border-slate-700">
                 Customer Name
               </th>
+              <th className="py-2 px-2 w-24 text-center border-r border-neutral-300 dark:border-slate-700">
+                Type
+              </th>
               <th className="py-2 px-3 w-36 text-left border-r border-neutral-300 dark:border-slate-700">
                 Phone Number
               </th>
@@ -263,6 +289,7 @@ export function CustomerLookupModal({
             {customers.map((c) => {
               const due = Number(c.currentDue ?? c.openingDue ?? 0);
               const hasDue = due > 0;
+              const isRetail = c.customerType === 'RETAIL';
 
               return (
                 <tr
@@ -282,6 +309,19 @@ export function CustomerLookupModal({
                     <div className="font-bold text-neutral-900 dark:text-neutral-100 group-hover:text-emerald-700 dark:group-hover:text-emerald-400">
                       {c.name}
                     </div>
+                  </td>
+
+                  {/* Customer Type Badge */}
+                  <td className="py-2 px-2 text-center border-r border-neutral-200 dark:border-slate-800">
+                    <span
+                      className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                        isRetail
+                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
+                          : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-300 dark:border-blue-800'
+                      }`}
+                    >
+                      {isRetail ? 'Retail (খুচরা)' : 'Wholesale (পাইকারি)'}
+                    </span>
                   </td>
 
                   {/* Phone */}
@@ -353,13 +393,19 @@ export function CustomerLookupModal({
             {/* Empty State */}
             {!loading && customers.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-12 text-center text-neutral-500 dark:text-neutral-400">
+                <td colSpan={8} className="py-12 text-center text-neutral-500 dark:text-neutral-400">
                   <Users className="w-10 h-10 mx-auto text-neutral-400 dark:text-neutral-600 mb-2 opacity-60" />
                   <p className="font-semibold text-sm">No customers found</p>
                   <p className="text-xs text-neutral-400 mb-3">Try changing your search keywords or add as a new customer.</p>
                   <button
                     type="button"
-                    onClick={() => setAddCustomerOpen(true)}
+                    onClick={() => {
+                      if (customerTypeFilter === 'RETAIL') {
+                        setAddKhusraCustomerOpen(true);
+                      } else {
+                        setAddCustomerOpen(true);
+                      }
+                    }}
                     className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold shadow transition-colors cursor-pointer"
                   >
                     <UserPlus className="w-3.5 h-3.5" />
@@ -372,7 +418,7 @@ export function CustomerLookupModal({
             {/* Loading Spinner */}
             {loading && (
               <tr>
-                <td colSpan={7} className="py-10 text-center text-neutral-500">
+                <td colSpan={8} className="py-10 text-center text-neutral-500">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto text-emerald-600 mb-1" />
                   <p className="text-xs">Loading customer directory...</p>
                 </td>
@@ -397,11 +443,19 @@ export function CustomerLookupModal({
       </div>
     </Dialog>
 
-    {/* Add Customer Modal */}
+    {/* Add Customer Modal (Wholesale) */}
     <AddCustomerModal
       open={addCustomerOpen}
       onOpenChange={setAddCustomerOpen}
       onCustomerCreated={handleCustomerCreated}
+      initialSearch={search}
+    />
+
+    {/* Add Retail Customer Modal */}
+    <AddKhusraCustomerModal
+      open={addKhusraCustomerOpen}
+      onOpenChange={setAddKhusraCustomerOpen}
+      onSuccess={handleCustomerCreated}
       initialSearch={search}
     />
   </>

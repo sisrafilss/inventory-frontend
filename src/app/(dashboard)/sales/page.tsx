@@ -21,6 +21,7 @@ export default function SalesListPage() {
   // Filters
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [customerTypeFilter, setCustomerTypeFilter] = useState<'ALL' | 'WHOLESALE' | 'RETAIL'>('ALL');
 
   // Sale Details Modal
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
@@ -58,6 +59,7 @@ export default function SalesListPage() {
         limit,
         search: debouncedSearch || undefined,
         status: statusFilter || undefined,
+        customerType: customerTypeFilter !== 'ALL' ? customerTypeFilter : undefined,
       });
       
       if (page === 1) {
@@ -79,11 +81,11 @@ export default function SalesListPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter]);
+  }, [statusFilter, customerTypeFilter]);
 
   useEffect(() => {
     fetchSales();
-  }, [page, limit, debouncedSearch, statusFilter]);
+  }, [page, limit, debouncedSearch, statusFilter, customerTypeFilter]);
 
   const handleTableScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
@@ -138,6 +140,19 @@ export default function SalesListPage() {
                 className="w-64 pl-7 pr-2 py-1 bg-white dark:bg-slate-900 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs focus:outline-none focus:ring-1 focus:ring-[#006400] text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400"
               />
               <Search className="w-3.5 h-3.5 text-neutral-500 absolute left-2 top-1.5" />
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-semibold text-neutral-700 dark:text-neutral-300">Customer:</span>
+              <select
+                value={customerTypeFilter}
+                onChange={(e) => setCustomerTypeFilter(e.target.value as any)}
+                className="h-6 px-1.5 bg-white dark:bg-slate-800 border border-neutral-400 dark:border-slate-600 rounded-xs text-xs text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-[#006400]"
+              >
+                <option value="ALL">All Types</option>
+                <option value="WHOLESALE">Wholesale (পাইকারি)</option>
+                <option value="RETAIL">Retail (খুচরা)</option>
+              </select>
             </div>
 
             <div className="flex items-center gap-1.5">
@@ -234,10 +249,28 @@ export default function SalesListPage() {
                         <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 ${isSelected ? 'text-blue-100' : 'text-neutral-700 dark:text-neutral-300'}`}>
                           {sale.customerName ? (
                             <div className="flex flex-col">
-                              <span className={`font-semibold ${isSelected ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'}`}>{sale.customerName}</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className={`font-semibold ${isSelected ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'}`}>{sale.customerName}</span>
+                                <span
+                                  className={`px-1 py-0.2 rounded text-[9px] font-bold ${
+                                    sale.customer?.customerType === 'RETAIL'
+                                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
+                                      : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-300 dark:border-blue-800'
+                                  }`}
+                                >
+                                  {sale.customer?.customerType === 'RETAIL' ? 'Retail' : 'Wholesale'}
+                                </span>
+                              </div>
                               {sale.customerPhone && <span className={`text-[10px] ${isSelected ? 'text-blue-200' : 'text-neutral-500'}`}>{sale.customerPhone}</span>}
                             </div>
-                          ) : 'Walk-in Customer'}
+                          ) : (
+                            <div className="flex items-center gap-1.5">
+                              <span>Walk-in Customer</span>
+                              <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                                Retail
+                              </span>
+                            </div>
+                          )}
                         </td>
                         <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-center font-mono ${isSelected ? 'text-blue-100' : 'text-neutral-700 dark:text-neutral-300'}`}>{sale.items?.length || 0}</td>
                         <td className={`border-r border-neutral-300 dark:border-slate-700 px-3 py-1.5 text-right font-mono font-bold ${isSelected ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'}`}>
